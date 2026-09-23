@@ -115,11 +115,11 @@ Remove-Item Env:YESULIN_FORMS_DIR
 
 ### Railway (운영 중)
 
-- 주소: https://web-production-e8f7f.up.railway.app (프로젝트 `yesulin`, 서비스 `web`)
+- 주소: https://apply.yesulin.art (Cloudflare DNS `apply` CNAME → Railway, 프록시 끔). Railway 기본 주소 https://web-production-e8f7f.up.railway.app 도 그대로 동작한다. 프로젝트 `yesulin`, 서비스 `web`.
 - 루트의 `Dockerfile` 하나로 프런트 빌드, 백엔드 jar, rhwp, 한글 폰트를 묶어 같은 주소에서 서빙한다.
 - 볼륨 `web-volume`을 `/data`에 연결했다. 완성 횟수(`/data/completions.txt`)와 로그(`/data/logs`)는 재배포해도 남는다.
 - 서비스 변수: `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES=.*`, `SERVER_TOMCAT_REMOTEIP_REMOTE_IP_HEADER=x-real-ip`. Railway 중계 서버가 실제 사용자 IP를 `X-Real-IP`에 덮어써서 넘겨주므로 이 값을 믿는다. 이 설정이 없으면 모든 사용자가 중계 서버 IP로 묶여 횟수 제한을 함께 쓴다.
-- 다시 배포: 프로젝트 루트에서 `railway up`. 로그 보기: `railway logs`.
+- 배포: GitHub `main`에 push하면 CI(테스트·빌드)가 돌고, Railway 서비스가 저장소에 연결돼 있으면 CI 통과 후 자동 배포된다. 급할 때는 루트에서 `railway up`. 로그 보기: `railway logs`.
 
 ### 로그
 
