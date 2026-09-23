@@ -1,7 +1,7 @@
 # One container serves the app and its API from the same address (Railway).
 # Build: frontend → static files, backend → jar. Run: JRE + rhwp (PDF/preview) + Korean fonts.
 
-FROM node:22-bookworm-slim AS frontend
+FROM node:24-bookworm-slim AS frontend
 WORKDIR /build/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
