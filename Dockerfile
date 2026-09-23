@@ -29,11 +29,12 @@ COPY --from=backend /build/backend/build/libs/actor-api-0.0.1-SNAPSHOT.jar app.j
 COPY --from=frontend /build/frontend/dist public/
 
 # /data is a Railway volume: the completion count and the logs survive redeploys.
+# Half the memory for Java: rhwp runs as a separate process and needs the rest while rendering PDFs.
 ENV SPRING_WEB_RESOURCES_STATIC_LOCATIONS=file:/app/public/ \
     YESULIN_RHWP_PATH=/app/tools/rhwp/rhwp/rhwp \
     YESULIN_STATS_FILE=/data/completed-count.txt \
     YESULIN_LOG_FILE=/data/logs/actor-api.log \
     YESULIN_WORKSPACE=/tmp/yesulin-actor \
-    JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75"
+    JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=50"
 EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
