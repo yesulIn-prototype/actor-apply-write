@@ -9,9 +9,9 @@ export type Completed = {
 }
 
 const MESSAGES: Record<string, string> = {
-  INVALID_UPLOAD: '한글(HWP) 파일인지 확인해주세요',
+  INVALID_UPLOAD: '한글 파일(.hwp, .hwpx)인지 확인해주세요',
   UPLOAD_TOO_LARGE: '파일이 너무 커요. 20MB 이하로 올려주세요',
-  HWP_PROCESSING_FAILED: '이 파일은 읽을 수 없어요. HWP 5.x 파일로 올려주세요',
+  HWP_PROCESSING_FAILED: '이 파일은 읽을 수 없어요. 암호가 걸려 있지 않은 한글 파일인지 확인해주세요',
   DOCUMENT_NOT_FOUND: '시간이 지나 파일이 만료됐어요. 다시 올려주세요',
   INVALID_FILE_NAME: '파일 이름에 경로 기호나 특수 문자를 넣을 수 없어요',
   PDF_UNAVAILABLE: '지금은 PDF로 저장할 수 없어요. 한글 파일로 저장해주세요',
@@ -128,5 +128,5 @@ async function responseError(response: Response): Promise<Error> {
 function downloadName(response: Response, original: string): string {
   const disposition = response.headers.get('Content-Disposition') ?? ''
   const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1]
-  return encoded ? decodeURIComponent(encoded) : original.replace(/\.hwp$/i, '') + '_완성.hwp'
+  return encoded ? decodeURIComponent(encoded) : original.replace(/\.hwpx?$/i, '') + '_완성.hwp'
 }

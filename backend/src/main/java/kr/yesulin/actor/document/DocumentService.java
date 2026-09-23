@@ -33,7 +33,8 @@ public final class DocumentService {
 
     public AnalysisResponse analyze(MultipartFile upload) throws IOException, HwpDocumentException {
         long started = System.nanoTime();
-        byte[] content = UploadValidator.hwp(upload);
+        UploadValidator.HangulUpload hangul = UploadValidator.hangul(upload);
+        byte[] content = hangul.format() == UploadValidator.Format.HWPX ? fromHwpx(hangul.bytes()) : hangul.bytes();
         StoredDocument stored = store.create(upload.getOriginalFilename(), content);
         try {
             HwpDocument document = HwpDocument.open(stored.source());
@@ -89,8 +90,8 @@ public final class DocumentService {
             if (upload == null) {
                 throw new IllegalArgumentException("사진 파일이 없습니다: " + photo.fileKey());
             }
-            UploadValidator.image(upload);
-            Path photoPath = writePhoto(stored, upload);
+            String extension = UploadValidator.image(upload);
+            Path photoPath = writePhoto(stored, upload, extension);
             document.insertImage(photo.address(), photoPath);
         }
 
@@ -147,6 +148,30 @@ public final class DocumentService {
         return new GeneratedDocument(stored.completedFileName().pdf(), Files.readAllBytes(pdf));
     }
 
+    /** HWPX forms are turned into HWP 5 once, on upload; everything after works on the HWP. */
+    private byte[] fromHwpx(byte[] hwpx) throws IOException, HwpDocumentException {
+        if (!pdfConverter.available()) {
+            throw new HwpDocumentException("지금은 HWPX 파일을 처리할 수 없습니다. 한글에서 HWP로 저장해 올려 주세요.");
+        }
+        Path work = Files.createTempDirectory("yesulin-hwpx-");
+        try {
+            Path source = work.resolve("source.hwpx");
+            Path hwp = work.resolve("source.hwp");
+            Files.write(source, hwpx);
+            long started = System.nanoTime();
+            pdfConverter.toHwp(source, hwp);
+            log.info("converted hwpx bytes={} {}ms", hwpx.length, elapsed(started));
+            return Files.readAllBytes(hwp);
+        } finally {
+            try (var files = Files.list(work)) {
+                for (Path file : files.toList()) {
+                    Files.deleteIfExists(file);
+                }
+            }
+            Files.deleteIfExists(work);
+        }
+    }
+
     private static long elapsed(long started) {
         return (System.nanoTime() - started) / 1_000_000;
     }
@@ -170,11 +195,7 @@ public final class DocumentService {
         }
     }
 
-    private static Path writePhoto(StoredDocument stored, MultipartFile upload) throws IOException {
-        String original = upload.getOriginalFilename();
-        String extension = original != null && original.toLowerCase(java.util.Locale.ROOT).endsWith(".png")
-                ? ".png"
-                : ".jpg";
+    private static Path writePhoto(StoredDocument stored, MultipartFile upload, String extension) throws IOException {
         Path path = stored.directory().resolve("photo-" + UUID.randomUUID() + extension).normalize();
         if (!path.startsWith(stored.directory())) {
             throw new IllegalArgumentException("잘못된 사진 경로입니다.");

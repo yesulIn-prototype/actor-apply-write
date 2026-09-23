@@ -43,8 +43,8 @@ function App() {
   }, [platform])
 
   async function analyze(file: File) {
-    if (!/\.hwp$/i.test(file.name)) {
-      showToast('한글(HWP) 파일만 올릴 수 있어요')
+    if (!/\.hwpx?$/i.test(file.name.trim())) {
+      showToast('한글 파일(.hwp, .hwpx)만 올릴 수 있어요')
       return
     }
     setPhase('analyzing')

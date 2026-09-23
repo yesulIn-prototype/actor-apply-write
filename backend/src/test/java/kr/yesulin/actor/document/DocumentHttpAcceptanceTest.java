@@ -143,7 +143,7 @@ class DocumentHttpAcceptanceTest {
         mockMvc.perform(multipart("/api/documents/analyze").file(invalid))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_UPLOAD"))
-                .andExpect(jsonPath("$.message").value("정상적인 HWP 5.x 파일이 아닙니다."));
+                .andExpect(jsonPath("$.message").value("정상적인 한글 문서가 아닙니다."));
     }
 
     @Test

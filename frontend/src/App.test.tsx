@@ -120,7 +120,7 @@ test('rejects non-HWP files before uploading', async () => {
   render(<App />)
   fireEvent.change(screen.getByLabelText('지원서 파일'), { target: { files: [new File(['x'], 'resume.pdf')] } })
 
-  expect(await screen.findByText('한글(HWP) 파일만 올릴 수 있어요')).toBeInTheDocument()
+  expect(await screen.findByText('한글 파일(.hwp, .hwpx)만 올릴 수 있어요')).toBeInTheDocument()
   expect(apiCalls()).toEqual([])
 })
 

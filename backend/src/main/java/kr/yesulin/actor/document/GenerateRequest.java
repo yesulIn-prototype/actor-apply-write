@@ -7,9 +7,10 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record GenerateRequest(
-        List<@Valid TextValue> textValues,
-        List<@Valid PhotoValue> photos,
-        String fileName) {
+        // A form has at most a few hundred fields; far more is a crafted request.
+        @Size(max = 1000) List<@Valid TextValue> textValues,
+        @Size(max = 40) List<@Valid PhotoValue> photos,
+        @Size(max = 200) String fileName) {
 
     public GenerateRequest(List<TextValue> textValues, List<PhotoValue> photos) {
         this(textValues, photos, null);

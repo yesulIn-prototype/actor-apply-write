@@ -47,6 +47,15 @@ public class PdfConverter {
         }
     }
 
+    /** HWPX (or a read-only 배포용 HWP) to an editable HWP 5 file, checked by re-parsing (--verify). */
+    public void toHwp(Path source, Path hwp) throws IOException, HwpDocumentException {
+        Files.deleteIfExists(hwp);
+        run(List.of("convert", source.toString(), hwp.toString(), "--verify"), false);
+        if (!Files.isRegularFile(hwp) || Files.size(hwp) == 0) {
+            throw new HwpDocumentException("HWPX 문서를 변환하지 못했습니다.");
+        }
+    }
+
     /** One SVG per page ("<name>_001.svg", …) into {@code directory}, for the on-screen preview. */
     public void exportSvg(Path hwp, Path directory) throws IOException, HwpDocumentException {
         Files.createDirectories(directory);

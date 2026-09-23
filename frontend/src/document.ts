@@ -82,7 +82,7 @@ export function placeholder(field: FieldCandidate): string {
 }
 
 export function defaultOutputFileName(original: string): string {
-  const stem = original.replace(/\.hwp$/i, '')
+  const stem = original.replace(/\.hwpx?$/i, '')
   return `${stem.endsWith('_완성') ? stem : `${stem}_완성`}.hwp`
 }
 

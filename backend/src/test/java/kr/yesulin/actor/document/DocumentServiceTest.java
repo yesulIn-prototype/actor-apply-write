@@ -106,6 +106,27 @@ class DocumentServiceTest {
     }
 
     @Test
+    void readsHwpxFormsLikeTheSameFormSavedAsHwp() throws Exception {
+        PdfConverter renderer = new PdfConverter(Path.of("../tools/rhwp/rhwp/rhwp"), List.of());
+        assumeTrue(renderer.available(), "rhwp not installed — run tools/install-rhwp.sh");
+        DocumentService service = new DocumentService(
+                new DocumentStore(temporaryDirectory.resolve("hwpx-store"), Duration.ofMinutes(30), Clock.systemUTC()),
+                new CompletionCounter(temporaryDirectory.resolve("hwpx-count.txt")), renderer);
+
+        AnalysisResponse hwpx = service.analyze(new MockMultipartFile(
+                "document", "한강대.hwpx", "application/octet-stream", fixtureBytes("hangang.hwpx")));
+        AnalysisResponse hwp = service.analyze(new MockMultipartFile(
+                "document", "한강대.hwp", "application/x-hwp", fixtureBytes("hangang.hwp")));
+
+        assertThat(hwpx.fields()).extracting(FieldCandidate::label)
+                .containsExactlyElementsOf(hwp.fields().stream().map(FieldCandidate::label).toList());
+        FieldCandidate name = field(hwpx, "이름", FieldCandidate.FieldKind.TEXT);
+        GeneratedDocument generated = service.generate(hwpx.documentId(), new GenerateRequest(
+                List.of(new GenerateRequest.TextValue(name.id(), name.address(), "홍길동")), List.of()), Map.of());
+        assertThat(generated.fileName()).isEqualTo("한강대_완성.hwp");
+    }
+
+    @Test
     void removesExpiredOrphanDirectoryWhenStoreStarts() throws Exception {
         Path root = temporaryDirectory.resolve("orphan-store");
         Path orphan = root.resolve("old-document");

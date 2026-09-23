@@ -29,10 +29,10 @@ export function UploadScreen({ busy, completedCount, onFile }: {
             <rect x="8" y="4" width="24" height="32" rx="5" fill="var(--blue-50)" />
             <path d="M20 26V14m0 0l-5 5m5-5l5 5" fill="none" stroke="var(--blue-500)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <strong>{busy ? '파일을 읽고 있어요' : 'HWP 파일 선택'}</strong>
-          <small>최대 20MB</small>
+          <strong>{busy ? '파일을 읽고 있어요' : '한글 파일 선택'}</strong>
+          <small>.hwp · .hwpx, 최대 20MB</small>
         </button>
-        {/* No `accept`: iOS greys out .hwp because it has no registered file type. */}
+        {/* No `accept`: iOS greys out .hwp/.hwpx because they have no registered file type. */}
         <input
           ref={input}
           className="visually-hidden"

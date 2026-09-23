@@ -37,8 +37,11 @@ public record CompletedFileName(String stem) {
     }
 
     private static String withoutHwp(String name) {
-        return name.toLowerCase(Locale.ROOT).endsWith(".hwp")
-                ? name.substring(0, name.length() - 4) : name;
+        String lower = name.toLowerCase(Locale.ROOT);
+        if (lower.endsWith(".hwpx")) {
+            return name.substring(0, name.length() - 5);
+        }
+        return lower.endsWith(".hwp") ? name.substring(0, name.length() - 4) : name;
     }
 
     public static final class InvalidFileNameException extends RuntimeException {

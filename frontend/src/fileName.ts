@@ -19,7 +19,7 @@ const ANSWERS: Answer[] = [
  * filled with the answers so far ("tf_홍길동_남_5678.hwp"), or "<form name>_완성.hwp" when there is none.
  */
 export function suggestedOutputName(original: string, fields: FieldCandidate[], values: Record<string, string>): string {
-  const stem = original.replace(/\.hwp$/i, '')
+  const stem = original.replace(/\.hwpx?$/i, '')
   const parts = stem.split('_')
   let found = false
   const filled = parts.map((part) => {
