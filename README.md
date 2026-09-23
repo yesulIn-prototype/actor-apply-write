@@ -119,7 +119,7 @@ Remove-Item Env:YESULIN_FORMS_DIR
 - 루트의 `Dockerfile` 하나로 프런트 빌드, 백엔드 jar, rhwp, 한글 폰트를 묶어 같은 주소에서 서빙한다.
 - 볼륨 `web-volume`을 `/data`에 연결했다. 완성 횟수(`/data/completions.txt`)와 로그(`/data/logs`)는 재배포해도 남는다.
 - 서비스 변수: `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES=.*`, `SERVER_TOMCAT_REMOTEIP_REMOTE_IP_HEADER=x-real-ip`. Railway 중계 서버가 실제 사용자 IP를 `X-Real-IP`에 덮어써서 넘겨주므로 이 값을 믿는다. 이 설정이 없으면 모든 사용자가 중계 서버 IP로 묶여 횟수 제한을 함께 쓴다.
-- 배포: GitHub `main`에 push하면 CI(테스트·빌드)가 돌고, Railway 서비스가 저장소에 연결돼 있으면 CI 통과 후 자동 배포된다. 급할 때는 루트에서 `railway up`. 로그 보기: `railway logs`.
+- 배포: 서비스 `web`이 GitHub `yesulIn-prototype/actor-apply-write`의 `main`에 연결돼 있고 Wait for CI가 켜져 있다. `main`에 push하면 GitHub Actions CI(백엔드·프런트 테스트, 빌드)가 돌고, 통과한 커밋만 Railway가 자동으로 빌드·배포한다. CI가 실패하면 배포되지 않는다. 로그 보기: `railway logs`.
 
 ### 로그
 
