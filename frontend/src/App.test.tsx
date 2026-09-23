@@ -183,7 +183,7 @@ test('shows the completed count, privacy note and KakaoTalk inquiry on the first
   expect(await screen.findByText('1,234개')).toBeInTheDocument()
   expect(screen.getByText('입력한 정보는 지원서 작성에만 쓰이고 30분 뒤 자동 삭제돼요')).toBeInTheDocument()
   expect(screen.getByRole('link', { name: /카카오톡 문의/ })).toHaveAttribute('href', 'https://pf.kakao.com/_pbTBX')
-  expect(screen.getByText('in')).toBeInTheDocument()
+  expect(screen.getByRole('img', { name: '예술in' })).toHaveAttribute('src', '/logo.png')
 })
 
 test('hides the counter when stats are unavailable', async () => {

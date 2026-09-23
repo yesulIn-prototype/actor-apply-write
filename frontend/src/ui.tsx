@@ -10,7 +10,7 @@ export function TopBar({ onBack, children }: { onBack?: () => void; children?: R
           </svg>
         </button>
       ) : (
-        <span className="brand">예술<b>in</b></span>
+        <img className="brand" src="/logo.png" alt="예술in" width="56" height="32" />
       )}
       {children}
     </header>
