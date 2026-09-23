@@ -112,6 +112,13 @@ public final class DocumentService {
         return completed(documentId);
     }
 
+    /** Lets the system browser pick up a form completed in an in-app browser (same 30-minute lifetime). */
+    public ResumeResponse resume(UUID documentId) {
+        StoredDocument stored = store.require(documentId);
+        return new ResumeResponse(documentId.toString(), stored.completedFileName().hwp(),
+                Files.exists(completedPath(stored)));
+    }
+
     /** Serves the latest completed file over a plain GET so in-app browsers can hand it to their download manager. */
     public GeneratedDocument completed(UUID documentId) throws IOException {
         StoredDocument stored = store.require(documentId);

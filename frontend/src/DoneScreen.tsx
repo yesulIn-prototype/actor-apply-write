@@ -53,6 +53,9 @@ export function DoneScreen(props: Props) {
   const current = loaded?.key === key ? loaded : undefined
   const preview = current?.preview
   const fields = new Map(props.analysis.fields.map((field) => [field.id, field]))
+  // A form resumed in another browser brings its file but not the answers, so it can't be edited here.
+  const editable = props.analysis.fields.length > 0
+  const hotspots = editable ? preview?.hotspots ?? [] : []
 
   function open(hotspot: Hotspot, opener: HTMLButtonElement) {
     const field = fields.get(hotspot.fieldId)
@@ -86,7 +89,11 @@ export function DoneScreen(props: Props) {
         </span>
         <h1 className="title">지원서 파일이 만들어졌어요</h1>
         <p className="file-name">{props.completed.file.name}</p>
-        <p className="done-note">제출하기 전에 빈칸·사진·공고 필수 항목을 확인해주세요. 오른쪽 위 확대 버튼으로 크게 보고, 칸을 누르면 수정할 수 있어요.</p>
+        <p className="done-note">
+          {editable
+            ? '제출하기 전에 빈칸·사진·공고 필수 항목을 확인해주세요. 오른쪽 위 확대 버튼으로 크게 보고, 칸을 누르면 수정할 수 있어요.'
+            : '앱에서 만든 지원서를 이어서 열었어요. 저장하거나 메일로 보내주세요. 고칠 곳이 있으면 새로 작성해주세요.'}
+        </p>
 
         <div className="preview">
           {!current && (
@@ -100,7 +107,7 @@ export function DoneScreen(props: Props) {
             <PreviewPage
               key={page.number}
               page={page}
-              hotspots={preview.hotspots.filter((hotspot) => hotspot.page === page.number)}
+              hotspots={hotspots.filter((hotspot) => hotspot.page === page.number)}
               fields={fields}
               imageUrl={previewPageUrl(props.completed.documentId, page.number, version)}
               onEdit={open}
@@ -108,7 +115,7 @@ export function DoneScreen(props: Props) {
             />
           ))}
         </div>
-        {preview && (
+        {preview && editable && (
           <details className="edit-field-list">
             <summary>수정할 칸 목록</summary>
             <div className="edit-field-items">
@@ -137,7 +144,7 @@ export function DoneScreen(props: Props) {
       {zoom && preview && (
         <PreviewZoom
           page={zoom.page}
-          hotspots={preview.hotspots.filter((hotspot) => hotspot.page === zoom.page.number)}
+          hotspots={hotspots.filter((hotspot) => hotspot.page === zoom.page.number)}
           fields={fields}
           imageUrl={previewPageUrl(props.completed.documentId, zoom.page.number, version)}
           opener={zoom.opener}

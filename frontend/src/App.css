@@ -960,3 +960,29 @@
   color: var(--blue-500);
   text-decoration: none;
 }
+
+/* First screen inside an in-app browser: the one thing to do before starting. */
+.in-app-notice-start {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 16px;
+  line-height: 1.5;
+}
+
+.in-app-notice-start strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--grey-900);
+}
+
+.in-app-notice-start a {
+  display: block;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--blue-500);
+  color: #fff;
+  text-align: center;
+  font-size: 15px;
+}

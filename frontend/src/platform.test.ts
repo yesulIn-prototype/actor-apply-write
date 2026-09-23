@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { detectPlatform, externalBrowserUrl } from './platform'
+import { detectPlatform, externalBrowserUrl, opensExternallyOnLoad } from './platform'
 
 const HREF = 'https://actor.example.com/?from=share'
 const UA = {
@@ -26,15 +26,23 @@ test('sends KakaoTalk on both OSes to the system browser', () => {
   }
 })
 
-test('uses an Android intent for Threads and Instagram', () => {
+test('uses an Android intent that falls back to the same page for Threads and Instagram', () => {
   for (const ua of [UA.androidThreads, UA.androidInstagram]) {
-    expect(externalBrowserUrl(detectPlatform(ua), HREF))
-      .toBe('intent://actor.example.com/?from=share#Intent;scheme=https;action=android.intent.action.VIEW;end')
+    expect(externalBrowserUrl(detectPlatform(ua), HREF)).toBe(
+      'intent://actor.example.com/?from=share#Intent;scheme=https;action=android.intent.action.VIEW;'
+        + `S.browser_fallback_url=${encodeURIComponent(HREF)};end`)
   }
 })
 
-test('has no escape URL for Threads on iOS, so the page shows manual guidance', () => {
+test('offers Safari to Threads on iOS', () => {
   const platform = detectPlatform(UA.iosThreads)
   expect(platform).toEqual({ os: 'ios', inApp: 'threads' })
-  expect(externalBrowserUrl(platform, HREF)).toBeUndefined()
+  expect(externalBrowserUrl(platform, HREF)).toBe(`x-safari-${HREF}`)
+})
+
+test('leaves on load only where no tap is needed', () => {
+  expect(opensExternallyOnLoad(detectPlatform(UA.androidThreads))).toBe(true)
+  expect(opensExternallyOnLoad(detectPlatform(UA.iosKakao))).toBe(true)
+  expect(opensExternallyOnLoad(detectPlatform(UA.iosThreads))).toBe(false)
+  expect(opensExternallyOnLoad(detectPlatform(UA.androidChrome))).toBe(false)
 })

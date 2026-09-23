@@ -52,6 +52,9 @@ class DocumentServiceTest {
                 .containsExactly("테스트배우");
         assertThat(reopened.embeddedImageCount()).isGreaterThan(0);
         assertThat(generated.fileName()).endsWith("_완성.hwp");
+        ResumeResponse resumed = service.resume(analysis.documentId());
+        assertThat(resumed.completed()).as("another browser can pick the finished file up").isTrue();
+        assertThat(resumed.fileName()).isEqualTo(generated.fileName());
 
         service.generate(analysis.documentId(), request, Map.of("portrait", portrait));
         assertThat(counter.count()).as("same application regenerated counts once").isEqualTo(1);

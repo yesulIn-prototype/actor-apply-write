@@ -38,7 +38,21 @@ export function externalBrowserUrl(platform: Platform, href: string): string | u
   if (platform.os === 'android') {
     const url = new URL(href)
     const scheme = url.protocol.replace(':', '')
-    return `intent://${url.host}${url.pathname}${url.search}#Intent;scheme=${scheme};action=android.intent.action.VIEW;end`
+    // If no app takes the intent, the webview loads the fallback: this same page, not an error screen.
+    return `intent://${url.host}${url.pathname}${url.search}#Intent;scheme=${scheme};action=android.intent.action.VIEW;`
+      + `S.browser_fallback_url=${encodeURIComponent(href)};end`
+  }
+  if (platform.os === 'ios') {
+    // iOS 17+ opens Safari for x-safari-https:; older versions and some apps ignore it, so guidance stays.
+    return `x-safari-${href}`
   }
   return undefined
+}
+
+/**
+ * Leaves the in-app browser as soon as the page opens where that works without a tap: KakaoTalk's own
+ * scheme and Android intents. iOS apps only honour a tap on the Safari link.
+ */
+export function opensExternallyOnLoad(platform: Platform): boolean {
+  return platform.inApp === 'kakaotalk' || (platform.inApp !== undefined && platform.os === 'android')
 }

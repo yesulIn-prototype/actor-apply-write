@@ -81,6 +81,26 @@ export async function generateDocument(
   }
 }
 
+/**
+ * Reopens a form finished in an in-app browser (Threads, Instagram…) in the system browser, where
+ * saving and the share sheet work. Answers are not sent back: the finished file is what is resumed.
+ */
+export async function resumeDocument(documentId: string): Promise<Completed> {
+  const summary = (await (await request(`/api/documents/${documentId}`, { method: 'GET' })).json()) as {
+    fileName: string
+    completed: boolean
+  }
+  if (!summary.completed) throw new Error(MESSAGES.DOCUMENT_NOT_FOUND)
+  const downloadUrl = `/api/documents/${documentId}/completed`
+  const blob = await (await request(downloadUrl, { method: 'GET' })).blob()
+  return {
+    documentId,
+    file: new File([blob], summary.fileName, { type: 'application/x-hwp' }),
+    downloadUrl,
+    pdfUrl: `/api/documents/${documentId}/completed.pdf`,
+  }
+}
+
 export type PreviewPage = { number: number; width: number; height: number }
 export type Hotspot = { fieldId: string; page: number; x: number; y: number; width: number; height: number }
 export type Preview = { pages: PreviewPage[]; hotspots: Hotspot[] }

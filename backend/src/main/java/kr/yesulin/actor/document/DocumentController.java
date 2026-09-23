@@ -56,6 +56,11 @@ public final class DocumentController {
         return attachment(service.generate(documentId, request, photos));
     }
 
+    @GetMapping("/{documentId}")
+    public ResumeResponse resume(@PathVariable UUID documentId) {
+        return service.resume(documentId);
+    }
+
     @GetMapping(path = "/{documentId}/completed", produces = "application/x-hwp")
     public ResponseEntity<ByteArrayResource> completed(@PathVariable UUID documentId) throws IOException {
         return attachment(service.completed(documentId));

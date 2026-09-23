@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Completed } from './api'
-import { analyzeDocument, fetchCompletedCount, generateDocument, preparePdf } from './api'
+import { analyzeDocument, fetchCompletedCount, generateDocument, preparePdf, resumeDocument } from './api'
 import { openMailDraft, saveFile, shareFile } from './delivery'
 import type { AnalysisResponse } from './document'
 import { initialValue } from './document'
 import { suggestedOutputName } from './fileName'
 import { preparePhoto } from './photo'
 import type { Platform } from './platform'
-import { detectPlatform, externalBrowserUrl } from './platform'
+import { detectPlatform, externalBrowserUrl, opensExternallyOnLoad } from './platform'
 import { DoneScreen } from './DoneScreen'
 import { FillScreen, UploadScreen } from './screens'
 import { Toast } from './ui'
@@ -15,9 +15,21 @@ import './App.css'
 
 type Phase = 'upload' | 'analyzing' | 'fill' | 'generating' | 'done'
 
+const DOCUMENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const TRIED_EXTERNAL = 'yesulin.triedExternalBrowser'
+
+/** "?doc=<id>": a form finished in an in-app browser, handed over to the system browser. */
+function resumeLink(documentId: string): string {
+  return `${window.location.origin}/?doc=${documentId}`
+}
+
 function App() {
   const [platform] = useState(() => detectPlatform(navigator.userAgent))
-  const [phase, setPhase] = useState<Phase>('upload')
+  const [resumeId] = useState(() => {
+    const id = new URLSearchParams(window.location.search).get('doc')
+    return id && DOCUMENT_ID.test(id) ? id : undefined
+  })
+  const [phase, setPhase] = useState<Phase>(() => (resumeId ? 'analyzing' : 'upload'))
   const [analysis, setAnalysis] = useState<AnalysisResponse>()
   const [values, setValues] = useState<Record<string, string>>({})
   const [photos, setPhotos] = useState<Record<string, File | undefined>>({})
@@ -37,10 +49,44 @@ function App() {
   }, [phase])
 
   useEffect(() => {
-    // KakaoTalk's webview can't save files, but it can hand the page to the system browser.
+    // In-app browsers (KakaoTalk, Threads on Android…) can't save files; hand the page to the system
+    // browser right away. Only once per visit: if it bounces back, the page stays usable with the notice.
+    if (!opensExternallyOnLoad(platform) || once(TRIED_EXTERNAL)) return
     const external = externalBrowserUrl(platform, window.location.href)
-    if (platform.inApp === 'kakaotalk' && external) window.location.href = external
+    if (external) window.location.href = external
   }, [platform])
+
+  useEffect(() => {
+    if (!resumeId) return
+    const documentId = resumeId
+    let active = true
+    resumeDocument(documentId)
+      .then((resumed) => {
+        if (!active) return
+        setAnalysis({
+          documentId, fileName: resumed.file.name, expiresAt: '', tableCount: 0, cellCount: 0, fields: [],
+        })
+        setCompleted(resumed)
+        setPhase('done')
+      })
+      .catch((reason) => {
+        if (!active) return
+        window.history.replaceState(null, '', '/')
+        showToast(message(reason))
+        setPhase('upload')
+      })
+    return () => { active = false }
+  }, [resumeId, showToast])
+
+  useEffect(() => {
+    // Inside an in-app browser the finished form's address carries its id, so "open in browser"
+    // (the app's own menu or our link) continues right here instead of starting over.
+    if (!platform.inApp) return
+    const target = phase === 'done' && completed ? `/?doc=${completed.documentId}` : '/'
+    if (phase !== 'analyzing' && window.location.pathname + window.location.search !== target) {
+      window.history.replaceState(null, '', target)
+    }
+  }, [platform, phase, completed])
 
   async function analyze(file: File) {
     if (!/\.hwpx?$/i.test(file.name.trim())) {
@@ -134,7 +180,10 @@ function App() {
 
   return (
     <main className="app">
-      <InAppNotice platform={platform} />
+      <InAppNotice
+        platform={platform}
+        resumeUrl={phase === 'done' && completed ? resumeLink(completed.documentId) : undefined}
+      />
       {(phase === 'upload' || phase === 'analyzing') && (
         <UploadScreen busy={phase === 'analyzing'} completedCount={completedCount} onFile={analyze} />
       )}
@@ -162,7 +211,17 @@ function App() {
           onPhoto={pickPhoto}
           onRestore={(previousValues, previousPhotos) => { setValues(previousValues); setPhotos(previousPhotos) }}
           onApply={apply}
-          onBack={() => setPhase('fill')}
+          onBack={() => {
+            if (analysis.fields.length > 0) {
+              setPhase('fill')
+              return
+            }
+            // A resumed form has no answers to go back to; start a new one.
+            window.history.replaceState(null, '', '/')
+            setAnalysis(undefined)
+            setCompleted(undefined)
+            setPhase('upload')
+          }}
           onMail={mail}
           onSave={save}
           onSavePdf={savePdf}
@@ -174,31 +233,50 @@ function App() {
   )
 }
 
-function InAppNotice({ platform }: { platform: Platform }) {
+function InAppNotice({ platform, resumeUrl }: { platform: Platform; resumeUrl?: string }) {
   if (!platform.inApp) return null
-  const external = externalBrowserUrl(platform, window.location.href)
+  const external = externalBrowserUrl(platform, resumeUrl ?? window.location.href)
+  const menu = '오른쪽 위 ··· 에서 ‘외부 브라우저로 열기’를 눌러주세요'
+  if (resumeUrl) {
+    return (
+      <div className="in-app-notice" role="note">
+        <span>저장이나 메일 보내기가 안 되면 브라우저에서 이어서 할 수 있어요{platform.os === 'ios' ? `. 안 열리면 ${menu}` : ''}</span>
+        {external && <a href={external}>브라우저에서 이어하기</a>}
+      </div>
+    )
+  }
   return (
-    <div className="in-app-notice" role="note">
-      {external ? (
-        <>
-          <span>파일 저장은 브라우저에서 할 수 있어요</span>
-          <a href={external}>브라우저로 열기</a>
-        </>
-      ) : (
-        <span>파일을 저장하려면 오른쪽 위 ··· 에서 ‘외부 브라우저로 열기’를 눌러주세요</span>
-      )}
+    <div className="in-app-notice in-app-notice-start" role="note">
+      <span>
+        <strong>{platform.os === 'ios' ? 'Safari' : '인터넷 브라우저'}에서 열어주세요</strong>
+        앱 안에서는 완성한 파일을 저장하거나 보내지 못할 수 있어요.{platform.os === 'ios' ? ` 버튼이 안 되면 ${menu}` : ''}
+      </span>
+      {external && <a href={external}>{platform.os === 'ios' ? 'Safari로 열기' : '브라우저로 열기'}</a>}
     </div>
   )
+}
+
+/** True when this visit already did it; the first call records it. With storage blocked it reports true. */
+function once(key: string): boolean {
+  try {
+    if (window.sessionStorage.getItem(key)) return true
+    window.sessionStorage.setItem(key, '1')
+  } catch {
+    // Without storage the redirect could loop through the fallback page; skip it.
+    return true
+  }
+  return false
 }
 
 function useToast(): [string, (text: string) => void] {
   const [text, setText] = useState('')
   const timer = useRef<number>(undefined)
-  return [text, (next: string) => {
+  const show = useCallback((next: string) => {
     window.clearTimeout(timer.current)
     setText(next)
     timer.current = window.setTimeout(() => setText(''), 3000)
-  }]
+  }, [])
+  return [text, show]
 }
 
 function message(reason: unknown): string {

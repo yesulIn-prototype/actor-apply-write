@@ -267,3 +267,26 @@ test('offers an accessible field list and keeps focus inside the edit sheet', as
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   expect(entry).toHaveFocus()
 })
+
+test('picks up a form finished in an in-app browser from its ?doc= link', async () => {
+  const id = '0f8fad5b-d9cb-469f-a165-70867728950e'
+  const fetchMock = vi.mocked(fetch)
+  fetchMock.mockImplementation(async (input) => {
+    const url = String(input)
+    if (url === `/api/documents/${id}`) {
+      return new Response(JSON.stringify({ documentId: id, fileName: '홍길동_지원서.hwp', completed: true }), { status: 200 })
+    }
+    if (url.endsWith('/preview')) return new Response(JSON.stringify({ pages: [{ number: 1, width: 800, height: 1100 }], hotspots: [] }), { status: 200 })
+    if (url === '/api/stats') return new Response(JSON.stringify({ completedCount: 1 }), { status: 200 })
+    return completedResponse()
+  })
+  window.history.replaceState(null, '', `/?doc=${id}`)
+
+  render(<App />)
+
+  expect(await screen.findByText('지원서 파일이 만들어졌어요')).toBeInTheDocument()
+  expect(screen.getByText('홍길동_지원서.hwp')).toBeInTheDocument()
+  expect(screen.getByText(/이어서 열었어요/)).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '메일로 보내기' })).toBeInTheDocument()
+  window.history.replaceState(null, '', '/')
+})
