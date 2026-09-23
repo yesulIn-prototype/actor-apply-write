@@ -1,0 +1,23 @@
+# Build outputs and caches
+.gradle-cache/
+backend/.gradle/
+backend/build/
+backend/tmp/
+frontend/node_modules/
+frontend/dist/
+hwplib-poc/build/
+tools/rhwp/
+
+# Runtime data: completion count and logs
+backend/data/
+backend/logs/
+
+# Local-only material. The repository is public, so nothing with real people's data goes in:
+# phone screenshots and photos, QA screenshots and server logs, experiment outputs made with them.
+images/
+artifacts/
+docs/
+kordoc-test/
+hwplib-poc/output/
+.chrome-qa-*/
+.claude/

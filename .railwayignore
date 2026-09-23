@@ -1,0 +1,17 @@
+**/node_modules
+**/dist
+**/build
+**/.gradle
+**/.gradle-cache
+backend/data
+backend/logs
+backend/tmp
+tools/rhwp
+artifacts
+images
+docs
+design
+kordoc-test
+hwplib-poc/*
+!hwplib-poc/lib
+.chrome-qa-*
