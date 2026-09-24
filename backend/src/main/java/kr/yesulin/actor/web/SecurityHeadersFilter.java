@@ -11,20 +11,22 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Browser-side hardening for the app and the API. The page may load only its own scripts (plus the
- * Pretendard font from jsDelivr); API responses — including preview SVGs rendered from uploaded forms —
- * can run nothing even when opened directly, so a crafted form cannot script this origin.
+ * Browser-side hardening for the app and the API. The page may load only its own scripts, the Pretendard
+ * font from jsDelivr and Google Analytics (the hosts Google documents for GA4); API responses — including
+ * preview SVGs rendered from uploaded forms — can run nothing even when opened directly, so a crafted form
+ * cannot script this origin.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 2)
 public final class SecurityHeadersFilter extends OncePerRequestFilter {
     static final String PAGE_POLICY = String.join("; ",
             "default-src 'self'",
-            "script-src 'self'",
+            "script-src 'self' https://*.googletagmanager.com",
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
             "font-src 'self' data: https://cdn.jsdelivr.net",
-            "img-src 'self' data: blob:",
-            "connect-src 'self'",
+            "img-src 'self' data: blob: https://*.google-analytics.com https://*.googletagmanager.com",
+            "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com "
+                    + "https://*.googletagmanager.com",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",

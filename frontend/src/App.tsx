@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { Screen } from './analytics'
+import { campaign, startAnalytics, track, trackScreen, withCampaign } from './analytics'
 import type { Completed } from './api'
 import { analyzeDocument, fetchCompletedCount, generateDocument, preparePdf, resumeDocument } from './api'
 import { openMailDraft, saveFile, shareFile } from './delivery'
@@ -14,6 +16,8 @@ import { Toast } from './ui'
 import './App.css'
 
 type Phase = 'upload' | 'analyzing' | 'fill' | 'generating' | 'done'
+
+const SCREENS: Partial<Record<Phase, Screen>> = { upload: 'upload', fill: 'fill', generating: 'fill', done: 'done' }
 
 const DOCUMENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const TRIED_EXTERNAL = 'yesulin.triedExternalBrowser'
@@ -51,10 +55,23 @@ function App() {
   useEffect(() => {
     // In-app browsers (KakaoTalk, Threads on Android…) can't save files; hand the page to the system
     // browser right away. Only once per visit: if it bounces back, the page stays usable with the notice.
-    if (!opensExternallyOnLoad(platform) || once(TRIED_EXTERNAL)) return
-    const external = externalBrowserUrl(platform, window.location.href)
-    if (external) window.location.href = external
+    // The visit is counted where the page ends up, not in the app it leaves.
+    if (opensExternallyOnLoad(platform) && !once(TRIED_EXTERNAL)) {
+      const external = externalBrowserUrl(platform, withCampaign(platform, window.location.href))
+      if (external) {
+        window.location.href = external
+        return
+      }
+    }
+    startAnalytics(platform)
   }, [platform])
+
+  useEffect(() => {
+    // A resumed form has no answers; it was completed in the in-app browser it came from.
+    const resumed = phase === 'done' && analysis?.fields.length === 0
+    const screen = resumed ? 'resume' : SCREENS[phase]
+    if (screen) trackScreen(screen)
+  }, [phase, analysis])
 
   useEffect(() => {
     if (!resumeId) return
@@ -81,8 +98,11 @@ function App() {
   useEffect(() => {
     // Inside an in-app browser the finished form's address carries its id, so "open in browser"
     // (the app's own menu or our link) continues right here instead of starting over.
+    // The source tags stay too, so the reopened page still knows where the visit came from.
     if (!platform.inApp) return
-    const target = phase === 'done' && completed ? `/?doc=${completed.documentId}` : '/'
+    const query = new URLSearchParams(phase === 'done' && completed ? { doc: completed.documentId } : {})
+    campaign(platform).forEach((value, key) => query.set(key, value))
+    const target = query.toString() ? `/?${query}` : '/'
     if (phase !== 'analyzing' && window.location.pathname + window.location.search !== target) {
       window.history.replaceState(null, '', target)
     }
@@ -90,7 +110,7 @@ function App() {
 
   async function analyze(file: File) {
     if (!/\.hwpx?$/i.test(file.name.trim())) {
-      showToast('한글 파일(.hwp, .hwpx)만 올릴 수 있어요')
+      fail('analyze_error', '한글 파일(.hwp, .hwpx)만 올릴 수 있어요')
       return
     }
     setPhase('analyzing')
@@ -105,7 +125,7 @@ function App() {
       setPhase('fill')
       window.scrollTo(0, 0)
     } catch (reason) {
-      showToast(message(reason))
+      fail('analyze_error', message(reason))
       setPhase('upload')
     }
   }
@@ -131,7 +151,7 @@ function App() {
       setPhase('done')
       window.scrollTo(0, 0)
     } catch (reason) {
-      showToast(message(reason))
+      fail('generate_error', message(reason))
       setPhase('fill')
     }
   }
@@ -152,7 +172,10 @@ function App() {
   async function mail() {
     if (!completed) return
     const result = await shareFile(completed.file)
+    if (result === 'shared') track('send_mail', { method: 'share' })
+    if (result === 'cancelled') track('send_mail_cancel')
     if (result !== 'unsupported') return
+    track('send_mail', { method: 'download' })
     saveFile(completed.downloadUrl, completed.file.name)
     showToast('파일을 저장했어요. 메일에 첨부해서 보내주세요')
     window.setTimeout(() => openMailDraft(completed.file.name.replace(/\.hwp$/i, '')), 800)
@@ -161,7 +184,13 @@ function App() {
   function save() {
     if (!completed) return
     saveFile(completed.downloadUrl, completed.file.name)
+    track('save_hwp')
     showToast('한글 파일을 저장했어요')
+  }
+
+  function fail(event: string, text: string) {
+    showToast(text)
+    track(event, { reason: text })
   }
 
   async function savePdf() {
@@ -170,9 +199,10 @@ function App() {
     try {
       await preparePdf(completed)
       saveFile(completed.pdfUrl, completed.file.name.replace(/\.hwp$/i, '.pdf'))
+      track('save_pdf')
       showToast('PDF를 저장했어요')
     } catch {
-      showToast('PDF로 만들지 못했어요. 한글 파일로 저장해주세요')
+      fail('pdf_error', 'PDF로 만들지 못했어요. 한글 파일로 저장해주세요')
     } finally {
       setPdfBusy(false)
     }
@@ -235,13 +265,14 @@ function App() {
 
 function InAppNotice({ platform, resumeUrl }: { platform: Platform; resumeUrl?: string }) {
   if (!platform.inApp) return null
-  const external = externalBrowserUrl(platform, resumeUrl ?? window.location.href)
+  const external = externalBrowserUrl(platform, withCampaign(platform, resumeUrl ?? window.location.href))
+  const opened = () => track('open_external_browser', { from: resumeUrl ? 'done' : 'start' })
   const menu = '오른쪽 위 ··· 에서 ‘외부 브라우저로 열기’를 눌러주세요'
   if (resumeUrl) {
     return (
       <div className="in-app-notice" role="note">
         <span>저장이나 메일 보내기가 안 되면 브라우저에서 이어서 할 수 있어요{platform.os === 'ios' ? `. 안 열리면 ${menu}` : ''}</span>
-        {external && <a href={external}>브라우저에서 이어하기</a>}
+        {external && <a href={external} onClick={opened}>브라우저에서 이어하기</a>}
       </div>
     )
   }
@@ -251,7 +282,7 @@ function InAppNotice({ platform, resumeUrl }: { platform: Platform; resumeUrl?: 
         <strong>{platform.os === 'ios' ? 'Safari' : '인터넷 브라우저'}에서 열어주세요</strong>
         앱 안에서는 완성한 파일을 저장하거나 보내지 못할 수 있어요.{platform.os === 'ios' ? ` 버튼이 안 되면 ${menu}` : ''}
       </span>
-      {external && <a href={external}>{platform.os === 'ios' ? 'Safari로 열기' : '브라우저로 열기'}</a>}
+      {external && <a href={external} onClick={opened}>{platform.os === 'ios' ? 'Safari로 열기' : '브라우저로 열기'}</a>}
     </div>
   )
 }

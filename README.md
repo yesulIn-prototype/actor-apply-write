@@ -128,6 +128,15 @@ Remove-Item Env:YESULIN_FORMS_DIR
 - 오류: 잘못된 업로드는 INFO, 문서 처리 실패는 WARN(원인 포함), 예상하지 못한 오류는 ERROR(스택 포함)로 남긴다.
 - **개인정보를 남기지 않는다.** 파일 이름, 칸 이름, 입력값, 사진은 로그에 쓰지 않는다. 프록시 뒤에서는 `X-Forwarded-For`의 실제 IP를 쓴다.
 
+### 방문 분석 (GA4)
+
+- 속성 `G-DDJ8ZGPF8Q`(`frontend/src/analytics.ts`). `apply.yesulin.art`에서만 보낸다. 로컬, 터널, Railway 기본 주소는 보내지 않는다.
+- 주소가 하나뿐이라 화면마다 가상 페이지로 보낸다: `/` 올리기, `/fill` 작성, `/done` 완성, `/resume` 인앱에서 완성하고 브라우저에서 이어 연 경우.
+- 이벤트: `save_hwp`, `save_pdf`, `send_mail`(`method`: share·download), `send_mail_cancel`, `analyze_error`·`generate_error`·`pdf_error`(`reason`: 화면에 띄운 안내 문구), `open_external_browser`(`from`: start·done).
+- 유입: 링크에 UTM이 있으면 그대로 쓴다. 없으면 인앱 브라우저 이름을 `utm_source`로 붙인다(`kakaotalk`, `threads`, `instagram`…, `utm_medium=social`). 카카오톡은 리퍼러를 보내지 않고, 기본 브라우저로 넘어가면 앱 정보도 사라지기 때문이다. 넘기기 직전의 인앱 방문은 세지 않고 넘어간 쪽에서 센다.
+- **보내는 주소는 화면 경로와 UTM뿐이다.** `?doc=<id>`만 있으면 완성본을 받을 수 있으므로 절대 보내지 않는다. 입력값, 파일 이름도 보내지 않는다.
+- GA 설정에서 **향상된 측정은 끈다.** 켜 두면 GA가 실제 주소와 다운로드 링크(`/api/documents/{id}/completed.pdf`)를 직접 모은다.
+
 ## 파일 보존
 
 - 업로드는 OS 임시 디렉터리 아래 `yesulin-actor` 작업공간에 저장된다.
