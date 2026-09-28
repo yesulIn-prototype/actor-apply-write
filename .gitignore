@@ -21,3 +21,4 @@ kordoc-test/
 hwplib-poc/output/
 .chrome-qa-*/
 .claude/
+frontend/eval/report.json

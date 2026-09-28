@@ -1,0 +1,110 @@
+{
+ "file": "application.hwp",
+ "note": "공부의신. '년 월 일'·'cm / kg'은 칸 안 서식을 살려 칸별로 입력받는 게 목표(template).",
+ "fields": [
+  {
+   "at": "0.0.1",
+   "label": "이름",
+   "type": "text"
+  },
+  {
+   "at": "0.0.3",
+   "label": "생년월일",
+   "type": "template"
+  },
+  {
+   "at": "0.1.1",
+   "label": "주소",
+   "type": "text"
+  },
+  {
+   "at": "0.2.1",
+   "label": "연락처 집",
+   "type": "phone"
+  },
+  {
+   "at": "0.2.2",
+   "label": "연락처 핸드폰",
+   "type": "phone"
+  },
+  {
+   "at": "0.3.1",
+   "label": "E-mail",
+   "type": "email"
+  },
+  {
+   "at": "0.3.3",
+   "label": "희망배역",
+   "type": "text"
+  },
+  {
+   "at": "0.4.1",
+   "label": "최종학력",
+   "type": "text"
+  },
+  {
+   "at": "0.4.3",
+   "label": "키 몸무게",
+   "type": "template"
+  },
+  {
+   "at": "0.5.1",
+   "label": "취미",
+   "type": "text"
+  },
+  {
+   "at": "0.5.3",
+   "label": "특기",
+   "type": "text"
+  },
+  {
+   "at": "0.6.1",
+   "label": "SNS",
+   "type": "text"
+  },
+  {
+   "at": "0.7.1",
+   "label": "지방공연",
+   "type": "choice",
+   "options": [
+    "YES",
+    "NO"
+   ]
+  },
+  {
+   "at": "0.8.1",
+   "label": "현재 공연 작품",
+   "type": "text"
+  },
+  {
+   "at": "0.10.0",
+   "label": "경력사항",
+   "type": "multiline"
+  },
+  {
+   "at": "0.12.0",
+   "label": "자기소개",
+   "type": "multiline"
+  },
+  {
+   "at": "1.0.0",
+   "label": "사진",
+   "type": "photo"
+  },
+  {
+   "at": "1.0.1",
+   "label": "사진",
+   "type": "photo"
+  },
+  {
+   "at": "1.1.0",
+   "label": "사진",
+   "type": "photo"
+  },
+  {
+   "at": "1.1.1",
+   "label": "사진",
+   "type": "photo"
+  }
+ ]
+}

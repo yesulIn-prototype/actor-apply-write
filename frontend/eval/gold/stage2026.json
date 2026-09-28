@@ -1,0 +1,95 @@
+{
+ "file": "stage2026.hwp",
+ "note": "더스테이지 2026. '0000년 00월 00일 (00세)'는 예시 서식이라 칸별로 받아 같은 모양으로 쓰는 게 목표(template).",
+ "fields": [
+  {
+   "at": "0.0.0",
+   "label": "프로필사진",
+   "type": "photo"
+  },
+  {
+   "at": "0.0.2",
+   "label": "이름",
+   "type": "text"
+  },
+  {
+   "at": "0.0.4",
+   "label": "성별",
+   "type": "choice",
+   "options": [
+    "남",
+    "여"
+   ]
+  },
+  {
+   "at": "0.1.1",
+   "label": "생년월일",
+   "type": "template"
+  },
+  {
+   "at": "0.2.1",
+   "label": "키",
+   "type": "template"
+  },
+  {
+   "at": "0.2.3",
+   "label": "체중",
+   "type": "template"
+  },
+  {
+   "at": "0.3.1",
+   "label": "주소",
+   "type": "text"
+  },
+  {
+   "at": "0.4.1",
+   "label": "Mobile",
+   "type": "phone"
+  },
+  {
+   "at": "0.5.1",
+   "label": "Email",
+   "type": "email"
+  },
+  {
+   "at": "0.6.1",
+   "label": "최종학력",
+   "type": "text"
+  },
+  {
+   "at": "0.7.1",
+   "label": "SNS",
+   "type": "text"
+  },
+  {
+   "at": "0.7.3",
+   "label": "MBTI",
+   "type": "text"
+  },
+  {
+   "at": "0.8.1",
+   "label": "특기",
+   "type": "text"
+  },
+  {
+   "at": "0.8.3",
+   "label": "지원배역",
+   "type": "text"
+  },
+  {
+   "at": "0.8.5",
+   "label": "소속",
+   "type": "text"
+  },
+  {
+   "at": "0.10.0",
+   "label": "수상경력",
+   "type": "multiline"
+  },
+  {
+   "at": "0.11.0",
+   "label": "지원동기",
+   "type": "multiline"
+  }
+ ]
+}
