@@ -19,6 +19,7 @@
    - 에이전트에게 줄 것: 규칙 문서 `design/form-definition-guide.md`, 운영자 페이지 `칸 목록` 표를 복사한 것, 공고 안내(필수 항목, 파일 이름 규칙, 사진 장수).
    - 예: "design/form-definition-guide.md를 읽고 아래 칸 목록으로 22369 양식 정의 JSON을 써줘" + 칸 목록 붙여넣기. 에이전트는 JSON과 확인할 판단만 돌려준다.
    - 초안은 출발점일 뿐이다. 필수 여부, 선택지 표기, 파일 이름은 운영자가 공고 기준으로 확인한다.
+   - 결과가 마음에 안 들어 AI에게 "이 부분은 이렇게 해줘"라고 다시 요청할 때는, 그 고침이 규칙 부족 때문이면 AI가 `design/form-definition-guide.md`도 같이 고치게 한다(사례집·변경 기록 포함). 다음 사람이 같은 실수를 하지 않게 하기 위해서다.
 5. 정의를 붙여넣고 **저장하고 확인**을 누른다. 형식·참조·원본 대조(칸이 있는지, `edit`의 `find` 글자가 원문에 있는지) 문제가 모두 나온다.
 6. **테스트 입력으로 확인**: 배우 화면 그대로 값과 사진을 넣고 테스트 생성 → 미리보기·HWP·PDF로 칸, 체크 표시, 사진 위치를 눈으로 확인한다.
 7. **공개하기**: 지금 원본과 정의로 테스트에 성공했을 때만 켜진다. 공개 후 `https://apply.yesulin.art/apply/{vid}`를 오픈채팅·SNS에 공유한다.
@@ -31,9 +32,13 @@
 
 - `backend/`: Java 25, Spring Boot 4.1.1, `hwplib 1.1.11`
 - `frontend/`: React 19, TypeScript, Vite
-- `design/local-mvp.md`: 직접 업로드 흐름의 처음 구조와 안전 경계(작성 당시 기준이라 HWPX·PDF·배포는 이후 추가됨)
-- `design/notice-forms.md`: 공고별 작성 링크와 운영자 양식 정의
-- `design/form-definition-guide.md`: 칸 목록으로 양식 정의 JSON을 쓰는 규칙(에이전트에게 주는 문서)
+- `design/project-rules.md`: 사람과 AI가 같이 지키는 작업 규칙(루트 `CLAUDE.md`·`AGENTS.md`가 이 문서를 가리킨다)
+- `design/how-it-works.md`: 운영자·에이전트·브라우저·서버가 각각 무엇을 하는지, 파일 이름과 HWP·PDF가 만들어지는 과정
+- `design/notice-forms.md`: 공고별 작성 링크와 운영자 양식 정의(설계 결정, API, 저장 구조)
+- `design/form-definition-guide.md`: 칸 목록으로 양식 정의 JSON을 쓰는 규칙(AI에게 주는 문서). 고침 요청이 생기면 사례집·변경 기록과 함께 고친다
+- `design/input-typography.md`: 입력 글자 서식(대표 글꼴·크기) 결정
+- `design/otr-form-survey-2026-10.md`: OTR 공고 189건의 지원서 형식 조사 종합(상세: `design/otr-attachment-audit-2026-10-03.md`)
+- `design/roadmap-standard-form.md`: 다음 단계 결정과 우선순위(HWP 기본 + 지원서 없는 공고용 표준 지원서)
 
 ## 실행
 
