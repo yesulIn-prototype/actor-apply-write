@@ -65,6 +65,10 @@ public final class FormDefinitionParser {
                         condition(definition, where, replacement.when(), used, problems);
                     }
                 }
+                case FormOutput.Rows rows -> {
+                    used.add(rows.item());
+                    rows(definition, where, rows, problems);
+                }
             }
         }
         answers(definition, "fileName", definition.fileName(), used, problems);
@@ -84,7 +88,28 @@ public final class FormDefinitionParser {
                 problems.add(where + ": {" + name + "}에 해당하는 항목이 없습니다.");
             } else if (item.get().type() == FormItem.Type.PHOTO) {
                 problems.add(where + ": 사진 항목 {" + name + "}은 글자로 쓸 수 없습니다. photo 출력을 쓰세요.");
+            } else if (item.get().type() == FormItem.Type.ROWS) {
+                problems.add(where + ": 줄 표 항목 {" + name + "}은 글자로 쓸 수 없습니다. rows 출력을 쓰세요.");
             }
+        }
+    }
+
+    private static void rows(FormDefinition definition, String where, FormOutput.Rows rows, List<String> problems) {
+        var item = definition.item(rows.item()).filter(found -> found.type() == FormItem.Type.ROWS);
+        if (item.isEmpty()) {
+            problems.add(where + ": rows는 줄 표(rows) 항목의 id여야 합니다. (현재: '" + rows.item() + "')");
+            return;
+        }
+        Set<String> columns = new HashSet<>();
+        item.get().columns().forEach(column -> columns.add(column.id()));
+        for (String column : rows.columns()) {
+            if (!column.isEmpty() && !columns.contains(column)) {
+                problems.add(where + ": columns의 '" + column + "'는 " + rows.item() + " 항목의 열이 아닙니다.");
+            }
+        }
+        if (!rows.grow() && item.get().maxRows() > rows.formRows()) {
+            problems.add(where + ": 양식 줄이 " + rows.formRows() + "개라 grow 없이는 " + rows.item()
+                    + " 항목의 maxRows(" + item.get().maxRows() + ")만큼 넣을 수 없습니다. maxRows를 줄이거나 grow를 켜세요.");
         }
     }
 

@@ -111,7 +111,7 @@ class FormComposerTest {
     }
 
     private List<CellWrite> compose(FormAnswers answers) {
-        return FormComposer.compose(definition, answers, BLANK_FORM);
+        return FormComposer.compose(definition, answers, BLANK_FORM).writes();
     }
 
     private FormAnswers answers(Map<String, List<String>> extra) {

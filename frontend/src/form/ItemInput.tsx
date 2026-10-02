@@ -1,4 +1,5 @@
 import { PhotoTile } from '../screens'
+import { RowsInput } from './RowsInput'
 import type { FormItem, Photos } from './types'
 import { assertNever } from './types'
 
@@ -28,6 +29,8 @@ export function ItemInput({ item, values, photos, onValues, onPhoto }: Props) {
           </div>
         </div>
       )
+    case 'ROWS':
+      return <RowsInput item={item} values={values} onChange={(rows) => onValues(item.id, rows)} />
     default:
       return assertNever(item.type)
   }

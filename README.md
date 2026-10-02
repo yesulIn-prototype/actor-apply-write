@@ -32,6 +32,7 @@
 
 - `backend/`: Java 25, Spring Boot 4.1.1, `hwplib 1.1.11`
 - `frontend/`: React 19, TypeScript, Vite
+- `tools/standard-form/`: 예술in 표준 지원서(`backend/src/main/resources/standard/standard-v1.hwp`)를 rhwp로 다시 만드는 스크립트(`bash tools/standard-form/build.sh`)
 - `design/project-rules.md`: 사람과 AI가 같이 지키는 작업 규칙(루트 `CLAUDE.md`·`AGENTS.md`가 이 문서를 가리킨다)
 - `design/how-it-works.md`: 운영자·에이전트·브라우저·서버가 각각 무엇을 하는지, 파일 이름과 HWP·PDF가 만들어지는 과정
 - `design/notice-forms.md`: 공고별 작성 링크와 운영자 양식 정의(설계 결정, API, 저장 구조)
@@ -39,7 +40,7 @@
 - `design/input-typography.md`: 입력 글자 서식(대표 글꼴·크기) 결정
 - `design/otr-form-survey-2026-10.md`: OTR 공고 189건의 지원서 형식 조사 종합(상세: `design/otr-attachment-audit-2026-10-03.md`)
 - `design/standard-items.md`: P1 결과. HWP 지원서 44종에서 뽑은 항목별 등장 비율, 경력·사진 구조
-- `design/standard-form.md`: P2 설계. 표준 지원서 v1 초안, 추가 항목·배우 자유 결정, 구현 순서
+- `design/standard-form.md`: P2 설계. 표준 지원서 v1, 추가 항목·배우 자유·줄 표(`rows`) 결정, 구현 순서와 진행
 - `design/roadmap-standard-form.md`: 다음 단계 결정과 우선순위(HWP 기본 + 지원서 없는 공고용 표준 지원서)
 
 ## 실행

@@ -16,20 +16,35 @@ import org.springframework.web.multipart.MultipartFile;
 final class CompletedDocumentWriter {
     private final DocumentStore store;
     private final CompletionCounter counter;
+    private final RowInserter rows;
 
-    CompletedDocumentWriter(DocumentStore store, CompletionCounter counter) {
+    CompletedDocumentWriter(DocumentStore store, CompletionCounter counter, PdfConverter rhwp) {
         this.store = store;
         this.counter = counter;
+        this.rows = new RowInserter(rhwp);
     }
 
     /**
      * Returns whether this was the document's first completion.
      *
+     * @param growths rows to add first; the writes already address the grown tables
      * @param counted an applicant's completion; an operator's test build is not counted
      */
-    boolean write(StoredDocument stored, CompletedFileName fileName, List<CellWrite> writes, boolean counted)
-            throws IOException, HwpDocumentException {
-        HwpDocument document = HwpDocument.open(stored.source());
+    boolean write(StoredDocument stored, CompletedFileName fileName, List<TableGrowth> growths,
+            List<CellWrite> writes, boolean counted) throws IOException, HwpDocumentException {
+        if (growths.isEmpty()) {
+            return write(stored, HwpDocument.open(stored.source()), fileName, writes, counted);
+        }
+        Path grown = rows.grow(stored.source(), stored.directory(), growths);
+        try {
+            return write(stored, HwpDocument.open(grown), fileName, writes, counted);
+        } finally {
+            Files.deleteIfExists(grown);
+        }
+    }
+
+    private boolean write(StoredDocument stored, HwpDocument document, CompletedFileName fileName,
+            List<CellWrite> writes, boolean counted) throws IOException, HwpDocumentException {
         for (CellWrite write : writes) {
             switch (write) {
                 case CellWrite.Replace replace -> document.setText(replace.address(), replace.text());

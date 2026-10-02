@@ -31,3 +31,77 @@
   color: var(--grey-400);
   background: var(--grey-50);
 }
+
+/* ROWS items (출연 경력): a card per row, a line per column. */
+.rows-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rows-entry {
+  margin: 0;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--grey-200);
+  border-radius: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.rows-entry-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--grey-600);
+}
+
+.rows-remove,
+.rows-add {
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rows-remove {
+  font-size: 13px;
+  color: var(--grey-500);
+}
+
+.rows-cell {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.rows-cell label {
+  font-size: 14px;
+  color: var(--grey-700);
+}
+
+.rows-cell input {
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--grey-200);
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+.rows-add {
+  height: 44px;
+  border: 1px dashed var(--grey-300);
+  border-radius: 12px;
+  font-size: 15px;
+  color: var(--blue-500);
+}
+
+.rows-add:disabled {
+  color: var(--grey-400);
+  cursor: default;
+}

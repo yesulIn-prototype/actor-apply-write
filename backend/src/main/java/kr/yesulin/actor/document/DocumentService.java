@@ -29,7 +29,7 @@ public final class DocumentService {
         this.store = store;
         this.pdfConverter = pdfConverter;
         this.extractor = new FieldExtractor();
-        this.writer = new CompletedDocumentWriter(store, counter);
+        this.writer = new CompletedDocumentWriter(store, counter, pdfConverter);
     }
 
     public AnalysisResponse analyze(MultipartFile upload) throws IOException, HwpDocumentException {
@@ -89,7 +89,7 @@ public final class DocumentService {
             }
             writes.add(new CellWrite.Photo(photo.address(), upload));
         }
-        boolean first = writer.write(stored, fileName, writes, true);
+        boolean first = writer.write(stored, fileName, List.of(), writes, true);
         log.info("generated document={} texts={} photos={} first={} bytes={} {}ms", documentId,
                 request.textValues().size(), request.photos().size(), first,
                 Files.size(stored.completedHwp()), elapsed(started));
@@ -111,20 +111,21 @@ public final class DocumentService {
     /**
      * Builds a job started from a shared form; another form's job id is treated as unknown.
      *
+     * @param growths table rows to add before writing, for answers longer than the form's rows
      * @param counted false for an operator's test build, which is not an application
      */
-    public GeneratedDocument buildJob(
-            UUID documentId, String owner, String fileName, List<CellWrite> writes, boolean counted)
+    public GeneratedDocument buildJob(UUID documentId, String owner, String fileName, List<TableGrowth> growths,
+            List<CellWrite> writes, boolean counted)
             throws IOException, HwpDocumentException {
         long started = System.nanoTime();
         StoredDocument stored = store.require(documentId);
         if (!stored.owner().equals(owner)) {
             throw new DocumentStore.DocumentNotFoundException();
         }
-        boolean first = writer.write(
-                stored, CompletedFileName.chosenOrDefault(fileName, stored.originalName()), writes, counted);
-        log.info("generated job={} owner={} cells={} first={} {}ms", documentId, owner, writes.size(), first,
-                elapsed(started));
+        boolean first = writer.write(stored, CompletedFileName.chosenOrDefault(fileName, stored.originalName()),
+                growths, writes, counted);
+        log.info("generated job={} owner={} cells={} addedRows={} first={} {}ms", documentId, owner, writes.size(),
+                growths.stream().mapToInt(TableGrowth::count).sum(), first, elapsed(started));
         return completed(documentId);
     }
 

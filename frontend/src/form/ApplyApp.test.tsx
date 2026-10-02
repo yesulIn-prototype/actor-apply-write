@@ -10,18 +10,22 @@ const form: PublicForm = {
   fileName: '{name}_{role}_지원서',
   sourceName: '잠자는숲속의공주.hwp',
   items: [
-    { id: 'name', label: '이름', help: '', required: true, type: 'TEXT', multiline: false, maxLength: 30, options: [], min: 0, max: 0 },
-    { id: 'phone', label: '연락처', help: '', required: true, type: 'PHONE', multiline: false, maxLength: 0, options: [], min: 0, max: 0 },
-    { id: 'intro', label: '자기소개', help: '짧게 적어주세요', required: false, type: 'TEXT', multiline: true, maxLength: 800, options: [], min: 0, max: 0 },
+    { id: 'name', label: '이름', help: '', required: true, type: 'TEXT', multiline: false, maxLength: 30, options: [], min: 0, max: 0, columns: [], maxRows: 0 },
+    { id: 'phone', label: '연락처', help: '', required: true, type: 'PHONE', multiline: false, maxLength: 0, options: [], min: 0, max: 0, columns: [], maxRows: 0 },
+    { id: 'intro', label: '자기소개', help: '짧게 적어주세요', required: false, type: 'TEXT', multiline: true, maxLength: 800, options: [], min: 0, max: 0, columns: [], maxRows: 0 },
     {
       id: 'gender', label: '성별', help: '', required: true, type: 'SINGLE', multiline: false, maxLength: 0,
-      options: [{ id: 'm', label: '남' }, { id: 'f', label: '여' }], min: 0, max: 0,
+      options: [{ id: 'm', label: '남' }, { id: 'f', label: '여' }], min: 0, max: 0, columns: [], maxRows: 0,
     },
     {
       id: 'role', label: '지원 배역', help: '', required: false, type: 'MULTI', multiline: false, maxLength: 0,
-      options: [{ id: 'bear', label: '곰역', output: '곰' }, { id: 'princess', label: '공주역' }, { id: 'tree', label: '나무역' }], min: 0, max: 2,
+      options: [{ id: 'bear', label: '곰역', output: '곰' }, { id: 'princess', label: '공주역' }, { id: 'tree', label: '나무역' }], min: 0, max: 2, columns: [], maxRows: 0,
     },
-    { id: 'photo', label: '프로필 사진', help: '', required: false, type: 'PHOTO', multiline: false, maxLength: 0, options: [], min: 0, max: 0 },
+    {
+      id: 'career', label: '출연 경력', help: '', required: false, type: 'ROWS', multiline: false, maxLength: 0,
+      options: [], min: 0, max: 0, columns: [{ id: 'title', label: '작품명' }, { id: 'part', label: '역할' }], maxRows: 2,
+    },
+    { id: 'photo', label: '프로필 사진', help: '', required: false, type: 'PHOTO', multiline: false, maxLength: 0, options: [], min: 0, max: 0, columns: [], maxRows: 0 },
   ],
 }
 
@@ -98,6 +102,22 @@ test('sends answers by item, never cells, and rebuilds the same applicant file a
   fireEvent.click(await screen.findByRole('button', { name: '지원서 만들기' }))
   await screen.findByText('지원서 파일이 만들어졌어요')
   await waitFor(async () => expect(JSON.parse(await sentRequest(1).text()).documentId).toBe(JOB))
+})
+
+test('takes a rows item row by row up to the limit and sends only the rows written in', async () => {
+  render(<ApplyApp vid="22382" />)
+  const career = within(await screen.findByRole('group', { name: '출연 경력' }))
+  fireEvent.change(career.getByLabelText('작품명'), { target: { value: '햄릿' } })
+  fireEvent.click(career.getByRole('button', { name: '+ 줄 더하기 (1/2)' }))
+  expect(career.getByRole('button', { name: '2줄까지 쓸 수 있어요' })).toBeDisabled()
+  fireEvent.change(screen.getByLabelText('이름 *'), { target: { value: '홍길동' } })
+  fireEvent.change(screen.getByLabelText('연락처 *'), { target: { value: '01012345678' } })
+  fireEvent.click(screen.getByRole('button', { name: '여' }))
+
+  fireEvent.click(screen.getByRole('button', { name: '지원서 만들기' }))
+
+  await screen.findByText('지원서 파일이 만들어졌어요')
+  expect(JSON.parse(await sentRequest(0).text()).answers.career).toEqual(['햄릿', ''])
 })
 
 test('offers the operator template as the file name and sends the name the applicant typed instead', async () => {

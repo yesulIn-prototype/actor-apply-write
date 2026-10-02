@@ -13,8 +13,11 @@ import tools.jackson.databind.JsonNode;
 final class OutputParser {
     private static final Pattern CELL = Pattern.compile("^(\\d{1,3})\\.(\\d{1,4})\\.(\\d{1,4})$");
     private static final Pattern CONDITION = Pattern.compile("^([A-Za-z][A-Za-z0-9_]{0,39})(?:=([A-Za-z][A-Za-z0-9_]{0,39}))?$");
-    private static final Set<String> KEYS = Set.of("cell", "text", "append", "edit", "photo", "join");
-    private static final List<String> WAYS = List.of("text", "append", "edit", "photo");
+    private static final Set<String> KEYS = Set.of(
+            "cell", "text", "append", "edit", "photo", "join", "rows", "columns", "formRows", "grow");
+    private static final Set<String> ROWS_KEYS = Set.of("columns", "formRows", "grow");
+    private static final List<String> WAYS = List.of("text", "append", "edit", "photo", "rows");
+    private static final int MOST_FORM_ROWS = 200;
 
     private final List<String> problems;
 
@@ -36,8 +39,11 @@ final class OutputParser {
             if (output == null) {
                 continue;
             }
-            if (!cells.add(output.cell())) {
-                problems.add(where + ": 칸 " + Cells.format(output.cell()) + "에 출력이 두 번 정의됐습니다. 복합 입력은 한 템플릿에 함께 쓰세요.");
+            // Rows added under the form's own (or all of them, with formRows 0) are no other output's cells.
+            List<CellAddress> written = output instanceof FormOutput.Rows rows ? rows.formCells() : List.of(output.cell());
+            List<CellAddress> twice = written.stream().filter(cell -> !cells.add(cell)).toList();
+            if (!twice.isEmpty()) {
+                problems.add(where + ": 칸 " + Cells.format(twice.getFirst()) + "에 출력이 두 번 정의됐습니다. 복합 입력은 한 템플릿에 함께 쓰세요.");
                 continue;
             }
             parsed.add(output);
@@ -54,7 +60,7 @@ final class OutputParser {
         CellAddress cell = cell(where, Json.text(node, "cell"));
         List<String> ways = WAYS.stream().filter(node::has).toList();
         if (ways.size() != 1) {
-            problems.add(where + ": text, append, edit, photo 중 정확히 하나를 지정해야 합니다.");
+            problems.add(where + ": text, append, edit, photo, rows 중 정확히 하나를 지정해야 합니다.");
             return null;
         }
         if (cell == null) {
@@ -65,13 +71,39 @@ final class OutputParser {
         if (node.has("join") && !(way.equals("text") || way.equals("append"))) {
             problems.add(where + ": join은 text·append에서만 쓸 수 있습니다.");
         }
+        if (!way.equals("rows") && ROWS_KEYS.stream().anyMatch(node::has)) {
+            problems.add(where + ": columns·formRows·grow는 rows 출력에서만 쓸 수 있습니다.");
+        }
         String join = node.has("join") ? Json.text(node, "join") : ", ";
         return switch (way) {
             case "text" -> new FormOutput.Text(cell, template(where, node, "text"), join);
             case "append" -> new FormOutput.Append(cell, template(where, node, "append"), join);
             case "photo" -> new FormOutput.Photo(cell, Json.text(node, "photo"));
+            case "rows" -> rows(where, cell, node);
             default -> new FormOutput.Edit(cell, replacements(where, node.path("edit")));
         };
+    }
+
+    private FormOutput.Rows rows(String where, CellAddress cell, JsonNode node) {
+        JsonNode columnNodes = node.path("columns");
+        List<String> columns = new ArrayList<>();
+        if (!columnNodes.isArray() || columnNodes.isEmpty()) {
+            problems.add(where + ": rows 출력에는 칸마다 넣을 열 id를 적은 columns가 필요합니다.");
+        } else {
+            columnNodes.forEach(column -> columns.add(column.isString() ? column.asString().strip() : ""));
+        }
+        if (!node.path("formRows").isIntegralNumber()) {
+            problems.add(where + ": formRows(양식에 이미 있는 줄 수)가 필요합니다. 줄이 없으면 0입니다.");
+        }
+        int formRows = Json.integer(node, "formRows", 0);
+        boolean grow = Json.bool(node, "grow");
+        if (formRows < 0 || formRows > MOST_FORM_ROWS) {
+            problems.add(where + ": formRows는 0~" + MOST_FORM_ROWS + " 사이여야 합니다.");
+        }
+        if (formRows == 0 && (!grow || cell.rowIndex() == 0)) {
+            problems.add(where + ": formRows가 0이면 grow가 true여야 하고, 줄은 cell 바로 위 줄 아래에 생기므로 cell이 첫 줄일 수 없습니다.");
+        }
+        return new FormOutput.Rows(cell, Json.text(node, "rows"), columns, Math.max(formRows, 0), grow);
     }
 
     private CellAddress cell(String where, String raw) {

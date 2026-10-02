@@ -1,6 +1,7 @@
 import type { Completed } from '../api'
 import { downloadName, request } from '../api'
 import type { Answers, Photos, PublicForm } from './types'
+import { filledAnswers } from './types'
 
 export async function fetchForm(vid: string): Promise<PublicForm> {
   const response = await request(`/api/forms/${vid}`, { method: 'GET' })
@@ -25,9 +26,7 @@ type Build = {
  */
 export async function buildForm({ url, form, answers, photos, documentId, fileName, headers }: Build): Promise<Completed> {
   const body = new FormData()
-  const filled = Object.fromEntries(Object.entries(answers)
-    .map(([id, values]) => [id, values.map((value) => value.trim()).filter((value) => value !== '')])
-    .filter(([, values]) => values.length > 0))
+  const filled = filledAnswers(form, answers)
   body.append('request', new Blob(
     [JSON.stringify({ version: form.version, documentId: documentId ?? null, answers: filled, fileName: fileName ?? '' })],
     { type: 'application/json' },

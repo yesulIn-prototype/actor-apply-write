@@ -7,6 +7,7 @@ import java.util.Optional;
 import kr.yesulin.actor.document.CellAddress;
 import kr.yesulin.actor.document.CellWrite;
 import kr.yesulin.actor.document.EditTarget;
+import kr.yesulin.actor.document.TableGrowth;
 
 /**
  * Applies a definition's output rules to an applicant's answers. A cell none of whose answers were
@@ -15,19 +16,77 @@ import kr.yesulin.actor.document.EditTarget;
 final class FormComposer {
     private FormComposer() {}
 
+    /**
+     * What to do to the blank form: rows to add, then cells to write, addressed in the grown form.
+     */
+    record Composed(List<TableGrowth> growths, List<CellWrite> writes) {
+        Composed {
+            growths = List.copyOf(growths);
+            writes = List.copyOf(writes);
+        }
+    }
+
     /** @param cellTexts what each cell of the blank form says, for edit outputs */
-    static List<CellWrite> compose(FormDefinition definition, FormAnswers answers, Map<CellAddress, String> cellTexts) {
+    static Composed compose(FormDefinition definition, FormAnswers answers, Map<CellAddress, String> cellTexts) {
+        List<TableGrowth> growths = new ArrayList<>();
+        for (FormOutput output : definition.outputs()) {
+            if (output instanceof FormOutput.Rows rows && added(rows, answers) > 0) {
+                growths.add(new TableGrowth(rows.cell().tableIndex(),
+                        rows.cell().rowIndex() + rows.formRows() - 1, added(rows, answers)));
+            }
+        }
         List<CellWrite> writes = new ArrayList<>();
         for (FormOutput output : definition.outputs()) {
+            CellAddress cell = moved(output.cell(), growths);
             switch (output) {
                 case FormOutput.Text text -> filled(text.template(), text.join(), answers)
-                        .ifPresent(value -> writes.add(new CellWrite.Replace(text.cell(), value)));
+                        .ifPresent(value -> writes.add(new CellWrite.Replace(cell, value)));
                 case FormOutput.Append append -> filled(append.template(), append.join(), answers)
-                        .ifPresent(value -> writes.add(new CellWrite.Append(append.cell(), value)));
+                        .ifPresent(value -> writes.add(new CellWrite.Append(cell, value)));
                 case FormOutput.Photo photo -> answers.photo(photo.item())
-                        .ifPresent(file -> writes.add(new CellWrite.Photo(photo.cell(), file)));
+                        .ifPresent(file -> writes.add(new CellWrite.Photo(cell, file)));
                 case FormOutput.Edit edit -> edited(edit, answers, cellTexts.getOrDefault(edit.cell(), ""))
-                        .ifPresent(value -> writes.add(new CellWrite.Replace(edit.cell(), value)));
+                        .ifPresent(value -> writes.add(new CellWrite.Replace(cell, value)));
+                case FormOutput.Rows rows -> {
+                    // Rows added for an output with no rows of its own sit under the row above its cell, so
+                    // they moved its cell too: its first row is where they start.
+                    int first = cell.rowIndex() - (rows.formRows() == 0 ? added(rows, answers) : 0);
+                    writes.addAll(rowWrites(definition, rows, answers, first));
+                }
+            }
+        }
+        return new Composed(growths, writes);
+    }
+
+    /** Rows beyond the form's own, when the output may add them. */
+    private static int added(FormOutput.Rows rows, FormAnswers answers) {
+        return rows.grow() ? Math.max(0, answers.rows(rows.item()).size() - rows.formRows()) : 0;
+    }
+
+    /** Where a blank-form cell ends up once the rows above it in its table were added. */
+    private static CellAddress moved(CellAddress cell, List<TableGrowth> growths) {
+        int shift = growths.stream()
+                .filter(growth -> growth.tableIndex() == cell.tableIndex() && growth.belowRow() < cell.rowIndex())
+                .mapToInt(TableGrowth::count)
+                .sum();
+        return new CellAddress(cell.tableIndex(), cell.rowIndex() + shift, cell.cellIndex());
+    }
+
+    private static List<CellWrite> rowWrites(
+            FormDefinition definition, FormOutput.Rows rows, FormAnswers answers, int firstRow) {
+        List<String> columnIds = definition.item(rows.item()).orElseThrow().columns().stream()
+                .map(FormItem.Column::id)
+                .toList();
+        List<List<String>> entries = answers.rows(rows.item());
+        List<CellWrite> writes = new ArrayList<>();
+        for (int row = 0; row < entries.size(); row++) {
+            for (int at = 0; at < rows.columns().size(); at++) {
+                int column = columnIds.indexOf(rows.columns().get(at));
+                String value = column < 0 ? "" : entries.get(row).get(column);
+                if (!value.isEmpty()) {
+                    writes.add(new CellWrite.Replace(new CellAddress(
+                            rows.cell().tableIndex(), firstRow + row, rows.cell().cellIndex() + at), value));
+                }
             }
         }
         return writes;
@@ -54,6 +113,10 @@ final class FormComposer {
                 case FormOutput.Edit edit -> edit.replacements().stream()
                         .flatMap(replacement -> named(replacement).stream())
                         .findFirst();
+                case FormOutput.Rows rows -> {
+                    rows.formCells().forEach(cell -> targets.add(new EditTarget(rows.item(), cell)));
+                    yield Optional.empty();
+                }
             };
             item.ifPresent(id -> targets.add(new EditTarget(id, output.cell())));
         }

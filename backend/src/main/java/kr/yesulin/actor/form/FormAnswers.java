@@ -1,5 +1,6 @@
 package kr.yesulin.actor.form;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -10,8 +11,12 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * An applicant's answers, checked against the definition: required items, picks among the defined
  * options, phone numbers and lengths. Choices are kept as option ids, phone numbers already formatted.
+ * A rows item arrives row by row, one value per column ("작품, 역할, 기간, 작품, 역할, 기간"); blank rows
+ * are dropped.
  */
 final class FormAnswers {
+    private static final int ROW_CELL_LIMIT = 100;
+
     private final FormDefinition definition;
     private final Map<String, List<String>> values;
     private final Map<String, MultipartFile> photos;
@@ -41,6 +46,16 @@ final class FormAnswers {
                 }
                 continue;
             }
+            if (item.type() == FormItem.Type.ROWS) {
+                List<String> rows = rows(item, raw.getOrDefault(item.id(), List.of()));
+                if (rows.isEmpty() && item.required()) {
+                    throw new InvalidAnswerException(item.label() + " 항목을 한 줄 이상 입력해주세요");
+                }
+                if (!rows.isEmpty()) {
+                    values.put(item.id(), rows);
+                }
+                continue;
+            }
             List<String> given = raw.getOrDefault(item.id(), List.of()).stream()
                     .map(value -> value == null ? "" : value.strip())
                     .filter(value -> !value.isEmpty())
@@ -63,7 +78,33 @@ final class FormAnswers {
             case SINGLE -> List.of(option(item, single(item, given)));
             case MULTI -> picks(item, given);
             case PHOTO -> throw new IllegalStateException("photo answers are files, not values");
+            case ROWS -> throw new IllegalStateException("rows answers are read row by row");
         };
+    }
+
+    /** The non-blank rows, flattened again; each cell one line. */
+    private static List<String> rows(FormItem item, List<String> given) {
+        int columns = item.columns().size();
+        if (given.size() % columns != 0) {
+            throw new IllegalArgumentException("줄 표의 칸 수가 맞지 않습니다: " + item.id());
+        }
+        List<String> kept = new ArrayList<>();
+        for (int start = 0; start < given.size(); start += columns) {
+            List<String> row = given.subList(start, start + columns).stream()
+                    .map(value -> value == null ? "" : value.replaceAll("\\s*[\\r\\n]+\\s*", " ").strip())
+                    .toList();
+            if (row.stream().allMatch(String::isEmpty)) {
+                continue;
+            }
+            if (row.stream().anyMatch(value -> value.codePointCount(0, value.length()) > ROW_CELL_LIMIT)) {
+                throw new InvalidAnswerException(item.label() + " 항목의 한 칸은 " + ROW_CELL_LIMIT + "자까지 쓸 수 있어요");
+            }
+            kept.addAll(row);
+        }
+        if (kept.size() / columns > item.maxRows()) {
+            throw new InvalidAnswerException(item.label() + " 항목은 " + item.maxRows() + "줄까지 쓸 수 있어요");
+        }
+        return List.copyOf(kept);
     }
 
     private static String text(FormItem item, List<String> given) {
@@ -119,6 +160,18 @@ final class FormAnswers {
 
     boolean picked(String item, String option) {
         return values.getOrDefault(item, List.of()).contains(option);
+    }
+
+    /** A rows item's answer: each row's values in column order. */
+    List<List<String>> rows(String id) {
+        FormItem item = definition.item(id).orElseThrow(() -> new IllegalArgumentException("unknown item " + id));
+        List<String> flat = values.getOrDefault(id, List.of());
+        int columns = item.columns().size();
+        List<List<String>> rows = new ArrayList<>();
+        for (int start = 0; start < flat.size(); start += columns) {
+            rows.add(flat.subList(start, start + columns));
+        }
+        return rows;
     }
 
     Optional<MultipartFile> photo(String item) {

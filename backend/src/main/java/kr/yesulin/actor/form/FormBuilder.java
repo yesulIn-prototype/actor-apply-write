@@ -10,7 +10,6 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import kr.yesulin.actor.document.CellWrite;
 import kr.yesulin.actor.document.DocumentService;
 import kr.yesulin.actor.document.DocumentStore;
 import kr.yesulin.actor.document.GeneratedDocument;
@@ -47,9 +46,9 @@ public final class FormBuilder {
         FormDefinition definition = definition(vid, version);
         Path source = source(vid, version);
         FormAnswers answers = FormAnswers.of(definition, request.answers(), photos);
-        List<CellWrite> writes = FormComposer.compose(
+        FormComposer.Composed composed = FormComposer.compose(
                 definition, answers, SourceCheck.texts(HwpDocument.open(source).cells()));
-        if (writes.isEmpty()) {
+        if (composed.writes().isEmpty()) {
             throw new InvalidAnswerException("입력한 내용이 없어요");
         }
         // The applicant's own choice wins; the operator's template is only the suggestion.
@@ -59,14 +58,15 @@ public final class FormBuilder {
         if (request.documentId() != null) {
             try {
                 return new Built(request.documentId(),
-                        documents.buildJob(request.documentId(), owner, fileName, writes, counted));
+                        documents.buildJob(request.documentId(), owner, fileName, composed.growths(),
+                                composed.writes(), counted));
             } catch (DocumentStore.DocumentNotFoundException expired) {
                 // The job expired (30 minutes) or belongs elsewhere: the answers are all here, so start afresh.
             }
         }
         UUID job = documents.startJob(
                 store.info(vid, version).originalName(), source, owner, FormComposer.targets(definition));
-        return new Built(job, documents.buildJob(job, owner, fileName, writes, counted));
+        return new Built(job, documents.buildJob(job, owner, fileName, composed.growths(), composed.writes(), counted));
     }
 
     FormDefinition definition(Vid vid, int version) throws IOException {

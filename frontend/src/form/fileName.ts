@@ -37,6 +37,9 @@ function written(item: FormItem, values: readonly string[]): string {
     case 'TEXT':
     case 'PHOTO':
       return given[0]?.replace(/\s*\n\s*/g, ' ') ?? ''
+    case 'ROWS':
+      // The server refuses a rows item in the file name template.
+      return ''
   }
 }
 

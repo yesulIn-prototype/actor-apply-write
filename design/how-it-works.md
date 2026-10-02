@@ -150,7 +150,7 @@ sequenceDiagram
 | `FormDefinitionParser`, `ItemParser`, `OutputParser` | JSON → 타입 있는 정의. 문제는 한 번에 모두 모아 알려줌 |
 | `SourceCheck` | 정의를 원본과 대조: 칸 존재, `edit`의 `find` 글자 |
 | `FormAnswers` | 답 검사: 필수, 선택지가 정의에 있는지, 전화번호, 길이, multi 개수. 배우에게 보일 문구로 거절(`INVALID_ANSWER`) |
-| `FormComposer` | **출력 규칙 적용**: text/append/edit/photo → 칸 쓰기 목록. 파일 이름 템플릿 채우기. 미리보기 hotspot 대상 |
+| `FormComposer` | **출력 규칙 적용**: text/append/edit/photo/rows → 끼울 표 줄(`TableGrowth`)과 칸 쓰기 목록. 끼운 줄 아래 칸은 주소를 밀어 쓴다. 파일 이름 템플릿 채우기. 미리보기 hotspot 대상 |
 | `Placeholders`, `PhoneNumber` | `{id}` 치환, 전화번호 형식(010-1234-5678, 02-123-4567) |
 
 ### 문서 엔진 (`document/`)
@@ -159,7 +159,7 @@ sequenceDiagram
 | `HwpDocument` | hwplib로 HWP 열기, 칸 목록(`cells()`), `setText`(칸을 비우고 쓰기, 줄마다 문단 서식 유지), `appendText`(라벨 아래 줄에), `insertImage`, `save` |
 | `CellContent` | 칸 글자 지우기(빈 줄은 남겨 칸 높이 유지), **입력 글자 서식**: 양식에서 가장 많이 쓴 글꼴·표의 대표 크기, 검정, 굵게·밑줄 없음 |
 | `CellImageInserter`, `PhotoPlacement` | 사진을 HWP 그림 개체로 넣기. 칸 안쪽 크기에 비율 유지로 맞춤(contain), 가운데 정렬 |
-| `CompletedDocumentWriter` | 작업의 `source.hwp`를 열어 칸 쓰기 목록을 적용하고 `completed.hwp`로 교체 저장. PDF·미리보기 캐시 지우기, 첫 완성만 횟수 +1(운영자 테스트는 제외) |
+| `CompletedDocumentWriter` | 작업의 `source.hwp`를 열어(끼울 줄이 있으면 `RowInserter`가 rhwp로 줄을 끼운 임시 사본을) 칸 쓰기 목록을 적용하고 `completed.hwp`로 교체 저장. PDF·미리보기 캐시 지우기, 첫 완성만 횟수 +1(운영자 테스트는 제외) |
 | `DocumentStore`, `StoredDocument` | 작업공간: 작업마다 UUID 폴더, 메모리 목록, 30분 만료, 5분마다 정리, 최대 300개 |
 | `DocumentService` | 작업 시작(`startJob`: 공용 원본 복사), 작업 생성(`buildJob`: 주인 확인 후 쓰기), 완성본·PDF 내려주기, HWPX→HWP 변환, (업로드 흐름) 분석·생성 |
 | `PdfConverter` | **rhwp CLI 실행기**: `export-pdf`, `export-svg`, `export-render-tree`, `convert`. 동시에 2개, 60초 제한 |
@@ -227,14 +227,14 @@ Content-Disposition: attachment; filename*=UTF-8''<이름>.hwp  (PDF는 같은 �
 
 ### HWP 한 번 만들 때 서버 안에서 일어나는 일
 1. `FormBuilder`가 정의를 읽고(`definition.json`) 답을 검사한다(`FormAnswers`).
-2. 원본 칸 원문을 읽어(`HwpDocument.cells()`) `FormComposer`가 출력 규칙을 적용 → 칸 쓰기 목록(`CellWrite.Replace / Append / Photo`).
+2. 원본 칸 원문을 읽어(`HwpDocument.cells()`) `FormComposer`가 출력 규칙을 적용 → 칸 쓰기 목록(`CellWrite.Replace / Append / Photo`). 줄 표(`rows`) 답이 양식 줄보다 많으면 끼울 줄 목록(`TableGrowth`)도 함께 나온다.
    - `text`: 템플릿을 채운 글자로 칸 내용을 교체
    - `append`: 라벨은 두고 아래 줄에 추가
    - `edit`: 원문에서 `find`를 `replace`로 바꾼 전체 글자로 교체(서식은 칸의 문단 서식 유지)
    - `photo`: 사진 파일
    - 답이 없는 칸은 목록에 넣지 않는다 → 원본 그대로
 3. 처음이면 공용 `source.hwp`를 작업 폴더로 **복사**해 새 작업(UUID)을 만든다. 두 번째부터는 받은 `documentId`의 작업을 쓴다(다른 공고·버전·테스트의 작업이면 새로 만든다).
-4. `CompletedDocumentWriter`가 작업의 `source.hwp`를 **매번 새로** 열어 칸을 쓰고(사진은 형식·크기 검사 후 그림 개체로), 임시 파일에 저장한 뒤 `completed.hwp`로 바꿔치기한다. 그래서 다시 만들어도 이전 답이 겹쳐 쌓이지 않는다.
+4. `CompletedDocumentWriter`가 작업의 `source.hwp`를 **매번 새로** 열어(끼울 줄이 있으면 rhwp `edit insert-row`·`merge-cells`로 줄을 끼운 임시 사본을 열고, 다 쓰면 지운다) 칸을 쓰고(사진은 형식·크기 검사 후 그림 개체로), 임시 파일에 저장한 뒤 `completed.hwp`로 바꿔치기한다. 그래서 다시 만들어도 이전 답이 겹쳐 쌓이지 않는다.
 5. 응답 본문이 HWP 파일 자체이고, 헤더 `X-Document-Id`로 작업 ID를 돌려준다.
 
 ### 실행 환경

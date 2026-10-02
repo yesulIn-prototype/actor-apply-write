@@ -33,14 +33,17 @@ export function DefinitionGuide() {
           공통: <code>id</code>(영문) · <code>label</code> · <code>help</code> · <code>required</code> · <code>type</code><br />
           <code>text</code>: <code>multiline</code>, <code>maxLength</code> · <code>phone</code>: 010-0000-0000 형식으로 정리됨 ·
           {' '}<code>single</code>/<code>multi</code>: <code>options</code>[{'{'}id, label, output{'}'}], multi는 <code>min</code>·<code>max</code> ·
-          {' '}<code>photo</code>
+          {' '}<code>photo</code> ·
+          {' '}<code>rows</code>(경력 같은 줄 표): <code>columns</code>[{'{'}id, label{'}'}], <code>maxRows</code>
         </dd>
         <dt>outputs (문서 칸마다 하나, <code>cell</code>은 "표.행.칸")</dt>
         <dd>
           <code>text</code>: 칸 내용을 템플릿으로 바꿈. <code>{'{id}'}</code>로 답을 넣고, 여러 답을 한 칸에 합칠 수 있음 ·
           {' '}<code>append</code>: 칸의 원래 글(라벨) 아래에 씀 ·
           {' '}<code>edit</code>: 원문 일부만 바꿈(<code>find</code>→<code>replace</code>, <code>when</code>: "id" 또는 "id=선택지") ·
-          {' '}<code>photo</code>: 사진 항목 id
+          {' '}<code>photo</code>: 사진 항목 id ·
+          {' '}<code>rows</code>: 줄 표 항목 id, <code>cell</code>은 첫 줄 첫 칸, <code>columns</code>는 칸마다 열 id(<code>""</code>는 건너뜀),
+          {' '}<code>formRows</code>(양식 줄 수), <code>grow</code>(넘치면 줄 추가)
         </dd>
         <dt>선택 결과를 쓰는 방법</dt>
         <dd>

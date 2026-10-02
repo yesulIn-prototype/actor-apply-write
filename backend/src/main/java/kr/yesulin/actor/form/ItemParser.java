@@ -12,8 +12,12 @@ final class ItemParser {
     private static final int SINGLE_LINE_LIMIT = 200;
     private static final int MULTILINE_LIMIT = 2000;
     private static final int LONGEST = 5000;
+    private static final int MOST_COLUMNS = 8;
+    private static final int MOST_ROWS = 50;
+    private static final int DEFAULT_ROWS = 10;
     private static final Set<String> KEYS = Set.of(
-            "id", "label", "help", "required", "type", "multiline", "maxLength", "options", "min", "max");
+            "id", "label", "help", "required", "type", "multiline", "maxLength", "options", "min", "max",
+            "columns", "maxRows");
 
     private final List<String> problems;
 
@@ -71,6 +75,9 @@ final class ItemParser {
         onlyFor(where, node, "options", choice, "단일·다중 선택");
         onlyFor(where, node, "min", type == FormItem.Type.MULTI, "다중 선택");
         onlyFor(where, node, "max", type == FormItem.Type.MULTI, "다중 선택");
+        boolean rows = type == FormItem.Type.ROWS;
+        onlyFor(where, node, "columns", rows, "줄 표(rows)");
+        onlyFor(where, node, "maxRows", rows, "줄 표(rows)");
 
         boolean multiline = text && Json.bool(node, "multiline");
         int maxLength = text ? maxLength(where, node, multiline) : 0;
@@ -80,15 +87,20 @@ final class ItemParser {
         if (type == FormItem.Type.MULTI && (min < 0 || max < 0 || (max > 0 && min > max) || max > options.size())) {
             problems.add(where + ": min·max는 0 이상이고 min ≤ max ≤ 선택지 수여야 합니다.");
         }
+        List<FormItem.Column> columns = rows ? columns(where, node.path("columns")) : List.of();
+        int maxRows = rows ? Json.integer(node, "maxRows", DEFAULT_ROWS) : 0;
+        if (rows && (maxRows < 1 || maxRows > MOST_ROWS)) {
+            problems.add(where + ": maxRows는 1~" + MOST_ROWS + " 사이여야 합니다.");
+        }
         return new FormItem(id, label, Json.text(node, "help").strip(), Json.bool(node, "required"), type,
-                multiline, maxLength, options, min, max);
+                multiline, maxLength, options, min, max, columns, maxRows);
     }
 
     private FormItem.Type type(String where, String raw) {
         try {
             return FormItem.Type.valueOf(raw.strip().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException unknown) {
-            problems.add(where + ": type은 text, phone, single, multi, photo 중 하나여야 합니다. (현재: '" + raw + "')");
+            problems.add(where + ": type은 text, phone, single, multi, photo, rows 중 하나여야 합니다. (현재: '" + raw + "')");
             return null;
         }
     }
@@ -127,6 +139,32 @@ final class ItemParser {
             options.add(new FormItem.Option(id, label, Json.text(option, "output")));
         }
         return options;
+    }
+
+    private List<FormItem.Column> columns(String where, JsonNode node) {
+        if (!node.isArray() || node.isEmpty() || node.size() > MOST_COLUMNS) {
+            problems.add(where + ": 줄 표에는 columns가 1~" + MOST_COLUMNS + "개 필요합니다.");
+            return List.of();
+        }
+        List<FormItem.Column> columns = new ArrayList<>();
+        Set<String> ids = new HashSet<>();
+        int index = 0;
+        for (JsonNode column : node) {
+            String at = where + ".columns[" + index++ + "]";
+            Json.unknownKeys(at, column, Set.of("id", "label"), problems);
+            String id = Json.text(column, "id");
+            String label = Json.text(column, "label").strip();
+            if (!Placeholders.ITEM_ID.matcher(id).matches() || label.isEmpty()) {
+                problems.add(at + ": 열에는 영문 id와 label이 필요합니다.");
+                continue;
+            }
+            if (!ids.add(id)) {
+                problems.add(at + ": 열 id '" + id + "'가 중복됩니다.");
+                continue;
+            }
+            columns.add(new FormItem.Column(id, label));
+        }
+        return columns;
     }
 
     private void onlyFor(String where, JsonNode node, String key, boolean allowed, String types) {

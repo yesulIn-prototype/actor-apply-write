@@ -56,6 +56,29 @@ public class PdfConverter {
         }
     }
 
+    /** A copy of row {@code row} of table {@code table} (top-level tables, export-tables numbering), right under it. */
+    public void insertRow(Path hwp, Path output, int table, int row) throws IOException, HwpDocumentException {
+        Files.deleteIfExists(output);
+        run(List.of("edit", "insert-row", hwp.toString(), "--table", Integer.toString(table),
+                "--row", Integer.toString(row), "--below", "-o", output.toString()), false);
+        if (!Files.isRegularFile(output) || Files.size(output) == 0) {
+            throw new HwpDocumentException("표에 줄을 더하지 못했습니다.");
+        }
+    }
+
+    /** Merges columns {@code fromColumn}..{@code toColumn} of one row (export-tables grid coordinates). */
+    public void mergeCells(Path hwp, Path output, int table, int row, int fromColumn, int toColumn)
+            throws IOException, HwpDocumentException {
+        Files.deleteIfExists(output);
+        run(List.of("edit", "merge-cells", hwp.toString(), "--table", Integer.toString(table),
+                "--row", Integer.toString(row), "--col", Integer.toString(fromColumn),
+                "--end-row", Integer.toString(row), "--end-col", Integer.toString(toColumn),
+                "-o", output.toString()), false);
+        if (!Files.isRegularFile(output) || Files.size(output) == 0) {
+            throw new HwpDocumentException("표 칸을 합치지 못했습니다.");
+        }
+    }
+
     /** One SVG per page ("<name>_001.svg", …) into {@code directory}, for the on-screen preview. */
     public void exportSvg(Path hwp, Path directory) throws IOException, HwpDocumentException {
         Files.createDirectories(directory);
