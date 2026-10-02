@@ -26,9 +26,8 @@
                    { "id": "period", "label": "기간" }, { "id": "venue", "label": "공연장" },
                    { "id": "company", "label": "단체·제작사" } ] },
     { "id": "photoMain", "label": "대표 사진", "type": "photo", "required": true },
-    { "id": "photoUpper", "label": "상반신 사진", "type": "photo" },
-    { "id": "photoFull", "label": "전신 사진", "type": "photo" },
-    { "id": "photoFree", "label": "자유 사진", "type": "photo" }
+    { "id": "photo1", "label": "프로필 사진 1", "type": "photo" },
+    { "id": "photo2", "label": "프로필 사진 2", "type": "photo" }
   ],
   "outputs": [
     { "cell": "0.0.1", "text": "{name}" },
@@ -36,7 +35,9 @@
     { "cell": "0.0.4", "photo": "photoMain" },
     { "cell": "0.1.1", "text": "{phone}" },
     { "cell": "0.1.3", "text": "{email}" },
-    { "cell": "0.2.1", "text": "{gender}" },
+    { "cell": "0.2.1", "edit": [
+        { "find": "남(  )", "replace": "남( V )", "when": "gender=m" },
+        { "find": "여(  )", "replace": "여( V )", "when": "gender=f" } ] },
     { "cell": "0.2.3", "text": "{area}" },
     { "cell": "0.3.1", "text": "{height} cm" },
     { "cell": "0.3.3", "text": "{weight} kg" },
@@ -48,8 +49,7 @@
     { "cell": "1.3.0", "rows": "more", "columns": ["label", "value"], "formRows": 0, "grow": true },
     { "cell": "1.3.1", "text": "{intro}" },
     { "cell": "2.1.0", "rows": "career", "columns": ["title", "role", "period", "venue", "company"], "formRows": 10, "grow": true },
-    { "cell": "3.1.0", "photo": "photoUpper" },
-    { "cell": "3.1.1", "photo": "photoFull" },
-    { "cell": "3.1.2", "photo": "photoFree" }
+    { "cell": "3.0.0", "photo": "photo1" },
+    { "cell": "3.0.1", "photo": "photo2" }
   ]
 }

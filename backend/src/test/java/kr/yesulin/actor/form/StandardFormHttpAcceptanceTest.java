@@ -70,6 +70,7 @@ class StandardFormHttpAcceptanceTest {
         // then
         Map<CellAddress, String> cells = cells(built);
         assertThat(cells.get(new CellAddress(0, 0, 1))).isEqualTo("김배우");
+        assertThat(cells.get(new CellAddress(0, 2, 1))).isEqualTo("남(  )  여( V )");
         assertThat(cells.get(new CellAddress(1, 3, 0))).isEqualTo("영상 링크");
         assertThat(cells.get(new CellAddress(1, 4, 1))).isEqualTo("2024 신인연기상");
         assertThat(cells.get(new CellAddress(1, 5, 0))).isEqualTo("자기소개·지원동기");
@@ -79,7 +80,7 @@ class StandardFormHttpAcceptanceTest {
         assertThat(cells.get(new CellAddress(2, 12, 4))).isEqualTo("극단 12");
         assertThat(cells.keySet().stream().filter(cell -> cell.tableIndex() == 2).mapToInt(CellAddress::rowIndex).max())
                 .hasValue(12);
-        assertThat(cells.get(new CellAddress(3, 0, 0))).isEqualTo("상반신");
+        assertThat(cells.keySet().stream().filter(cell -> cell.tableIndex() == 3)).hasSize(2);
     }
 
     private static MockMultipartFile request() {
