@@ -1,3 +1,4 @@
+import { OutputNameField } from '../OutputNameField'
 import { BottomCTA, Button, Footer, TopBar } from '../ui'
 import { FormFields } from './FormFields'
 import type { Answers, Photos, PublicForm } from './types'
@@ -8,13 +9,16 @@ type Props = {
   readonly answers: Answers
   readonly photos: Photos
   readonly busy: boolean
+  /** The finished file's name: the template filled in so far, or what the applicant typed. */
+  readonly outputName: string
+  readonly onOutputName: (value: string) => void
   readonly onValues: (id: string, values: readonly string[]) => void
   readonly onPhoto: (id: string, file?: File) => void
   readonly onSubmit: () => void
 }
 
 /** A notice link's form: the operator's questions, nothing to upload. */
-export function NoticeFillScreen({ form, answers, photos, busy, onValues, onPhoto, onSubmit }: Props) {
+export function NoticeFillScreen({ form, answers, photos, busy, outputName, onOutputName, onValues, onPhoto, onSubmit }: Props) {
   const left = missing(form, answers, photos)
   return (
     <>
@@ -23,6 +27,7 @@ export function NoticeFillScreen({ form, answers, photos, busy, onValues, onPhot
         <h1 className="title">{form.title}</h1>
         <p className="notice-lead">아래 내용을 채우면 공고의 지원서 파일로 만들어 드려요</p>
         <FormFields form={form} answers={answers} photos={photos} onValues={onValues} onPhoto={onPhoto} />
+        <OutputNameField value={outputName} onChange={onOutputName} />
         <Footer />
       </section>
       <BottomCTA>
@@ -31,7 +36,7 @@ export function NoticeFillScreen({ form, answers, photos, busy, onValues, onPhot
             필수 항목 {left.length}개가 남았어요{left.length <= 2 ? ` (${left.map((item) => item.label).join(', ')})` : ''}
           </p>
         )}
-        <Button onClick={onSubmit} disabled={left.length > 0} loading={busy}>지원서 만들기</Button>
+        <Button onClick={onSubmit} disabled={left.length > 0 || outputName.trim() === ''} loading={busy}>지원서 만들기</Button>
       </BottomCTA>
     </>
   )

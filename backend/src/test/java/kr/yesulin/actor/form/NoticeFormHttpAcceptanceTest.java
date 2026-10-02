@@ -5,7 +5,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -129,6 +131,35 @@ class NoticeFormHttpAcceptanceTest {
         perform("30001", 2, null, "마감후배우", "m").andExpect(status().isGone());
     }
 
+    @Test
+    @DisplayName("배우가 고친 파일 이름으로 완성되고, 안 고치면 운영자 템플릿 이름을 쓴다")
+    void generate_UsesApplicantsFileName_WhenOneIsChosen() throws Exception {
+        // given
+        register(new Vid("30002"));
+        testBuild("30002");
+        mockMvc.perform(admin(post("/api/admin/forms/30002/publish"))).andExpect(status().isOk());
+        mockMvc.perform(get("/api/forms/30002"))
+                .andExpect(jsonPath("$.fileName").value("{name}_{role}_지원서"))
+                .andExpect(jsonPath("$.sourceName").value("sample-notice.hwp"));
+
+        // when / then
+        mockMvc.perform(multipart("/api/forms/{vid}/generate", "30002")
+                        .file(request(1, null, "김배우", "f", "김배우_최종본.hwp")).file(photo()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", containsString(encoded("김배우_최종본.hwp"))));
+        mockMvc.perform(multipart("/api/forms/{vid}/generate", "30002")
+                        .file(request(1, null, "이배우", "m", "")).file(photo()))
+                .andExpect(header().string("Content-Disposition", containsString(encoded("이배우_곰역_지원서.hwp"))));
+        mockMvc.perform(multipart("/api/forms/{vid}/generate", "30002")
+                        .file(request(1, null, "박배우", "m", "a/b.hwp")).file(photo()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_FILE_NAME"));
+    }
+
+    private static String encoded(String fileName) {
+        return java.net.URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+    }
+
     private void register(Vid vid) throws Exception {
         MockMultipartFile document = new MockMultipartFile(
                 "document", "sample-notice.hwp", "application/x-hwp", resource("/forms/sample-notice.hwp"));
@@ -162,11 +193,17 @@ class NoticeFormHttpAcceptanceTest {
     }
 
     private static MockMultipartFile request(int version, String documentId, String name, String gender) {
+        return request(version, documentId, name, gender, "");
+    }
+
+    private static MockMultipartFile request(
+            int version, String documentId, String name, String gender, String fileName) {
         String json = """
-                {"version": %d, "documentId": %s, "answers": {
+                {"version": %d, "documentId": %s, "fileName": "%s", "answers": {
                   "name": ["%s"], "birth": ["1996.03.01"], "phone": ["01012345678"], "gender": ["%s"],
                   "role": ["bear"], "guardianName": ["보호자"], "guardianPhone": ["010-9999-8888"]}}
-                """.formatted(version, documentId == null ? "null" : "\"" + UUID.fromString(documentId) + "\"", name, gender);
+                """.formatted(version, documentId == null ? "null" : "\"" + UUID.fromString(documentId) + "\"",
+                fileName, name, gender);
         return new MockMultipartFile("request", "request.json", "application/json", json.getBytes(StandardCharsets.UTF_8));
     }
 

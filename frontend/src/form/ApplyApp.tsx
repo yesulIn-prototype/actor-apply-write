@@ -8,6 +8,7 @@ import { message, resumeLink, useLeaveInAppBrowser, useToast } from '../shell'
 import { Footer, Toast, TopBar } from '../ui'
 import { useDelivery } from '../useDelivery'
 import { buildForm, fetchForm } from './api'
+import { suggestedFileName } from './fileName'
 import { ItemInput } from './ItemInput'
 import { NoticeFillScreen } from './NoticeFillScreen'
 import type { PublicForm } from './types'
@@ -28,6 +29,8 @@ export function ApplyApp({ vid }: { vid: string }) {
   const [platform] = useState(() => detectPlatform(navigator.userAgent))
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
   const [completed, setCompleted] = useState<Completed>()
+  // Until the applicant types a name, the file follows the operator's template as answers come in.
+  const [typedName, setTypedName] = useState<string>()
   const [toast, showToast] = useToast()
   const answers = useAnswers(showToast)
   const delivery = useDelivery(completed, showToast)
@@ -62,6 +65,7 @@ export function ApplyApp({ vid }: { vid: string }) {
       answers: answers.answers,
       photos: answers.photos,
       documentId,
+      fileName: typedName ?? suggestedFileName(form, answers.answers),
     })
   }
 
@@ -103,6 +107,8 @@ export function ApplyApp({ vid }: { vid: string }) {
           answers={answers.answers}
           photos={answers.photos}
           busy={phase.kind === 'generating'}
+          outputName={typedName ?? suggestedFileName(phase.form, answers.answers)}
+          onOutputName={setTypedName}
           onValues={answers.setValues}
           onPhoto={answers.pickPhoto}
           onSubmit={() => submit(phase.form)}

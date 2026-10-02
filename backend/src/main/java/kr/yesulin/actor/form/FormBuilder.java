@@ -52,7 +52,10 @@ public final class FormBuilder {
         if (writes.isEmpty()) {
             throw new InvalidAnswerException("입력한 내용이 없어요");
         }
-        String fileName = FormComposer.fileName(definition, answers);
+        // The applicant's own choice wins; the operator's template is only the suggestion.
+        String fileName = request.fileName() == null || request.fileName().isBlank()
+                ? FormComposer.fileName(definition, answers)
+                : request.fileName();
         if (request.documentId() != null) {
             try {
                 return new Built(request.documentId(),

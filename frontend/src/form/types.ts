@@ -1,7 +1,8 @@
 /** A notice form as the operator defined it, minus everything about the document. */
 export type ItemType = 'TEXT' | 'PHONE' | 'SINGLE' | 'MULTI' | 'PHOTO'
 
-export type FormOption = { readonly id: string; readonly label: string }
+/** `output`: what the document (and the file name) gets instead of the label, when the operator set one. */
+export type FormOption = { readonly id: string; readonly label: string; readonly output?: string }
 
 export type FormItem = {
   readonly id: string
@@ -25,6 +26,10 @@ export type PublicForm = {
   readonly vid: string
   readonly version: number
   readonly title: string
+  /** The operator's file name template ("{name}_지원서"), "" for none. */
+  readonly fileName: string
+  /** The form's own file name, for the default name. */
+  readonly sourceName: string
   readonly items: readonly FormItem[]
 }
 

@@ -7,6 +7,8 @@ const form: PublicForm = {
   vid: '22382',
   version: 3,
   title: '잠자는 숲속의 공주 지원서',
+  fileName: '{name}_{role}_지원서',
+  sourceName: '잠자는숲속의공주.hwp',
   items: [
     { id: 'name', label: '이름', help: '', required: true, type: 'TEXT', multiline: false, maxLength: 30, options: [], min: 0, max: 0 },
     { id: 'phone', label: '연락처', help: '', required: true, type: 'PHONE', multiline: false, maxLength: 0, options: [], min: 0, max: 0 },
@@ -17,7 +19,7 @@ const form: PublicForm = {
     },
     {
       id: 'role', label: '지원 배역', help: '', required: false, type: 'MULTI', multiline: false, maxLength: 0,
-      options: [{ id: 'bear', label: '곰역' }, { id: 'princess', label: '공주역' }, { id: 'tree', label: '나무역' }], min: 0, max: 2,
+      options: [{ id: 'bear', label: '곰역', output: '곰' }, { id: 'princess', label: '공주역' }, { id: 'tree', label: '나무역' }], min: 0, max: 2,
     },
     { id: 'photo', label: '프로필 사진', help: '', required: false, type: 'PHOTO', multiline: false, maxLength: 0, options: [], min: 0, max: 0 },
   ],
@@ -90,11 +92,29 @@ test('sends answers by item, never cells, and rebuilds the same applicant file a
     version: 3,
     documentId: null,
     answers: { name: ['홍길동'], phone: ['010-1234-5678'], gender: ['f'], role: ['bear'] },
+    fileName: '홍길동_곰_지원서.hwp',
   })
   fireEvent.click(screen.getByRole('button', { name: '뒤로' }))
   fireEvent.click(await screen.findByRole('button', { name: '지원서 만들기' }))
   await screen.findByText('지원서 파일이 만들어졌어요')
   await waitFor(async () => expect(JSON.parse(await sentRequest(1).text()).documentId).toBe(JOB))
+})
+
+test('offers the operator template as the file name and sends the name the applicant typed instead', async () => {
+  render(<ApplyApp vid="22382" />)
+  const name = await screen.findByLabelText('완성 파일 이름')
+  expect(name).toHaveValue('잠자는숲속의공주_완성.hwp')
+  fireEvent.change(screen.getByLabelText('이름 *'), { target: { value: '홍길동' } })
+  fireEvent.click(within(screen.getByRole('group', { name: '지원 배역' })).getByRole('button', { name: '곰역' }))
+  expect(name).toHaveValue('홍길동_곰_지원서.hwp')
+  fireEvent.change(screen.getByLabelText('연락처 *'), { target: { value: '01012345678' } })
+  fireEvent.click(screen.getByRole('button', { name: '여' }))
+
+  fireEvent.change(name, { target: { value: '홍길동_최종본.hwp' } })
+  fireEvent.click(screen.getByRole('button', { name: '지원서 만들기' }))
+
+  await screen.findByText('지원서 파일이 만들어졌어요')
+  expect(JSON.parse(await sentRequest(0).text()).fileName).toBe('홍길동_최종본.hwp')
 })
 
 test('explains a closed notice instead of showing the form', async () => {

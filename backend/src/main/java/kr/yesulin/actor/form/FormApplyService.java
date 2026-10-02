@@ -24,7 +24,8 @@ public final class FormApplyService {
         FormStore.State state = open(vid);
         int version = state.current().orElseThrow(FormExceptions.NotFound::new);
         FormDefinition definition = builder.definition(vid, version);
-        return new FormViews.PublicForm(vid.value(), version, definition.title(), definition.items());
+        return new FormViews.PublicForm(vid.value(), version, definition.title(), definition.fileName(),
+                store.info(vid, version).originalName(), definition.items());
     }
 
     public FormBuilder.Built generate(Vid vid, FormViews.GenerateRequest request, Map<String, MultipartFile> photos)

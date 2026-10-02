@@ -18,15 +18,23 @@ public final class FormViews {
         CLOSED
     }
 
-    /** The applicant's screen: no cells, no document text. */
-    public record PublicForm(String vid, int version, String title, List<FormItem> items) {}
+    /**
+     * The applicant's screen: no cells, no document text.
+     *
+     * @param fileName   the operator's file name template ("{name}_지원서"), "" for none; the screen fills it in
+     *                   as the suggested name, which the applicant may change
+     * @param sourceName the form's own file name, for the default name when there is no template
+     */
+    public record PublicForm(
+            String vid, int version, String title, String fileName, String sourceName, List<FormItem> items) {}
 
     /**
      * @param version    0 on the first build; afterwards the version the screen was built from
      * @param documentId the applicant's own job once it exists, so rebuilding replaces only their file
      * @param answers    by item id; choices as option ids, one or more
+     * @param fileName   the name the applicant chose for the file; blank uses the operator's template
      */
-    public record GenerateRequest(int version, UUID documentId, Map<String, List<String>> answers) {
+    public record GenerateRequest(int version, UUID documentId, Map<String, List<String>> answers, String fileName) {
         public GenerateRequest {
             answers = answers == null ? Map.of() : Map.copyOf(answers);
         }

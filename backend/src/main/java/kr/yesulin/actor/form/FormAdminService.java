@@ -101,7 +101,8 @@ public final class FormAdminService {
     public FormViews.PublicForm editingForm(Vid vid) throws IOException {
         int editing = editing(vid);
         FormDefinition definition = builder.definition(vid, editing);
-        return new FormViews.PublicForm(vid.value(), editing, definition.title(), definition.items());
+        return new FormViews.PublicForm(vid.value(), editing, definition.title(), definition.fileName(),
+                store.info(vid, editing).originalName(), definition.items());
     }
 
     public FormBuilder.Built test(Vid vid, FormViews.GenerateRequest request, Map<String, MultipartFile> photos)
