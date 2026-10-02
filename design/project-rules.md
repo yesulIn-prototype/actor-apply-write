@@ -50,4 +50,5 @@
 | `input-typography.md` | 입력 글자 서식 결정 |
 | `otr-form-survey-2026-10.md`, `otr-attachment-audit-2026-10-03.md` | OTR 공고 지원서 형식 조사 |
 | `roadmap-standard-form.md` | 다음 단계 결정과 우선순위 |
+| `standard-items.md` | P1 결과: 표준 지원서 항목 등장 비율 |
 | `project-rules.md` | 이 문서 |
