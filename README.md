@@ -39,6 +39,7 @@
 - `design/input-typography.md`: 입력 글자 서식(대표 글꼴·크기) 결정
 - `design/otr-form-survey-2026-10.md`: OTR 공고 189건의 지원서 형식 조사 종합(상세: `design/otr-attachment-audit-2026-10-03.md`)
 - `design/standard-items.md`: P1 결과. HWP 지원서 44종에서 뽑은 항목별 등장 비율, 경력·사진 구조
+- `design/standard-form.md`: P2 설계. 표준 지원서 v1 초안, 추가 항목·배우 자유 결정, 구현 순서
 - `design/roadmap-standard-form.md`: 다음 단계 결정과 우선순위(HWP 기본 + 지원서 없는 공고용 표준 지원서)
 
 ## 실행

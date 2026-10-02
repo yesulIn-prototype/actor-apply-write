@@ -51,4 +51,5 @@
 | `otr-form-survey-2026-10.md`, `otr-attachment-audit-2026-10-03.md` | OTR 공고 지원서 형식 조사 |
 | `roadmap-standard-form.md` | 다음 단계 결정과 우선순위 |
 | `standard-items.md` | P1 결과: 표준 지원서 항목 등장 비율 |
+| `standard-form.md` | P2 설계: 표준 지원서와 "기본 + 추가" 결정 |
 | `project-rules.md` | 이 문서 |
