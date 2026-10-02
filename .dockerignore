@@ -11,7 +11,4 @@ artifacts
 images
 docs
 design
-kordoc-test
-hwplib-poc/*
-!hwplib-poc/lib
 .chrome-qa-*

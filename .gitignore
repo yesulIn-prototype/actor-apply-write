@@ -5,7 +5,6 @@ backend/build/
 backend/tmp/
 frontend/node_modules/
 frontend/dist/
-hwplib-poc/build/
 tools/rhwp/
 
 # Runtime data: completion count and logs
@@ -17,8 +16,6 @@ backend/logs/
 images/
 artifacts/
 docs/
-kordoc-test/
-hwplib-poc/output/
 .chrome-qa-*/
 .claude/
 frontend/eval/report.json

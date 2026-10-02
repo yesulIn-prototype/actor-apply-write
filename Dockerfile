@@ -10,7 +10,7 @@ RUN npm run build
 
 FROM eclipse-temurin:25-jdk-noble AS backend
 WORKDIR /build
-COPY hwplib-poc/lib/hwplib-1.1.11.jar hwplib-poc/lib/
+COPY backend/libs/hwplib-1.1.11.jar backend/libs/
 COPY backend/gradlew backend/settings.gradle.kts backend/build.gradle.kts backend/
 COPY backend/gradle backend/gradle
 RUN cd backend && chmod +x gradlew && ./gradlew --no-daemon -q dependencies > /dev/null

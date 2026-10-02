@@ -34,7 +34,6 @@
 - `design/local-mvp.md`: 직접 업로드 흐름의 처음 구조와 안전 경계(작성 당시 기준이라 HWPX·PDF·배포는 이후 추가됨)
 - `design/notice-forms.md`: 공고별 작성 링크와 운영자 양식 정의
 - `design/form-definition-guide.md`: 칸 목록으로 양식 정의 JSON을 쓰는 규칙(에이전트에게 주는 문서)
-- `hwplib-poc/`, `kordoc-test/`: 문서 엔진 선택 근거
 
 ## 실행
 
