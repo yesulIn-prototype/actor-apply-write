@@ -1,0 +1,38 @@
+{
+  "title": "가족 뮤지컬 「잠자는 숲속의 공주」 배우 지원서",
+  "fileName": "{name}_{role}_지원서",
+  "items": [
+    { "id": "name", "label": "이름", "type": "text", "required": true, "maxLength": 30 },
+    { "id": "birth", "label": "생년월일", "type": "text", "required": true, "help": "예: 1996.03.01 (96년생 이하 지원 가능)" },
+    { "id": "phone", "label": "연락처", "type": "phone", "required": true },
+    { "id": "email", "label": "이메일", "type": "text" },
+    { "id": "gender", "label": "성별", "type": "single", "required": true,
+      "options": [ { "id": "m", "label": "남" }, { "id": "f", "label": "여" } ] },
+    { "id": "area", "label": "거주지", "type": "text", "help": "구 단위까지 적어주세요 (성북구·강북구 거주자 환영)" },
+    { "id": "role", "label": "지원 배역", "type": "multi", "required": true, "min": 1, "max": 2,
+      "options": [ { "id": "bear", "label": "곰역 및 다역 (남자)", "output": "곰역" },
+                   { "id": "princess", "label": "공주 및 다역 (여자)", "output": "공주역" } ] },
+    { "id": "career", "label": "주요 경력", "type": "text", "multiline": true, "maxLength": 1000 },
+    { "id": "guardianName", "label": "비상연락처 이름", "type": "text" },
+    { "id": "guardianPhone", "label": "비상연락처 전화", "type": "phone" },
+    { "id": "intro", "label": "자기소개", "type": "text", "multiline": true, "maxLength": 800 },
+    { "id": "photo", "label": "프로필 사진", "type": "photo", "required": true }
+  ],
+  "outputs": [
+    { "cell": "0.0.1", "text": "{name}" },
+    { "cell": "0.0.3", "text": "{birth}" },
+    { "cell": "0.1.1", "text": "{phone}" },
+    { "cell": "0.1.3", "text": "{email}" },
+    { "cell": "0.2.1", "edit": [
+        { "find": "남(  )", "replace": "남( V )", "when": "gender=m" },
+        { "find": "여(  )", "replace": "여( V )", "when": "gender=f" } ] },
+    { "cell": "0.2.3", "text": "{area}" },
+    { "cell": "0.3.1", "text": "{career}" },
+    { "cell": "0.6.1", "edit": [
+        { "find": "□곰역", "replace": "■곰역", "when": "role=bear" },
+        { "find": "□공주", "replace": "■공주", "when": "role=princess" } ] },
+    { "cell": "0.7.1", "text": "{guardianName} / {guardianPhone}" },
+    { "cell": "0.8.1", "text": "{intro}" },
+    { "cell": "0.0.4", "photo": "photo" }
+  ]
+}

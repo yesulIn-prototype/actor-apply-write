@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Screen } from './analytics'
-import { campaign, startAnalytics, track, trackScreen, withCampaign } from './analytics'
+import { campaign, track, trackScreen } from './analytics'
 import type { Completed } from './api'
-import { analyzeDocument, fetchCompletedCount, generateDocument, preparePdf, resumeDocument } from './api'
-import { openMailDraft, saveFile, shareFile } from './delivery'
+import { analyzeDocument, fetchCompletedCount, generateDocument, resumeDocument } from './api'
 import type { AnalysisResponse } from './document'
 import { initialValue } from './document'
 import { suggestedOutputName } from './fileName'
 import { preparePhoto } from './photo'
-import type { Platform } from './platform'
-import { detectPlatform, externalBrowserUrl, opensExternallyOnLoad } from './platform'
+import { detectPlatform } from './platform'
 import { DoneScreen } from './DoneScreen'
+import { FieldEditor } from './FieldEditor'
 import { FillScreen, UploadScreen } from './screens'
+import { InAppNotice } from './InAppNotice'
+import { message, resumeLink, useLeaveInAppBrowser, useToast } from './shell'
+import { useDelivery } from './useDelivery'
 import { Toast } from './ui'
 import './App.css'
 
@@ -20,12 +22,6 @@ type Phase = 'upload' | 'analyzing' | 'fill' | 'generating' | 'done'
 const SCREENS: Partial<Record<Phase, Screen>> = { upload: 'upload', fill: 'fill', generating: 'fill', done: 'done' }
 
 const DOCUMENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const TRIED_EXTERNAL = 'yesulin.triedExternalBrowser'
-
-/** "?doc=<id>": a form finished in an in-app browser, handed over to the system browser. */
-function resumeLink(documentId: string): string {
-  return `${window.location.origin}/?doc=${documentId}`
-}
 
 function App() {
   const [platform] = useState(() => detectPlatform(navigator.userAgent))
@@ -41,8 +37,9 @@ function App() {
   const [typedName, setTypedName] = useState<string>()
   const [completed, setCompleted] = useState<Completed>()
   const [completedCount, setCompletedCount] = useState<number>()
-  const [pdfBusy, setPdfBusy] = useState(false)
   const [toast, showToast] = useToast()
+  const delivery = useDelivery(completed, showToast)
+  const editSnapshot = useRef<{ values: Record<string, string>; photos: Record<string, File | undefined> }>(undefined)
   const outputName = typedName ?? (analysis ? suggestedOutputName(analysis.fileName, analysis.fields, values) : '')
 
   useEffect(() => {
@@ -52,19 +49,7 @@ function App() {
     return () => { active = false }
   }, [phase])
 
-  useEffect(() => {
-    // In-app browsers (KakaoTalk, Threads on Android…) can't save files; hand the page to the system
-    // browser right away. Only once per visit: if it bounces back, the page stays usable with the notice.
-    // The visit is counted where the page ends up, not in the app it leaves.
-    if (opensExternallyOnLoad(platform) && !once(TRIED_EXTERNAL)) {
-      const external = externalBrowserUrl(platform, withCampaign(platform, window.location.href))
-      if (external) {
-        window.location.href = external
-        return
-      }
-    }
-    startAnalytics(platform)
-  }, [platform])
+  useLeaveInAppBrowser(platform)
 
   useEffect(() => {
     // A resumed form has no answers; it was completed in the in-app browser it came from.
@@ -169,44 +154,11 @@ function App() {
     }
   }
 
-  async function mail() {
-    if (!completed) return
-    const result = await shareFile(completed.file)
-    if (result === 'shared') track('send_mail', { method: 'share' })
-    if (result === 'cancelled') track('send_mail_cancel')
-    if (result !== 'unsupported') return
-    track('send_mail', { method: 'download' })
-    saveFile(completed.downloadUrl, completed.file.name)
-    showToast('파일을 저장했어요. 메일에 첨부해서 보내주세요')
-    window.setTimeout(() => openMailDraft(completed.file.name.replace(/\.hwp$/i, '')), 800)
-  }
-
-  function save() {
-    if (!completed) return
-    saveFile(completed.downloadUrl, completed.file.name)
-    track('save_hwp')
-    showToast('한글 파일을 저장했어요')
-  }
-
   function fail(event: string, text: string) {
     showToast(text)
     track(event, { reason: text })
   }
 
-  async function savePdf() {
-    if (!completed) return
-    setPdfBusy(true)
-    try {
-      await preparePdf(completed)
-      saveFile(completed.pdfUrl, completed.file.name.replace(/\.hwp$/i, '.pdf'))
-      track('save_pdf')
-      showToast('PDF를 저장했어요')
-    } catch {
-      fail('pdf_error', 'PDF로 만들지 못했어요. 한글 파일로 저장해주세요')
-    } finally {
-      setPdfBusy(false)
-    }
-  }
 
   return (
     <main className="app">
@@ -233,13 +185,26 @@ function App() {
       )}
       {phase === 'done' && completed && analysis && (
         <DoneScreen
-          analysis={analysis}
           completed={completed}
-          values={values}
-          photos={photos}
-          onValue={(id, value) => setValues((current) => ({ ...current, [id]: value }))}
-          onPhoto={pickPhoto}
-          onRestore={(previousValues, previousPhotos) => { setValues(previousValues); setPhotos(previousPhotos) }}
+          labels={new Map(analysis.fields.map((field) => [field.id, field.label]))}
+          renderEditor={(id) => {
+            const field = analysis.fields.find((candidate) => candidate.id === id)
+            return field && (
+              <FieldEditor
+                field={field}
+                values={values}
+                photos={photos}
+                onValue={(fieldId, value) => setValues((current) => ({ ...current, [fieldId]: value }))}
+                onPhoto={pickPhoto}
+              />
+            )
+          }}
+          onEditOpen={() => { editSnapshot.current = { values, photos } }}
+          onEditCancel={() => {
+            if (!editSnapshot.current) return
+            setValues(editSnapshot.current.values)
+            setPhotos(editSnapshot.current.photos)
+          }}
           onApply={apply}
           onBack={() => {
             if (analysis.fields.length > 0) {
@@ -252,66 +217,15 @@ function App() {
             setCompleted(undefined)
             setPhase('upload')
           }}
-          onMail={mail}
-          onSave={save}
-          onSavePdf={savePdf}
-          pdfBusy={pdfBusy}
+          onMail={delivery.mail}
+          onSave={delivery.save}
+          onSavePdf={delivery.savePdf}
+          pdfBusy={delivery.pdfBusy}
         />
       )}
       <Toast message={toast} />
     </main>
   )
-}
-
-function InAppNotice({ platform, resumeUrl }: { platform: Platform; resumeUrl?: string }) {
-  if (!platform.inApp) return null
-  const external = externalBrowserUrl(platform, withCampaign(platform, resumeUrl ?? window.location.href))
-  const opened = () => track('open_external_browser', { from: resumeUrl ? 'done' : 'start' })
-  const menu = '오른쪽 위 ··· 에서 ‘외부 브라우저로 열기’를 눌러주세요'
-  if (resumeUrl) {
-    return (
-      <div className="in-app-notice" role="note">
-        <span>저장이나 메일 보내기가 안 되면 브라우저에서 이어서 할 수 있어요{platform.os === 'ios' ? `. 안 열리면 ${menu}` : ''}</span>
-        {external && <a href={external} onClick={opened}>브라우저에서 이어하기</a>}
-      </div>
-    )
-  }
-  return (
-    <div className="in-app-notice in-app-notice-start" role="note">
-      <span>
-        <strong>{platform.os === 'ios' ? 'Safari' : '인터넷 브라우저'}에서 열어주세요</strong>
-        앱 안에서는 완성한 파일을 저장하거나 보내지 못할 수 있어요.{platform.os === 'ios' ? ` 버튼이 안 되면 ${menu}` : ''}
-      </span>
-      {external && <a href={external} onClick={opened}>{platform.os === 'ios' ? 'Safari로 열기' : '브라우저로 열기'}</a>}
-    </div>
-  )
-}
-
-/** True when this visit already did it; the first call records it. With storage blocked it reports true. */
-function once(key: string): boolean {
-  try {
-    if (window.sessionStorage.getItem(key)) return true
-    window.sessionStorage.setItem(key, '1')
-  } catch {
-    // Without storage the redirect could loop through the fallback page; skip it.
-    return true
-  }
-  return false
-}
-
-function useToast(): [string, (text: string) => void] {
-  const [text, setText] = useState('')
-  const timer = useRef<number>(undefined)
-  const show = useCallback((next: string) => {
-    window.clearTimeout(timer.current)
-    setText(next)
-    timer.current = window.setTimeout(() => setText(''), 3000)
-  }, [])
-  return [text, show]
-}
-
-function message(reason: unknown): string {
-  return reason instanceof Error ? reason.message : '처리하지 못했어요. 다시 시도해주세요'
 }
 
 export default App

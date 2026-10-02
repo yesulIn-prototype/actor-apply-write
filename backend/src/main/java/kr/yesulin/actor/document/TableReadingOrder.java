@@ -55,7 +55,7 @@ final class TableReadingOrder {
             for (int page = 0; page < trees.size(); page++) {
                 collect(trees.get(page), page, false, placed);
             }
-            Map<String, Integer> matched = PreviewService.matchTables(cells, trees);
+            Map<String, Integer> matched = PageLayout.matchTables(cells, trees);
             placed.sort(Comparator.comparingInt(PlacedTable::page).thenComparingDouble(PlacedTable::top));
             Map<Integer, Integer> rank = new HashMap<>();
             for (PlacedTable table : placed) {
@@ -76,7 +76,7 @@ final class TableReadingOrder {
     private static void collect(JsonNode node, int page, boolean insideTable, List<PlacedTable> tables) {
         boolean table = node.path("type").asString("").equals("Table");
         if (table && !insideTable) {
-            tables.add(new PlacedTable(PreviewService.tableKey(node), page, node.path("bbox").path("y").asDouble()));
+            tables.add(new PlacedTable(PageLayout.tableKey(node), page, node.path("bbox").path("y").asDouble()));
         }
         for (JsonNode child : node.path("children")) {
             collect(child, page, insideTable || table, tables);

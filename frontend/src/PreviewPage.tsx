@@ -1,17 +1,16 @@
 import type { Hotspot, PreviewPage as Page } from './api'
-import type { FieldCandidate } from './document'
 
 type Props = {
   readonly page: Page
   readonly hotspots: readonly Hotspot[]
-  readonly fields: ReadonlyMap<string, FieldCandidate>
+  readonly labels: ReadonlyMap<string, string>
   readonly imageUrl: string
   readonly enlarged?: boolean
   readonly onEdit: (hotspot: Hotspot, opener: HTMLButtonElement) => void
   readonly onZoom?: (opener: HTMLButtonElement) => void
 }
 
-export function PreviewPage({ page, hotspots, fields, imageUrl, enlarged = false, onEdit, onZoom }: Props) {
+export function PreviewPage({ page, hotspots, labels, imageUrl, enlarged = false, onEdit, onZoom }: Props) {
   return (
     <div className="preview-page" style={{ aspectRatio: `${page.width} / ${page.height}` }}>
       <img src={imageUrl} alt={`${page.number}쪽 ${enlarged ? '확대 ' : ''}미리보기`} />
@@ -30,7 +29,7 @@ export function PreviewPage({ page, hotspots, fields, imageUrl, enlarged = false
           key={`${hotspot.fieldId}-${index}`}
           type="button"
           className="hotspot"
-          aria-label={`${fields.get(hotspot.fieldId)?.label ?? '칸'} 수정`}
+          aria-label={`${labels.get(hotspot.fieldId) ?? '칸'} 수정`}
           style={{
             left: `${(hotspot.x / page.width) * 100}%`,
             top: `${(hotspot.y / page.height) * 100}%`,

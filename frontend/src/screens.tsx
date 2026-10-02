@@ -216,8 +216,9 @@ function TextField({ field, label, value, help, onChange }: {
   )
 }
 
+/** A photo slot: any answer with an id and a name, from an uploaded form or a notice form. */
 export function PhotoTile({ field, file, onChange }: {
-  field: FieldCandidate
+  field: { readonly id: string; readonly label: string }
   file?: File
   onChange: (id: string, file?: File) => void
 }) {

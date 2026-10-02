@@ -2,13 +2,10 @@ package kr.yesulin.actor.document;
 
 import jakarta.validation.Valid;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,7 +20,6 @@ import org.springframework.web.multipart.MultipartHttpServletRequest;
 @RestController
 @RequestMapping("/api/documents")
 public final class DocumentController {
-    private static final MediaType HWP_MEDIA_TYPE = MediaType.parseMediaType("application/x-hwp");
     private static final MediaType SVG = MediaType.parseMediaType("image/svg+xml");
     private final DocumentService service;
     private final PreviewService previews;
@@ -86,17 +82,10 @@ public final class DocumentController {
     }
 
     private static ResponseEntity<ByteArrayResource> attachment(GeneratedDocument generated) {
-        return attachment(generated, HWP_MEDIA_TYPE);
+        return Attachments.of(generated, Attachments.HWP);
     }
 
     private static ResponseEntity<ByteArrayResource> attachment(GeneratedDocument generated, MediaType type) {
-        ContentDisposition disposition = ContentDisposition.attachment()
-                .filename(generated.fileName(), StandardCharsets.UTF_8)
-                .build();
-        return ResponseEntity.ok()
-                .contentType(type)
-                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
-                .contentLength(generated.content().length)
-                .body(new ByteArrayResource(generated.content()));
+        return Attachments.of(generated, type);
     }
 }

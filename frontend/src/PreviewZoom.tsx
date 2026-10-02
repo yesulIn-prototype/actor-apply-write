@@ -1,20 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import type { Hotspot, PreviewPage as Page } from './api'
-import type { FieldCandidate } from './document'
 import { PreviewPage } from './PreviewPage'
 
 type Props = {
   readonly page: Page
   readonly hotspots: readonly Hotspot[]
-  readonly fields: ReadonlyMap<string, FieldCandidate>
+  readonly labels: ReadonlyMap<string, string>
   readonly imageUrl: string
   readonly opener: HTMLButtonElement
   readonly onClose: () => void
   readonly onEdit: (hotspot: Hotspot) => void
 }
 
-export function PreviewZoom({ page, hotspots, fields, imageUrl, opener, onClose, onEdit }: Props) {
+export function PreviewZoom({ page, hotspots, labels, imageUrl, opener, onClose, onEdit }: Props) {
   const [scale, setScale] = useState(1.5)
   const dialog = useRef<HTMLDivElement>(null)
   const close = useRef<HTMLButtonElement>(null)
@@ -57,7 +56,7 @@ export function PreviewZoom({ page, hotspots, fields, imageUrl, opener, onClose,
           <PreviewPage
             page={page}
             hotspots={hotspots}
-            fields={fields}
+            labels={labels}
             imageUrl={imageUrl}
             enlarged
             onEdit={(hotspot) => {

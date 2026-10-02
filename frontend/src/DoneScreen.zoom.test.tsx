@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, expect, test, vi } from 'vitest'
 import type { AnalysisResponse } from './document'
 import { DoneScreen } from './DoneScreen'
+import { FieldEditor } from './FieldEditor'
 
 const analysis: AnalysisResponse = {
   documentId: 'b3bcb48a-72b8-4dd9-9277-8cdce606233c',
@@ -38,14 +39,18 @@ test('opens an enlarged page and edits its field from the zoomed preview', async
     hotspots: [{ fieldId: 'text-0-0-1', page: 1, x: 100, y: 100, width: 80, height: 30 }],
   }), { status: 200 })))
   render(<DoneScreen
-    analysis={analysis}
     completed={{ documentId: analysis.documentId, file: new File(['hwp'], '지원서_완성.hwp'), downloadUrl: '', pdfUrl: '' }}
-    values={{ 'text-0-0-1': '검증배우' }}
-    photos={{}}
+    labels={new Map(analysis.fields.map((field) => [field.id, field.label]))}
+    renderEditor={(id) => <FieldEditor
+      field={analysis.fields.find((field) => field.id === id) ?? analysis.fields[0]}
+      values={{ 'text-0-0-1': '검증배우' }}
+      photos={{}}
+      onValue={() => undefined}
+      onPhoto={() => undefined}
+    />}
     pdfBusy={false}
-    onValue={() => undefined}
-    onPhoto={() => undefined}
-    onRestore={() => undefined}
+    onEditOpen={() => undefined}
+    onEditCancel={() => undefined}
     onApply={async () => true}
     onBack={() => undefined}
     onMail={() => undefined}

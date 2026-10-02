@@ -1,23 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
-import type { KeyboardEvent } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 import type { Completed, Hotspot, Preview, PreviewPage as Page } from './api'
 import { fetchPreview, previewPageUrl } from './api'
-import type { AnalysisResponse, FieldCandidate } from './document'
 import { PreviewPage } from './PreviewPage'
 import { PreviewZoom } from './PreviewZoom'
-import { FieldInput, PhotoTile } from './screens'
 import { BottomCTA, Button, TopBar } from './ui'
 
 type Props = {
-  analysis: AnalysisResponse
   completed: Completed
-  values: Record<string, string>
-  photos: Record<string, File | undefined>
+  /** What can be edited from the preview, by hotspot id; empty for a file resumed without its answers. */
+  labels: ReadonlyMap<string, string>
+  /** The input for one answer, shown in the edit sheet. */
+  renderEditor: (id: string) => ReactNode
   pdfBusy: boolean
-  onValue: (id: string, value: string) => void
-  onPhoto: (id: string, file?: File) => void
-  /** Puts back what the sheet changed when the applicant closes it without applying. */
-  onRestore: (values: Record<string, string>, photos: Record<string, File | undefined>) => void
+  /** The sheet opens: remember the answers, so closing it without applying can put them back. */
+  onEditOpen: () => void
+  /** The sheet closed without applying: put back what it changed. */
+  onEditCancel: () => void
   /** Rebuilds the file from the current answers; resolves false when that failed. */
   onApply: () => Promise<boolean>
   onBack: () => void
@@ -32,12 +31,7 @@ type Loaded = { key: string; preview?: Preview; failed?: boolean }
 export function DoneScreen(props: Props) {
   const [version, setVersion] = useState(0)
   const [loaded, setLoaded] = useState<Loaded>()
-  const [editing, setEditing] = useState<{
-    field: FieldCandidate
-    values: Props['values']
-    photos: Props['photos']
-    opener: HTMLButtonElement
-  }>()
+  const [editing, setEditing] = useState<{ id: string; label: string; opener: HTMLButtonElement }>()
   const [applying, setApplying] = useState(false)
   const [zoom, setZoom] = useState<{ page: Page; opener: HTMLButtonElement }>()
   const key = `${props.completed.documentId}:${version}`
@@ -52,18 +46,20 @@ export function DoneScreen(props: Props) {
 
   const current = loaded?.key === key ? loaded : undefined
   const preview = current?.preview
-  const fields = new Map(props.analysis.fields.map((field) => [field.id, field]))
+  const labels = props.labels
   // A form resumed in another browser brings its file but not the answers, so it can't be edited here.
-  const editable = props.analysis.fields.length > 0
+  const editable = labels.size > 0
   const hotspots = editable ? preview?.hotspots ?? [] : []
 
   function open(hotspot: Hotspot, opener: HTMLButtonElement) {
-    const field = fields.get(hotspot.fieldId)
-    if (field) setEditing({ field, values: props.values, photos: props.photos, opener })
+    const label = labels.get(hotspot.fieldId)
+    if (label === undefined) return
+    props.onEditOpen()
+    setEditing({ id: hotspot.fieldId, label, opener })
   }
 
   function cancel() {
-    if (editing) props.onRestore(editing.values, editing.photos)
+    if (editing) props.onEditCancel()
     setEditing(undefined)
   }
 
@@ -108,7 +104,7 @@ export function DoneScreen(props: Props) {
               key={page.number}
               page={page}
               hotspots={hotspots.filter((hotspot) => hotspot.page === page.number)}
-              fields={fields}
+              labels={labels}
               imageUrl={previewPageUrl(props.completed.documentId, page.number, version)}
               onEdit={open}
               onZoom={(opener) => setZoom({ page, opener })}
@@ -121,10 +117,10 @@ export function DoneScreen(props: Props) {
             <div className="edit-field-items">
               {[...new Map(preview.hotspots.map((hotspot) => [hotspot.fieldId, hotspot])).values()]
                 .map((hotspot) => {
-                  const field = fields.get(hotspot.fieldId)
-                  return field && (
-                    <button key={field.id} type="button" onClick={(event) => open(hotspot, event.currentTarget)}>
-                      {field.label} 항목 수정
+                  const label = labels.get(hotspot.fieldId)
+                  return label !== undefined && (
+                    <button key={hotspot.fieldId} type="button" onClick={(event) => open(hotspot, event.currentTarget)}>
+                      {label} 항목 수정
                     </button>
                   )
                 })}
@@ -145,7 +141,7 @@ export function DoneScreen(props: Props) {
         <PreviewZoom
           page={zoom.page}
           hotspots={hotspots.filter((hotspot) => hotspot.page === zoom.page.number)}
-          fields={fields}
+          labels={labels}
           imageUrl={previewPageUrl(props.completed.documentId, zoom.page.number, version)}
           opener={zoom.opener}
           onClose={() => setZoom(undefined)}
@@ -157,32 +153,21 @@ export function DoneScreen(props: Props) {
       )}
 
       {editing && (
-        <EditSheet
-          field={editing.field}
-          opener={editing.opener}
-          values={props.values}
-          photos={props.photos}
-          applying={applying}
-          onValue={props.onValue}
-          onPhoto={props.onPhoto}
-          onCancel={cancel}
-          onApply={apply}
-        />
+        <EditSheet label={editing.label} opener={editing.opener} applying={applying} onCancel={cancel} onApply={apply}>
+          {props.renderEditor(editing.id)}
+        </EditSheet>
       )}
     </>
   )
 }
 
-function EditSheet({ field, opener, values, photos, applying, onValue, onPhoto, onCancel, onApply }: {
-  field: FieldCandidate
+function EditSheet({ label, opener, applying, onCancel, onApply, children }: {
+  label: string
   opener: HTMLButtonElement
-  values: Record<string, string>
-  photos: Record<string, File | undefined>
   applying: boolean
-  onValue: (id: string, value: string) => void
-  onPhoto: (id: string, file?: File) => void
   onCancel: () => void
   onApply: () => void
+  children: ReactNode
 }) {
   const sheet = useRef<HTMLDivElement>(null)
 
@@ -218,20 +203,9 @@ function EditSheet({ field, opener, values, photos, applying, onValue, onPhoto, 
     <div className="sheet-layer">
       {/* Tapping outside closes, as the 닫기 button does; the scrim itself is not a control. */}
       <div className="sheet-scrim" aria-hidden="true" onClick={onCancel} />
-      <div ref={sheet} className="sheet" role="dialog" aria-modal="true" aria-label={`${field.label} 수정`} onKeyDown={handleKeyDown}>
+      <div ref={sheet} className="sheet" role="dialog" aria-modal="true" aria-label={`${label} 수정`} onKeyDown={handleKeyDown}>
         <span className="sheet-handle" aria-hidden="true" />
-        <div className="sheet-body">
-          {field.kind === 'PHOTO' ? (
-            <>
-              <p className="sheet-title">{field.label}</p>
-              <div className="sheet-photo">
-                <PhotoTile field={field} file={photos[field.id]} onChange={onPhoto} />
-              </div>
-            </>
-          ) : (
-            <FieldInput field={field} values={values} onChange={onValue} />
-          )}
-        </div>
+        <div className="sheet-body">{children}</div>
         <div className="sheet-actions">
           <Button variant="secondary" onClick={onCancel}>닫기</Button>
           <Button onClick={onApply} loading={applying}>수정하기</Button>

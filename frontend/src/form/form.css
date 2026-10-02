@@ -1,0 +1,33 @@
+/* Notice links (/apply/<vid>): the same look as the upload flow, plus what an operator-defined form needs. */
+.notice-lead {
+  margin-top: 8px;
+  font-size: 15px;
+  color: var(--grey-600);
+}
+
+.required {
+  color: var(--red-500);
+}
+
+/* Room for the note above the button, so the last item is never under it. */
+.notice-content {
+  padding-bottom: calc(var(--cta-height) + 96px + env(safe-area-inset-bottom));
+}
+
+.cta-note {
+  margin: -8px 0 0;
+  padding-top: 8px;
+  background: var(--white);
+  font-size: 13px;
+  color: var(--grey-600);
+  text-align: center;
+}
+
+.item-photo .photo-grid {
+  margin-top: 0;
+}
+
+.chip:disabled {
+  color: var(--grey-400);
+  background: var(--grey-50);
+}

@@ -5,6 +5,8 @@ import kr.yesulin.actor.document.DocumentStore;
 import kr.yesulin.actor.document.HwpDocumentException;
 import kr.yesulin.actor.document.PdfConverter;
 import kr.yesulin.actor.document.UploadValidator;
+import kr.yesulin.actor.form.FormExceptions;
+import kr.yesulin.actor.form.InvalidAnswerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -27,6 +29,34 @@ public final class ApiExceptionHandler {
     @ExceptionHandler(DocumentStore.DocumentNotFoundException.class)
     ResponseEntity<ApiError> notFound(DocumentStore.DocumentNotFoundException exception) {
         return response(HttpStatus.NOT_FOUND, "DOCUMENT_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(FormExceptions.NotFound.class)
+    ResponseEntity<ApiError> formNotFound(FormExceptions.NotFound exception) {
+        return response(HttpStatus.NOT_FOUND, "FORM_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(FormExceptions.Closed.class)
+    ResponseEntity<ApiError> formClosed(FormExceptions.Closed exception) {
+        return response(HttpStatus.GONE, "FORM_CLOSED", exception.getMessage());
+    }
+
+    @ExceptionHandler(FormExceptions.Changed.class)
+    ResponseEntity<ApiError> formChanged(FormExceptions.Changed exception) {
+        return response(HttpStatus.CONFLICT, "FORM_CHANGED", exception.getMessage());
+    }
+
+    /** The operator reads every reason, one per line. */
+    @ExceptionHandler(FormExceptions.NotReady.class)
+    ResponseEntity<ApiError> formNotReady(FormExceptions.NotReady exception) {
+        return response(HttpStatus.CONFLICT, "FORM_NOT_READY", String.join("\n", exception.problems()));
+    }
+
+    /** Written for the applicant ("연락처 번호를 확인해주세요"); it never quotes the answer itself. */
+    @ExceptionHandler(InvalidAnswerException.class)
+    ResponseEntity<ApiError> invalidAnswer(InvalidAnswerException exception) {
+        log.info("rejected answer: {}", exception.getMessage());
+        return response(HttpStatus.BAD_REQUEST, "INVALID_ANSWER", exception.getMessage());
     }
 
     @ExceptionHandler(DocumentStore.StoreFullException.class)

@@ -66,25 +66,26 @@ public final class DocumentStore {
         Files.write(source, content);
         StoredDocument stored = new StoredDocument(
                 id, safeFileName(originalName), directory, source, clock.instant().plus(ttl), java.util.List.of(),
-                CompletedFileName.defaultFor(safeFileName(originalName)));
+                CompletedFileName.defaultFor(safeFileName(originalName)), "", java.util.List.of());
         documents.put(id, stored);
         return stored;
     }
 
     StoredDocument attachFields(UUID id, java.util.List<FieldCandidate> fields) {
-        StoredDocument current = require(id);
-        StoredDocument updated = new StoredDocument(
-                current.id(), current.originalName(), current.directory(), current.source(),
-                current.expiresAt(), java.util.List.copyOf(fields), current.completedFileName());
-        documents.put(id, updated);
-        return updated;
+        return replace(require(id).withFields(fields));
+    }
+
+    StoredDocument attachOwner(UUID id, String owner, java.util.List<EditTarget> targets) {
+        return replace(require(id).withOwner(owner, targets));
     }
 
     void attachCompletedFileName(UUID id, CompletedFileName fileName) {
-        StoredDocument current = require(id);
-        documents.put(id, new StoredDocument(
-                current.id(), current.originalName(), current.directory(), current.source(),
-                current.expiresAt(), current.fields(), fileName));
+        replace(require(id).withCompletedFileName(fileName));
+    }
+
+    private StoredDocument replace(StoredDocument updated) {
+        documents.put(updated.id(), updated);
+        return updated;
     }
 
     StoredDocument require(UUID id) {

@@ -51,7 +51,9 @@ public final class RateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !"POST".equals(request.getMethod()) || !request.getRequestURI().startsWith("/api/");
+        // The operator API answers only to its token (AdminTokenFilter), so testing a form is not rationed.
+        return !"POST".equals(request.getMethod()) || !request.getRequestURI().startsWith("/api/")
+                || request.getRequestURI().startsWith("/api/admin/");
     }
 
     @Override

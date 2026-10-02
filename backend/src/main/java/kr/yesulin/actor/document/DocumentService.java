@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -21,20 +22,19 @@ public final class DocumentService {
     private static final Logger log = LoggerFactory.getLogger(DocumentService.class);
     private final DocumentStore store;
     private final FieldExtractor extractor;
-    private final CompletionCounter counter;
     private final PdfConverter pdfConverter;
+    private final CompletedDocumentWriter writer;
 
     public DocumentService(DocumentStore store, CompletionCounter counter, PdfConverter pdfConverter) {
         this.store = store;
-        this.counter = counter;
         this.pdfConverter = pdfConverter;
         this.extractor = new FieldExtractor();
+        this.writer = new CompletedDocumentWriter(store, counter);
     }
 
     public AnalysisResponse analyze(MultipartFile upload) throws IOException, HwpDocumentException {
         long started = System.nanoTime();
-        UploadValidator.HangulUpload hangul = UploadValidator.hangul(upload);
-        byte[] content = hangul.format() == UploadValidator.Format.HWPX ? fromHwpx(hangul.bytes()) : hangul.bytes();
+        byte[] content = hwpSource(upload);
         StoredDocument stored = store.create(upload.getOriginalFilename(), content);
         try {
             HwpDocument document = HwpDocument.open(stored.source());
@@ -73,16 +73,13 @@ public final class DocumentService {
         CompletedFileName fileName = CompletedFileName.chosenOrDefault(request.fileName(), stored.originalName());
         Map<String, FieldCandidate> allowed = stored.fields().stream()
                 .collect(Collectors.toUnmodifiableMap(FieldCandidate::id, Function.identity()));
-        HwpDocument document = HwpDocument.open(stored.source());
-
+        List<CellWrite> writes = new ArrayList<>();
         for (GenerateRequest.TextValue value : request.textValues()) {
             requireCandidate(allowed, value.fieldId(), value.address(), FieldCandidate.FieldKind.TEXT);
             String text = value.value() == null ? "" : value.value();
-            if (allowed.get(value.fieldId()).style() == FieldCandidate.InputStyle.APPEND) {
-                document.appendText(value.address(), text);
-            } else {
-                document.setText(value.address(), text);
-            }
+            writes.add(allowed.get(value.fieldId()).style() == FieldCandidate.InputStyle.APPEND
+                    ? new CellWrite.Append(value.address(), text)
+                    : new CellWrite.Replace(value.address(), text));
         }
         for (GenerateRequest.PhotoValue photo : request.photos()) {
             requireCandidate(allowed, photo.fieldId(), photo.address(), FieldCandidate.FieldKind.PHOTO);
@@ -90,39 +87,64 @@ public final class DocumentService {
             if (upload == null) {
                 throw new IllegalArgumentException("사진 파일이 없습니다: " + photo.fileKey());
             }
-            String extension = UploadValidator.image(upload);
-            Path photoPath = writePhoto(stored, upload, extension);
-            document.insertImage(photo.address(), photoPath);
+            writes.add(new CellWrite.Photo(photo.address(), upload));
         }
-
-        Path draft = stored.directory().resolve("completed-" + UUID.randomUUID() + ".hwp");
-        document.save(draft);
-        boolean firstCompletion = !Files.exists(completedPath(stored));
-        Files.move(draft, completedPath(stored), StandardCopyOption.REPLACE_EXISTING);
-        store.attachCompletedFileName(documentId, fileName);
-        Files.deleteIfExists(pdfPath(stored));
-        PreviewService.invalidate(stored);
-        if (firstCompletion) {
-            // Re-generating after an edit is the same application, so it counts once.
-            counter.increment();
-        }
+        boolean first = writer.write(stored, fileName, writes, true);
         log.info("generated document={} texts={} photos={} first={} bytes={} {}ms", documentId,
-                request.textValues().size(), request.photos().size(), firstCompletion,
-                Files.size(completedPath(stored)), elapsed(started));
+                request.textValues().size(), request.photos().size(), first,
+                Files.size(stored.completedHwp()), elapsed(started));
         return completed(documentId);
+    }
+
+    /**
+     * Gives one applicant their own copy of a shared form. The shared file is never written to; every
+     * later build of this job reads the copy and replaces only this job's completed file.
+     */
+    public UUID startJob(String originalName, Path sharedSource, String owner, List<EditTarget> targets)
+            throws IOException {
+        StoredDocument stored = store.create(originalName, Files.readAllBytes(sharedSource));
+        store.attachOwner(stored.id(), owner, targets);
+        log.info("job started document={} owner={}", stored.id(), owner);
+        return stored.id();
+    }
+
+    /**
+     * Builds a job started from a shared form; another form's job id is treated as unknown.
+     *
+     * @param counted false for an operator's test build, which is not an application
+     */
+    public GeneratedDocument buildJob(
+            UUID documentId, String owner, String fileName, List<CellWrite> writes, boolean counted)
+            throws IOException, HwpDocumentException {
+        long started = System.nanoTime();
+        StoredDocument stored = store.require(documentId);
+        if (!stored.owner().equals(owner)) {
+            throw new DocumentStore.DocumentNotFoundException();
+        }
+        boolean first = writer.write(
+                stored, CompletedFileName.chosenOrDefault(fileName, stored.originalName()), writes, counted);
+        log.info("generated job={} owner={} cells={} first={} {}ms", documentId, owner, writes.size(), first,
+                elapsed(started));
+        return completed(documentId);
+    }
+
+    /** Checks an uploaded Hangul file and returns it as HWP 5, converting HWPX once. */
+    public byte[] hwpSource(MultipartFile upload) throws IOException, HwpDocumentException {
+        UploadValidator.HangulUpload hangul = UploadValidator.hangul(upload);
+        return hangul.format() == UploadValidator.Format.HWPX ? fromHwpx(hangul.bytes()) : hangul.bytes();
     }
 
     /** Lets the system browser pick up a form completed in an in-app browser (same 30-minute lifetime). */
     public ResumeResponse resume(UUID documentId) {
         StoredDocument stored = store.require(documentId);
         return new ResumeResponse(documentId.toString(), stored.completedFileName().hwp(),
-                Files.exists(completedPath(stored)));
+                Files.exists(stored.completedHwp()));
     }
 
     /** Serves the latest completed file over a plain GET so in-app browsers can hand it to their download manager. */
     public GeneratedDocument completed(UUID documentId) throws IOException {
         StoredDocument stored = store.require(documentId);
-        Path path = completedPath(stored);
+        Path path = stored.completedHwp();
         if (!Files.exists(path)) {
             throw new DocumentStore.DocumentNotFoundException();
         }
@@ -132,11 +154,11 @@ public final class DocumentService {
     /** Renders the latest completed HWP to PDF once and reuses it until the HWP is regenerated. */
     public GeneratedDocument completedPdf(UUID documentId) throws IOException, HwpDocumentException {
         StoredDocument stored = store.require(documentId);
-        Path hwp = completedPath(stored);
+        Path hwp = stored.completedHwp();
         if (!Files.exists(hwp)) {
             throw new DocumentStore.DocumentNotFoundException();
         }
-        Path pdf = pdfPath(stored);
+        Path pdf = stored.completedPdf();
         if (!Files.exists(pdf)) {
             Path draft = stored.directory().resolve("completed-" + UUID.randomUUID() + ".pdf");
             long started = System.nanoTime();
@@ -183,14 +205,6 @@ public final class DocumentService {
         return (System.nanoTime() - started) / 1_000_000;
     }
 
-    private static Path pdfPath(StoredDocument stored) {
-        return stored.directory().resolve("completed.pdf");
-    }
-
-    private static Path completedPath(StoredDocument stored) {
-        return stored.directory().resolve("completed.hwp");
-    }
-
     private static void requireCandidate(
             Map<String, FieldCandidate> allowed,
             String fieldId,
@@ -201,14 +215,4 @@ public final class DocumentService {
             throw new IllegalArgumentException("분석 결과와 일치하지 않는 입력 위치입니다: " + fieldId);
         }
     }
-
-    private static Path writePhoto(StoredDocument stored, MultipartFile upload, String extension) throws IOException {
-        Path path = stored.directory().resolve("photo-" + UUID.randomUUID() + extension).normalize();
-        if (!path.startsWith(stored.directory())) {
-            throw new IllegalArgumentException("잘못된 사진 경로입니다.");
-        }
-        Files.write(path, upload.getBytes());
-        return path;
-    }
-
 }

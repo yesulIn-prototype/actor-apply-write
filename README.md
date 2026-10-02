@@ -1,12 +1,16 @@
 # 예술IN 배우 지원서 자동 완성
 
-실제 `.hwp` 배우 지원서를 분석하고, 사용자가 확인한 표 셀과 사진 슬롯에 값을 넣어 완성된 HWP를 내려받는 로컬 MVP다.
+배우가 공고 지원서에 정보와 사진을 넣어 제출할 HWP/PDF를 만드는 서비스다. 두 가지 입구가 있다.
+
+- **공고별 작성 링크** `/apply/{vid}`: 운영자가 OTR 공고(vid)마다 원본 지원서와 양식 정의를 직접 준비해 공개한 링크. 배우는 업로드 없이 항목만 채운다. 운영자 페이지는 `/admin`. 설계와 정의 형식은 `design/notice-forms.md`.
+- **직접 업로드** `/`: 배우가 받은 `.hwp`를 올리면 칸을 자동으로 찾아 채우게 한다(기존 기능).
 
 ## 구성
 
 - `backend/`: Java 25, Spring Boot 4.1.1, `hwplib 1.1.11`
 - `frontend/`: React 19, TypeScript, Vite
-- `design/local-mvp.md`: 사용자와 확정한 구조 및 안전 경계
+- `design/local-mvp.md`: 직접 업로드 흐름의 처음 구조와 안전 경계(작성 당시 기준이라 HWPX·PDF·배포는 이후 추가됨)
+- `design/notice-forms.md`: 공고별 작성 링크와 운영자 양식 정의
 - `hwplib-poc/`, `kordoc-test/`: 문서 엔진 선택 근거
 
 ## 실행
@@ -125,12 +129,15 @@ cd frontend && npm run eval
 | `yesulin.rate-limit.requests` / `window` | 60 / 10분 | 한 IP가 올리기·만들기를 할 수 있는 횟수 |
 | `yesulin.max-documents` | 300 | 동시에 보관하는 문서 수 (넘으면 "사용자가 많아요" 안내) |
 | `yesulin.cors.allowed-origins` | localhost:5173 | 프런트와 API의 도메인이 다를 때만 |
+| `yesulin.forms-dir` | `./data/forms` | 공고별 원본 지원서와 양식 정의(버전별, 오래 보관) |
+| `yesulin.admin-token` | (비어 있음) | 운영자 API 토큰. 비면 운영자 기능이 꺼진다 |
 
 ### Railway (운영 중)
 
 - 주소: https://apply.yesulin.art (Cloudflare DNS `apply` CNAME → Railway, 프록시 끔). Railway 기본 주소 https://web-production-e8f7f.up.railway.app 도 그대로 동작한다. 프로젝트 `yesulin`, 서비스 `web`.
 - 루트의 `Dockerfile` 하나로 프런트 빌드, 백엔드 jar, rhwp, 한글 폰트를 묶어 같은 주소에서 서빙한다.
-- 볼륨 `web-volume`을 `/data`에 연결했다. 완성 횟수(`/data/completions.txt`)와 로그(`/data/logs`)는 재배포해도 남는다.
+- 볼륨 `web-volume`을 `/data`에 연결했다. 완성 횟수(`/data/completed-count.txt`), 로그(`/data/logs`), 공고별 양식(`/data/forms`)은 재배포해도 남는다.
+- 운영자 페이지를 쓰려면 서비스 변수 `YESULIN_ADMIN_TOKEN`에 긴 무작위 값을 넣는다. 비어 있으면 `/api/admin/**`가 꺼진다.
 - 서비스 변수: `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES=.*`, `SERVER_TOMCAT_REMOTEIP_REMOTE_IP_HEADER=x-real-ip`. Railway 중계 서버가 실제 사용자 IP를 `X-Real-IP`에 덮어써서 넘겨주므로 이 값을 믿는다. 이 설정이 없으면 모든 사용자가 중계 서버 IP로 묶여 횟수 제한을 함께 쓴다.
 - 배포: 서비스 `web`이 GitHub `yesulIn-prototype/actor-apply-write`의 `main`에 연결돼 있고 Wait for CI가 켜져 있다. `main`에 push하면 GitHub Actions CI(백엔드·프런트 테스트, 빌드)가 돌고, 통과한 커밋만 Railway가 자동으로 빌드·배포한다. CI가 실패하면 배포되지 않는다. 로그 보기: `railway logs`.
 
@@ -150,11 +157,21 @@ cd frontend && npm run eval
 - **보내는 주소는 화면 경로와 UTM뿐이다.** `?doc=<id>`만 있으면 완성본을 받을 수 있으므로 절대 보내지 않는다. 입력값, 파일 이름도 보내지 않는다.
 - GA 설정에서 **향상된 측정은 끈다.** 켜 두면 GA가 실제 주소와 다운로드 링크(`/api/documents/{id}/completed.pdf`)를 직접 모은다.
 
+## 공고별 작성 링크 써보기 (로컬)
+
+1. 백엔드를 운영자 토큰과 함께 켠다: `.\gradlew.bat bootRun --args=--yesulin.admin-token=<아무 긴 값>`
+2. `http://127.0.0.1:5173/admin`에서 토큰을 넣고 공고 번호를 연다.
+3. 원본 지원서를 올리고, 칸 주소를 보며 정의를 쓰고, 테스트 생성 후 공개한다.
+4. `http://127.0.0.1:5173/apply/<vid>`가 배우용 링크다.
+
+`backend/src/test/resources/forms/`에 시험용 합성 지원서(`sample-notice.hwp`)와 정의 예(`sample-notice.definition.json`)가 있다.
+
 ## 파일 보존
 
 - 업로드는 OS 임시 디렉터리 아래 `yesulin-actor` 작업공간에 저장된다.
 - 메모리의 문서 참조는 기본 30분 뒤 만료된다.
 - 만료 정리는 5분 간격으로 실행되며, 삭제 실패 항목은 다음 주기에 다시 시도한다.
 - 서버 시작 시 보관 시간을 넘긴 고아 작업 디렉터리도 정리한다.
+- 공고별 원본 지원서와 양식 정의는 `yesulin.forms-dir`에 계속 둔다. 배우의 입력·사진·완성본은 위의 30분 작업공간에만 있다.
 - 데이터베이스나 사용자 계정은 사용하지 않는다.
 - 첫 화면의 완성 횟수는 `backend/data/completed-count.txt`에 숫자 하나로만 저장한다(`yesulin.stats-file`). 같은 문서를 다시 완성해도 한 번만 센다.

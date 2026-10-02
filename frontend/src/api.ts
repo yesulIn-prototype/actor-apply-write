@@ -17,7 +17,15 @@ const MESSAGES: Record<string, string> = {
   PDF_UNAVAILABLE: '지금은 PDF로 저장할 수 없어요. 한글 파일로 저장해주세요',
   RATE_LIMITED: '요청이 너무 많아요. 몇 분 뒤에 다시 시도해주세요',
   SERVER_BUSY: '지금 사용하는 사람이 많아요. 잠시 후 다시 시도해주세요',
+  FORM_NOT_FOUND: '이 공고의 지원서 작성 링크를 찾을 수 없어요. 링크를 다시 확인해주세요',
+  FORM_CLOSED: '지원서 작성이 마감된 공고예요',
+  FORM_CHANGED: '지원서 양식이 바뀌었어요. 새로고침해서 다시 작성해주세요',
+  ADMIN_UNAUTHORIZED: '운영자 토큰이 맞지 않아요',
+  ADMIN_DISABLED: '서버에 운영자 토큰이 설정되어 있지 않아요',
 }
+
+/** Codes whose server message is written for the reader as is: a missing answer, a definition problem. */
+const SERVER_WORDED = new Set(['INVALID_ANSWER', 'FORM_NOT_READY'])
 
 export async function analyzeDocument(file: File): Promise<AnalysisResponse> {
   const body = new FormData()
@@ -122,7 +130,7 @@ export async function preparePdf(completed: Completed): Promise<void> {
   await response.blob()
 }
 
-async function request(url: string, init: RequestInit): Promise<Response> {
+export async function request(url: string, init: RequestInit): Promise<Response> {
   let response: Response
   try {
     response = await fetch(url, init)
@@ -139,13 +147,14 @@ async function responseError(response: Response): Promise<Error> {
   if (response.status === 413) return new Error(MESSAGES.UPLOAD_TOO_LARGE)
   try {
     const error = (await response.json()) as ApiError
+    if (SERVER_WORDED.has(error.code)) return new Error(error.message)
     return new Error(MESSAGES[error.code] ?? '처리하지 못했어요. 다시 시도해주세요')
   } catch {
     return new Error('처리하지 못했어요. 다시 시도해주세요')
   }
 }
 
-function downloadName(response: Response, original: string): string {
+export function downloadName(response: Response, original: string): string {
   const disposition = response.headers.get('Content-Disposition') ?? ''
   const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1]
   return encoded ? decodeURIComponent(encoded) : original.replace(/\.hwpx?$/i, '') + '_완성.hwp'
