@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { message } from '../shell'
 import type { Summary } from './adminApi'
 import { listForms, savedToken, saveToken } from './adminApi'
+import { BackupPanel } from './BackupPanel'
 import { FormEditor } from './FormEditor'
 import { STATUS_LABEL } from './status'
 import './admin.css'
@@ -62,37 +63,42 @@ function FormList({ onOpen }: { onOpen: (vid: string) => void }) {
   const [error, setError] = useState('')
   const [vid, setVid] = useState('')
 
-  useEffect(() => {
+  function load() {
     listForms().then(setForms).catch((reason) => setError(message(reason)))
-  }, [])
+  }
+
+  useEffect(load, [])
 
   return (
-    <section className="admin-section">
-      <h1>공고별 지원서 링크</h1>
-      <form className="admin-row" onSubmit={(event) => { event.preventDefault(); if (/^\d{1,12}$/.test(vid)) onOpen(vid) }}>
-        <label htmlFor="new-vid">OTR 공고 번호(vid)</label>
-        <input id="new-vid" inputMode="numeric" placeholder="22382" value={vid} onChange={(event) => setVid(event.target.value.trim())} />
-        <button type="submit" disabled={!/^\d{1,12}$/.test(vid)}>열기</button>
-      </form>
-      <p className="admin-help">otr.co.kr/audition/?vid=<b>22382</b> 의 숫자를 넣으면 그 공고의 양식을 준비할 수 있어요.</p>
-      {error && <p className="admin-error" role="alert">{error}</p>}
-      {forms && forms.length === 0 && <p className="admin-help">아직 준비한 공고가 없어요.</p>}
-      {forms && forms.length > 0 && (
-        <table className="admin-table">
-          <thead><tr><th>vid</th><th>제목</th><th>상태</th><th>공개 버전</th><th>편집 버전</th></tr></thead>
-          <tbody>
-            {forms.map((form) => (
-              <tr key={form.vid}>
-                <td><button type="button" className="admin-link" onClick={() => onOpen(form.vid)}>{form.vid}</button></td>
-                <td>{form.title || '(제목 없음)'}</td>
-                <td><span className={`admin-status admin-status-${form.status.toLowerCase()}`}>{STATUS_LABEL[form.status]}</span></td>
-                <td>{form.publishedVersion || '-'}</td>
-                <td>{form.editingVersion || '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </section>
+    <>
+      <section className="admin-section">
+        <h1>공고별 지원서 링크</h1>
+        <form className="admin-row" onSubmit={(event) => { event.preventDefault(); if (/^\d{1,12}$/.test(vid)) onOpen(vid) }}>
+          <label htmlFor="new-vid">OTR 공고 번호(vid)</label>
+          <input id="new-vid" inputMode="numeric" placeholder="22382" value={vid} onChange={(event) => setVid(event.target.value.trim())} />
+          <button type="submit" disabled={!/^\d{1,12}$/.test(vid)}>열기</button>
+        </form>
+        <p className="admin-help">otr.co.kr/audition/?vid=<b>22382</b> 의 숫자를 넣으면 그 공고의 양식을 준비할 수 있어요.</p>
+        {error && <p className="admin-error" role="alert">{error}</p>}
+        {forms && forms.length === 0 && <p className="admin-help">아직 준비한 공고가 없어요.</p>}
+        {forms && forms.length > 0 && (
+          <table className="admin-table">
+            <thead><tr><th>vid</th><th>제목</th><th>상태</th><th>공개 버전</th><th>편집 버전</th></tr></thead>
+            <tbody>
+              {forms.map((form) => (
+                <tr key={form.vid}>
+                  <td><button type="button" className="admin-link" onClick={() => onOpen(form.vid)}>{form.vid}</button></td>
+                  <td>{form.title || '(제목 없음)'}</td>
+                  <td><span className={`admin-status admin-status-${form.status.toLowerCase()}`}>{STATUS_LABEL[form.status]}</span></td>
+                  <td>{form.publishedVersion || '-'}</td>
+                  <td>{form.editingVersion || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+      <BackupPanel onRestored={load} />
+    </>
   )
 }

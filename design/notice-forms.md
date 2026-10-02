@@ -97,6 +97,8 @@
 | GET | `/api/admin/forms/{vid}/form` | 토큰 | 편집 중 버전의 배우 화면 |
 | POST | `/api/admin/forms/{vid}/test` | 토큰 | 테스트 생성(공개와 같은 형식) |
 | POST | `/api/admin/forms/{vid}/publish`, `/close`, `/reopen` | 토큰 | 공개·종료·재공개. 조건 미달 409 `FORM_NOT_READY` |
+| GET | `/api/admin/backup` | 토큰 | 모든 공고를 zip 하나로(`yesulin-forms-<날짜-시각>.zip`). 공고 폴더 구조 그대로(`<vid>/state.json`, `<vid>/v<n>/source.hwp·definition.json·version.json`) + `backup.json`(형식 번호, 만든 시각, 공고 목록). 그린 페이지(`render/`)는 빼고 필요할 때 다시 그린다 |
+| POST | `/api/admin/backup` | 토큰 | multipart `backup`(zip). 이 서버에 **없는** 공고만 되살리고 있는 공고는 건너뛴다(덮어쓰지 않음). `{restored, skipped}`. 우리 백업이 아니거나, 모르는 파일·깨진 JSON이 있으면 400 `INVALID_BACKUP`이고 아무것도 들이지 않는다. 업로드 한도 20MB(공고 약 200개 분량) |
 
 ## yesulin.art와 연결 (이 저장소 밖, 아직 하지 않음)
 

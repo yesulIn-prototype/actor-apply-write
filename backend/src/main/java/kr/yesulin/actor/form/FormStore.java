@@ -138,6 +138,11 @@ public final class FormStore {
         return Files.exists(file) ? json.readValue(file.toFile(), VersionInfo.class) : new VersionInfo("", "");
     }
 
+    /** The forms folder itself, for the backup; callers hold this store's lock while they read or add folders. */
+    Path root() {
+        return root;
+    }
+
     /** Where the blank form's page images are rendered for the operator. */
     Path renderDirectory(Vid vid, int number) {
         return version(vid, number).resolve("render");

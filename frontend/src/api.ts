@@ -25,7 +25,7 @@ const MESSAGES: Record<string, string> = {
 }
 
 /** Codes whose server message is written for the reader as is: a missing answer, a definition problem. */
-const SERVER_WORDED = new Set(['INVALID_ANSWER', 'FORM_NOT_READY'])
+const SERVER_WORDED = new Set(['INVALID_ANSWER', 'FORM_NOT_READY', 'INVALID_BACKUP'])
 
 export async function analyzeDocument(file: File): Promise<AnalysisResponse> {
   const body = new FormData()

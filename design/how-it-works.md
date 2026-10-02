@@ -247,7 +247,7 @@ Content-Disposition: attachment; filename*=UTF-8''<이름>.hwp  (PDF는 같은 �
 
 | 데이터 | 위치 | 수명 | 누가 쓰나 |
 |---|---|---|---|
-| 공고 원본·정의·상태 | `yesulin.forms-dir` (로컬 `backend/data/forms`, 운영 `/data/forms` 볼륨) | 계속(재배포해도 남음) | 운영자 API만 |
+| 공고 원본·정의·상태 | `yesulin.forms-dir` (로컬 `backend/data/forms`, 운영 `/data/forms` 볼륨) | 계속(재배포해도 남음). 운영자가 `/admin`에서 zip으로 백업·복원(`FormBackup`) | 운영자 API만 |
 | 배우 작업(원본 복사본, 사진, 완성 HWP·PDF, 미리보기) | `yesulin.workspace` (운영 `/tmp/yesulin-actor`) | **30분**, 재시작하면 사라짐 | 배우 생성 API |
 | 배우의 답 | 브라우저 메모리 | 새로고침하면 사라짐(서버에 답을 저장하지 않음) | 브라우저 |
 | 완성 횟수 | `/data/completed-count.txt` | 계속 | 첫 완성마다 +1 |

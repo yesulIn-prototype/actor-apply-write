@@ -42,6 +42,12 @@ public final class ApiExceptionHandler {
         return response(HttpStatus.GONE, "FORM_CLOSED", exception.getMessage());
     }
 
+    @ExceptionHandler(FormExceptions.InvalidBackup.class)
+    ResponseEntity<ApiError> invalidBackup(FormExceptions.InvalidBackup exception) {
+        log.info("rejected backup: {}", exception.getMessage());
+        return response(HttpStatus.BAD_REQUEST, "INVALID_BACKUP", exception.getMessage());
+    }
+
     @ExceptionHandler(FormExceptions.Changed.class)
     ResponseEntity<ApiError> formChanged(FormExceptions.Changed exception) {
         return response(HttpStatus.CONFLICT, "FORM_CHANGED", exception.getMessage());

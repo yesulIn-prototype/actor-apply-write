@@ -109,3 +109,20 @@ export const publish = (vid: string) => json<Detail>(`/api/admin/forms/${vid}/pu
 
 export const setClosed = (vid: string, closed: boolean) =>
   json<Detail>(`/api/admin/forms/${vid}/${closed ? 'close' : 'reopen'}`, { method: 'POST' })
+
+/** @param skipped notices the server already had, left as they were */
+export type Restored = { readonly restored: readonly string[]; readonly skipped: readonly string[] }
+
+/** The backup needs the token, so it comes through fetch and is saved from a blob: URL. */
+export async function downloadBackup(): Promise<{ readonly url: string; readonly name: string }> {
+  const response = await request('/api/admin/backup', { method: 'GET', headers: auth() })
+  const disposition = response.headers.get('Content-Disposition') ?? ''
+  const name = /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? 'yesulin-forms.zip'
+  return { url: URL.createObjectURL(await response.blob()), name }
+}
+
+export function restoreBackup(file: File): Promise<Restored> {
+  const body = new FormData()
+  body.append('backup', file)
+  return json<Restored>('/api/admin/backup', { method: 'POST', body })
+}

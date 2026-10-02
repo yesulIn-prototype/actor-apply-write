@@ -169,6 +169,7 @@ cd frontend && npm run eval
 - 주소: https://apply.yesulin.art (Cloudflare DNS `apply` CNAME → Railway, 프록시 끔). Railway 기본 주소 https://web-production-e8f7f.up.railway.app 도 그대로 동작한다. 프로젝트 `yesulin`, 서비스 `web`.
 - 루트의 `Dockerfile` 하나로 프런트 빌드, 백엔드 jar, rhwp, 한글 폰트를 묶어 같은 주소에서 서빙한다.
 - 볼륨 `web-volume`을 `/data`에 연결했다. 완성 횟수(`/data/completed-count.txt`), 로그(`/data/logs`), 공고별 양식(`/data/forms`)은 재배포해도 남는다.
+- **공고 양식 백업**: 볼륨 한 곳에만 있으므로 운영자 페이지(`/admin`) 아래 "백업 내려받기"로 zip을 받아 따로 보관한다(공고를 새로 공개하거나 고친 뒤). 볼륨을 잃거나 서버를 옮기면 새 서버의 같은 곳에서 "백업 파일로 복원"으로 올린다. 이미 있는 공고는 덮어쓰지 않는다. 형식은 `design/notice-forms.md`의 API 표. 실제 운영 인프라로 옮기면 같은 폴더 구조로 S3에 보관할 예정이다.
 - 운영자 페이지를 쓰려면 서비스 변수 `YESULIN_ADMIN_TOKEN`에 긴 무작위 값을 넣는다. 비어 있으면 `/api/admin/**`가 꺼진다.
 - 서비스 변수: `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES=.*`, `SERVER_TOMCAT_REMOTEIP_REMOTE_IP_HEADER=x-real-ip`. Railway 중계 서버가 실제 사용자 IP를 `X-Real-IP`에 덮어써서 넘겨주므로 이 값을 믿는다. 이 설정이 없으면 모든 사용자가 중계 서버 IP로 묶여 횟수 제한을 함께 쓴다.
 - 배포: 서비스 `web`이 GitHub `yesulIn-prototype/actor-apply-write`의 `main`에 연결돼 있고 Wait for CI가 켜져 있다. `main`에 push하면 GitHub Actions CI(백엔드·프런트 테스트, 빌드)가 돌고, 통과한 커밋만 Railway가 자동으로 빌드·배포한다. CI가 실패하면 배포되지 않는다. 로그 보기: `railway logs`.

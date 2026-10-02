@@ -47,4 +47,13 @@ public final class FormExceptions {
             return problems;
         }
     }
+
+    /** An uploaded backup that is not one of ours, or is damaged; nothing from it was restored. */
+    public static final class InvalidBackup extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
+        InvalidBackup(String message) {
+            super(message);
+        }
+    }
 }
