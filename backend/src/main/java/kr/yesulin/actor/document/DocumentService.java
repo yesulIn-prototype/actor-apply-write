@@ -16,7 +16,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-/** Logs ids, sizes and counts only: never file names, field labels or values, which can identify an applicant. */
+/**
+ * Logs sizes, counts and times only: never job ids (one is enough to download the finished file), file names,
+ * field labels or values, which can identify an applicant.
+ */
 @Service
 public final class DocumentService {
     private static final Logger log = LoggerFactory.getLogger(DocumentService.class);
@@ -46,19 +49,19 @@ public final class DocumentService {
                     .map(cell -> cell.address().tableIndex())
                     .distinct()
                     .count();
-            log.info("analyzed document={} bytes={} tables={} cells={} textFields={} photoFields={} {}ms",
-                    stored.id(), content.length, tableCount, cells.size(),
+            log.info("analyzed bytes={} tables={} cells={} textFields={} photoFields={} {}ms",
+                    content.length, tableCount, cells.size(),
                     fields.stream().filter(field -> field.kind() == FieldCandidate.FieldKind.TEXT).count(),
                     fields.stream().filter(field -> field.kind() == FieldCandidate.FieldKind.PHOTO).count(),
                     elapsed(started));
             if (fields.isEmpty()) {
-                log.warn("no fields found document={} tables={} cells={}", stored.id(), tableCount, cells.size());
+                log.warn("no fields found tables={} cells={}", tableCount, cells.size());
             }
             return new AnalysisResponse(
                     stored.id(), stored.originalName(), stored.expiresAt(), tableCount, cells.size(), fields);
         } catch (HwpDocumentException | RuntimeException exception) {
-            log.warn("analyze failed document={} bytes={} {}: {}", stored.id(), content.length,
-                    exception.getClass().getSimpleName(), exception.getMessage());
+            log.warn("analyze failed bytes={} {}: {}", content.length,
+                    exception.getClass().getSimpleName(), JobIds.masked(exception.getMessage()));
             store.remove(stored.id());
             throw exception;
         }
@@ -90,8 +93,7 @@ public final class DocumentService {
             writes.add(new CellWrite.Photo(photo.address(), upload));
         }
         boolean first = writer.write(stored, fileName, List.of(), writes, true);
-        log.info("generated document={} texts={} photos={} first={} bytes={} {}ms", documentId,
-                request.textValues().size(), request.photos().size(), first,
+        log.info("generated texts={} photos={} first={} bytes={} {}ms", request.textValues().size(), request.photos().size(), first,
                 Files.size(stored.completedHwp()), elapsed(started));
         return completed(documentId);
     }
@@ -100,22 +102,21 @@ public final class DocumentService {
      * Gives one applicant their own copy of a shared form. The shared file is never written to; every
      * later build of this job reads the copy and replaces only this job's completed file.
      */
-    public UUID startJob(String originalName, Path sharedSource, String owner, List<EditTarget> targets)
-            throws IOException {
+    public UUID startJob(String originalName, Path sharedSource, String owner) throws IOException {
         StoredDocument stored = store.create(originalName, Files.readAllBytes(sharedSource));
-        store.attachOwner(stored.id(), owner, targets);
-        log.info("job started document={} owner={}", stored.id(), owner);
+        store.attachOwner(stored.id(), owner);
+        log.info("job started owner={}", owner);
         return stored.id();
     }
 
     /**
      * Builds a job started from a shared form; another form's job id is treated as unknown.
      *
-     * @param growths table rows to add before writing, for answers longer than the form's rows
+     * @param content rows to add, cells to write, and where each answer is edited from the preview of this build
      * @param counted false for an operator's test build, which is not an application
      */
-    public GeneratedDocument buildJob(UUID documentId, String owner, String fileName, List<TableGrowth> growths,
-            List<CellWrite> writes, boolean counted)
+    public GeneratedDocument buildJob(UUID documentId, String owner, String fileName, JobContent content,
+            boolean counted)
             throws IOException, HwpDocumentException {
         long started = System.nanoTime();
         StoredDocument stored = store.require(documentId);
@@ -123,9 +124,11 @@ public final class DocumentService {
             throw new DocumentStore.DocumentNotFoundException();
         }
         boolean first = writer.write(stored, CompletedFileName.chosenOrDefault(fileName, stored.originalName()),
-                growths, writes, counted);
-        log.info("generated job={} owner={} cells={} addedRows={} first={} {}ms", documentId, owner, writes.size(),
-                growths.stream().mapToInt(TableGrowth::count).sum(), first, elapsed(started));
+                content.growths(), content.writes(), counted);
+        store.attachTargets(documentId, content.targets());
+        log.info("generated job owner={} cells={} addedRows={} first={} {}ms", owner,
+                content.writes().size(), content.growths().stream().mapToInt(TableGrowth::count).sum(), first,
+                elapsed(started));
         return completed(documentId);
     }
 
@@ -166,10 +169,10 @@ public final class DocumentService {
             try {
                 pdfConverter.convert(hwp, draft);
                 Files.move(draft, pdf, StandardCopyOption.REPLACE_EXISTING);
-                log.info("pdf rendered document={} bytes={} {}ms", documentId, Files.size(pdf), elapsed(started));
+                log.info("pdf rendered bytes={} {}ms", Files.size(pdf), elapsed(started));
             } catch (HwpDocumentException | IOException | RuntimeException exception) {
-                log.warn("pdf failed document={} {}: {}", documentId,
-                        exception.getClass().getSimpleName(), exception.getMessage());
+                log.warn("pdf failed {}: {}", exception.getClass().getSimpleName(),
+                        JobIds.masked(exception.getMessage()));
                 throw exception;
             } finally {
                 Files.deleteIfExists(draft);

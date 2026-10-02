@@ -175,10 +175,11 @@ cd frontend && npm run eval
 
 ### 로그
 
-- `kr.yesulin.actor.access`: API 호출마다 한 줄씩 남긴다(메서드, 경로, 상태, 걸린 시간, IP).
-- `DocumentService`: 분석·생성·PDF 결과를 남긴다(문서 ID, 크기, 칸 수, 걸린 시간). 칸을 하나도 못 찾은 양식은 `no fields found`로 남으므로 새 양식에서 파싱이 실패한 경우를 찾을 수 있다. 공고별 링크는 `job started`·`generated job`(작업 ID, `form:<vid>:v<버전>`, 칸 수)으로 남는다.
+- `kr.yesulin.actor.access`: API 호출마다 한 줄씩 남긴다(메서드, 경로, 상태, 걸린 시간, IP). 경로 속 작업 ID는 `<job>`으로 가린다(`/api/documents/<job>/completed`).
+- `DocumentService`: 분석·생성·PDF 결과를 남긴다(크기, 칸 수, 걸린 시간). 칸을 하나도 못 찾은 양식은 `no fields found`로 남으므로 새 양식에서 파싱이 실패한 경우를 찾을 수 있다. 공고별 링크는 `job started`·`generated job`(`form:<vid>:v<버전>`, 칸 수, 끼운 줄 수)으로 남는다.
+- **작업 ID는 남기지 않는다.** 작업 ID만 있으면 30분 동안 완성본을 받을 수 있기 때문이다. 메시지는 코드에서(`JobIds`), 예외 스택은 `logging.exception-conversion-word` 설정에서 `<job>`으로 가린다.
 - `AdminTokenFilter`: 운영자 토큰이 틀린 요청을 IP와 경로로 남긴다.
-- 오류: 잘못된 업로드는 INFO, 문서 처리 실패는 WARN(원인 포함), 예상하지 못한 오류는 ERROR(스택 포함)로 남긴다.
+- 오류: 잘못된 업로드는 INFO, 문서 처리 실패는 WARN(원인 포함), 예상하지 못한 오류는 ERROR(스택 포함)로 남긴다. rhwp가 60초 안에 끝나지 않으면 프로세스를 끝내고 `문서 변환 시간이 초과되었습니다.`로 실패한다.
 - **개인정보를 남기지 않는다.** 파일 이름, 칸 이름, 입력값, 사진은 로그에 쓰지 않는다. 프록시 뒤에서는 `X-Forwarded-For`의 실제 IP를 쓴다.
 
 ### 방문 분석 (GA4)

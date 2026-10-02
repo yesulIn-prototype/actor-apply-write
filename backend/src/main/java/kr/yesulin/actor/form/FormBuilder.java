@@ -15,6 +15,7 @@ import kr.yesulin.actor.document.DocumentStore;
 import kr.yesulin.actor.document.GeneratedDocument;
 import kr.yesulin.actor.document.HwpDocument;
 import kr.yesulin.actor.document.HwpDocumentException;
+import kr.yesulin.actor.document.JobContent;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.databind.json.JsonMapper;
@@ -46,9 +47,9 @@ public final class FormBuilder {
         FormDefinition definition = definition(vid, version);
         Path source = source(vid, version);
         FormAnswers answers = FormAnswers.of(definition, request.answers(), photos);
-        FormComposer.Composed composed = FormComposer.compose(
+        JobContent content = FormComposer.compose(
                 definition, answers, SourceCheck.texts(HwpDocument.open(source).cells()));
-        if (composed.writes().isEmpty()) {
+        if (content.writes().isEmpty()) {
             throw new InvalidAnswerException("입력한 내용이 없어요");
         }
         // The applicant's own choice wins; the operator's template is only the suggestion.
@@ -58,15 +59,13 @@ public final class FormBuilder {
         if (request.documentId() != null) {
             try {
                 return new Built(request.documentId(),
-                        documents.buildJob(request.documentId(), owner, fileName, composed.growths(),
-                                composed.writes(), counted));
+                        documents.buildJob(request.documentId(), owner, fileName, content, counted));
             } catch (DocumentStore.DocumentNotFoundException expired) {
                 // The job expired (30 minutes) or belongs elsewhere: the answers are all here, so start afresh.
             }
         }
-        UUID job = documents.startJob(
-                store.info(vid, version).originalName(), source, owner, FormComposer.targets(definition));
-        return new Built(job, documents.buildJob(job, owner, fileName, composed.growths(), composed.writes(), counted));
+        UUID job = documents.startJob(store.info(vid, version).originalName(), source, owner);
+        return new Built(job, documents.buildJob(job, owner, fileName, content, counted));
     }
 
     FormDefinition definition(Vid vid, int version) throws IOException {

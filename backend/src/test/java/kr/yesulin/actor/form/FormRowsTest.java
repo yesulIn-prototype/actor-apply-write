@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import kr.yesulin.actor.document.CellAddress;
 import kr.yesulin.actor.document.CellWrite;
+import kr.yesulin.actor.document.EditTarget;
+import kr.yesulin.actor.document.JobContent;
 import kr.yesulin.actor.document.TableGrowth;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,7 +61,7 @@ class FormRowsTest {
     @DisplayName("양식 줄 안에 들어가면 줄을 더하지 않고 번호 칸은 건너뛴다")
     void compose_WritesFormRowsOnly_WhenEntriesFitTheForm() {
         // when
-        FormComposer.Composed composed = compose(Map.of("career", List.of("햄릿", "호레이쇼", "2025")));
+        JobContent composed = compose(Map.of("career", List.of("햄릿", "호레이쇼", "2025")));
 
         // then
         assertThat(composed.growths()).isEmpty();
@@ -73,7 +75,7 @@ class FormRowsTest {
     @DisplayName("양식 줄보다 많이 쓰면 마지막 줄 아래에 줄을 더하고 그 아래 칸을 밀어 쓴다")
     void compose_GrowsTableAndMovesCellsBelow_WhenEntriesRunPastTheForm() {
         // when
-        FormComposer.Composed composed = compose(Map.of("career", List.of(
+        JobContent composed = compose(Map.of("career", List.of(
                 "가", "1", "2021", "나", "2", "2022", "다", "3", "2023", "라", "4", "2024")));
 
         // then
@@ -84,10 +86,41 @@ class FormRowsTest {
     }
 
     @Test
+    @DisplayName("미리보기에서 누를 칸도 늘어난 줄을 따라가고, 새 줄도 줄 표 항목을 연다")
+    void compose_MovesPreviewTargets_WhenRowsWereAdded() {
+        // when
+        JobContent composed = compose(Map.of("career", List.of(
+                "가", "1", "2021", "나", "2", "2022", "다", "3", "2023", "라", "4", "2024")));
+
+        // then
+        assertThat(composed.targets()).contains(
+                new EditTarget("career", new CellAddress(1, 4, 1)),
+                new EditTarget("career", new CellAddress(1, 4, 3)),
+                new EditTarget("intro", new CellAddress(1, 5, 1)));
+        assertThat(composed.targets()).doesNotContain(
+                new EditTarget("intro", new CellAddress(1, 3, 1)),
+                new EditTarget("career", new CellAddress(1, 1, 0)));
+    }
+
+    @Test
+    @DisplayName("줄을 줄여 다시 만들면 누를 칸도 양식 줄로 돌아온다")
+    void compose_KeepsTargetsOnTheFormRows_WhenEntriesFitAgain() {
+        // when
+        JobContent composed = compose(Map.of("career", List.of("햄릿", "", "")));
+
+        // then
+        assertThat(composed.targets()).contains(
+                new EditTarget("career", new CellAddress(1, 2, 2)),
+                new EditTarget("intro", new CellAddress(1, 3, 1)));
+        assertThat(composed.targets()).noneMatch(target -> target.address().tableIndex() == 1
+                && target.address().rowIndex() == 4);
+    }
+
+    @Test
     @DisplayName("양식에 줄이 없는 항목은 바로 위 줄 아래에 줄을 만들고 원래 그 자리의 칸을 민다")
     void compose_AddsRowsUnderTheRowAbove_WhenOutputHasNoFormRows() {
         // when
-        FormComposer.Composed composed = compose(Map.of(
+        JobContent composed = compose(Map.of(
                 "more", List.of("영상", "youtu.be/x", "수상", "신인상"), "phone", List.of("01012345678")));
 
         // then
@@ -96,6 +129,10 @@ class FormRowsTest {
                 new CellWrite.Replace(new CellAddress(0, 1, 0), "영상"),
                 new CellWrite.Replace(new CellAddress(0, 2, 1), "신인상"),
                 new CellWrite.Replace(new CellAddress(0, 3, 1), "010-1234-5678"));
+        assertThat(composed.targets()).contains(
+                new EditTarget("more", new CellAddress(0, 1, 0)),
+                new EditTarget("more", new CellAddress(0, 2, 1)),
+                new EditTarget("phone", new CellAddress(0, 3, 1)));
     }
 
     @Test
@@ -131,7 +168,7 @@ class FormRowsTest {
                         .anyMatch(problem -> problem.contains("{career}")));
     }
 
-    private FormComposer.Composed compose(Map<String, List<String>> extra) {
+    private JobContent compose(Map<String, List<String>> extra) {
         return FormComposer.compose(definition, answers(extra), Map.of());
     }
 

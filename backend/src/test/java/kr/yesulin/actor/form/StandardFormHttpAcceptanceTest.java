@@ -2,6 +2,7 @@ package kr.yesulin.actor.form;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -31,6 +32,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** The 예술in standard form (backend/src/main/resources/standard) built through the operator API. */
@@ -41,6 +44,8 @@ import tools.jackson.databind.json.JsonMapper;
         "yesulin.admin-token=" + NoticeFormHttpAcceptanceTest.TOKEN})
 @AutoConfigureMockMvc
 class StandardFormHttpAcceptanceTest {
+    private static final JsonMapper JSON = JsonMapper.builder().build();
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -51,21 +56,10 @@ class StandardFormHttpAcceptanceTest {
     @DisplayName("경력을 양식 10줄보다 많이 쓰고 항목을 더하면 표에 줄이 생기고 아래 칸이 밀려 채워진다")
     void testBuild_AddsTableRows_WhenCareerAndOwnItemsRunPastTheForm() throws Exception {
         // given
-        assumeTrue(rhwp.available(), "rhwp not installed — run tools/install-rhwp.sh");
-        MockMultipartFile source = new MockMultipartFile(
-                "document", "standard-v1.hwp", "application/x-hwp", resource("/standard/standard-v1.hwp"));
-        mockMvc.perform(admin(multipart("/api/admin/forms/{vid}/source", "40001").file(source)))
-                .andExpect(status().isOk());
-        mockMvc.perform(admin(put("/api/admin/forms/{vid}/definition", "40001"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new String(resource("/standard/standard-v1.definition.json"), StandardCharsets.UTF_8)))
-                .andExpect(jsonPath("$.problems").isEmpty());
+        register("40001");
 
         // when
-        byte[] built = mockMvc.perform(admin(multipart("/api/admin/forms/{vid}/test", "40001")
-                        .file(request()).file(photo())))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsByteArray();
+        byte[] built = testBuild("40001", null, 12, true).getResponse().getContentAsByteArray();
 
         // then
         Map<CellAddress, String> cells = cells(built);
@@ -83,17 +77,80 @@ class StandardFormHttpAcceptanceTest {
         assertThat(cells.keySet().stream().filter(cell -> cell.tableIndex() == 3)).hasSize(2);
     }
 
-    private static MockMultipartFile request() {
+    @Test
+    @DisplayName("미리보기에서 누를 칸은 늘어난 줄을 따라가고, 줄을 줄여 다시 만들면 되돌아온다")
+    void preview_FollowsAddedRows_WhenTheSameApplicantRebuildsWithMoreOrFewerRows() throws Exception {
+        // given: an applicant built with 12 career rows and 2 items of their own
+        register("40002");
+        String job = testBuild("40002", null, 12, true).getResponse().getHeader(FormRequests.DOCUMENT_ID);
+        Map<String, List<JsonNode>> grown = hotspots(job);
+
+        // when: they rebuild the same job with 3 career rows and no items of their own
+        testBuild("40002", job, 3, false);
+        Map<String, List<JsonNode>> shrunk = hotspots(job);
+
+        // then
+        assertThat(grown.get("career")).hasSize(12 * 5);
+        assertThat(grown.get("more")).hasSize(2 * 2);
+        assertThat(top(grown.get("intro"))).isGreaterThan(grown.get("more").stream().mapToDouble(StandardFormHttpAcceptanceTest::top).max().orElseThrow());
+        assertThat(shrunk.get("career")).hasSize(10 * 5);
+        assertThat(shrunk).doesNotContainKey("more");
+        assertThat(top(shrunk.get("intro"))).isLessThan(top(grown.get("intro")));
+    }
+
+    private void register(String vid) throws Exception {
+        assumeTrue(rhwp.available(), "rhwp not installed — run tools/install-rhwp.sh");
+        MockMultipartFile source = new MockMultipartFile(
+                "document", "standard-v1.hwp", "application/x-hwp", resource("/standard/standard-v1.hwp"));
+        mockMvc.perform(admin(multipart("/api/admin/forms/{vid}/source", vid).file(source)))
+                .andExpect(status().isOk());
+        mockMvc.perform(admin(put("/api/admin/forms/{vid}/definition", vid))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new String(resource("/standard/standard-v1.definition.json"), StandardCharsets.UTF_8)))
+                .andExpect(jsonPath("$.problems").isEmpty());
+    }
+
+    private MvcResult testBuild(String vid, String documentId, int careerRows, boolean ownItems) throws Exception {
+        return mockMvc.perform(admin(multipart("/api/admin/forms/{vid}/test", vid)
+                        .file(request(documentId, careerRows, ownItems)).file(photo())))
+                .andExpect(status().isOk())
+                .andReturn();
+    }
+
+    /** The preview's tap areas by the answer they open. */
+    private Map<String, List<JsonNode>> hotspots(String documentId) throws Exception {
+        String body = mockMvc.perform(get("/api/documents/{id}/preview", documentId))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        List<JsonNode> all = new ArrayList<>();
+        JSON.readTree(body).path("hotspots").forEach(all::add);
+        return all.stream().collect(Collectors.groupingBy(hotspot -> hotspot.path("fieldId").asString()));
+    }
+
+    /** Page and height on the page together: a later page is always lower. */
+    private static double top(JsonNode hotspot) {
+        return hotspot.path("page").asInt() * 100_000 + hotspot.path("y").asDouble();
+    }
+
+    private static double top(List<JsonNode> hotspots) {
+        return top(hotspots.getFirst());
+    }
+
+    private static MockMultipartFile request(String documentId, int careerRows, boolean ownItems) {
         List<String> career = new ArrayList<>();
-        for (int entry = 1; entry <= 12; entry++) {
+        for (int entry = 1; entry <= careerRows; entry++) {
             career.addAll(List.of("작품 " + entry, "역할 " + entry, "2025." + entry, "극장 " + entry, "극단 " + entry));
         }
-        Map<String, Object> request = Map.of("version", 0, "fileName", "", "answers", Map.of(
+        Map<String, List<String>> answers = new java.util.HashMap<>(Map.of(
                 "name", List.of("김배우"), "birth", List.of("1998.03.01"), "phone", List.of("01012345678"),
-                "gender", List.of("f"), "intro", List.of("무대가 좋습니다"), "career", career,
-                "more", List.of("영상 링크", "youtu.be/example", "수상", "2024 신인연기상")));
-        byte[] json = JsonMapper.builder().build().writeValueAsBytes(request);
-        return new MockMultipartFile("request", "request.json", "application/json", json);
+                "gender", List.of("f"), "intro", List.of("무대가 좋습니다"), "career", career));
+        if (ownItems) {
+            answers.put("more", List.of("영상 링크", "youtu.be/example", "수상", "2024 신인연기상"));
+        }
+        Map<String, Object> request = new java.util.HashMap<>(Map.of("version", 0, "fileName", "", "answers", answers));
+        if (documentId != null) {
+            request.put("documentId", documentId);
+        }
+        return new MockMultipartFile("request", "request.json", "application/json", JSON.writeValueAsBytes(request));
     }
 
     private static <B extends org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder<B>> B admin(

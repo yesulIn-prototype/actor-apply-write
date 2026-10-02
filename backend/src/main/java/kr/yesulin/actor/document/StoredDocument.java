@@ -30,9 +30,14 @@ record StoredDocument(
                 completedFileName, owner, places);
     }
 
-    StoredDocument withOwner(String formVersion, List<EditTarget> places) {
+    StoredDocument withOwner(String formVersion) {
         return new StoredDocument(id, originalName, directory, source, expiresAt, fields, completedFileName,
-                formVersion, List.copyOf(places));
+                formVersion, targets);
+    }
+
+    StoredDocument withTargets(List<EditTarget> places) {
+        return new StoredDocument(id, originalName, directory, source, expiresAt, fields, completedFileName,
+                owner, List.copyOf(places));
     }
 
     StoredDocument withCompletedFileName(CompletedFileName name) {

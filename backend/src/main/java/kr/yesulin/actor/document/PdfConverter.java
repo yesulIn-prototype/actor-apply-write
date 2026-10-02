@@ -18,8 +18,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class PdfConverter {
     private static final Duration TIMEOUT = Duration.ofSeconds(60);
+    private static final int LOG_SHOWN = 500;
     private final Path executable;
     private final List<String> fontPaths;
+    private final Duration timeout;
     /** Rendering is CPU and memory heavy; a few at a time keeps the server responsive. */
     private final Semaphore slots = new Semaphore(2);
 
@@ -31,8 +33,14 @@ public class PdfConverter {
     }
 
     PdfConverter(Path executable, List<String> fontPaths) {
+        this(executable, fontPaths, TIMEOUT);
+    }
+
+    /** @param timeout longest one rhwp run, and longest wait for a free slot, may take */
+    PdfConverter(Path executable, List<String> fontPaths, Duration timeout) {
         this.executable = resolve(executable.toAbsolutePath().normalize());
         this.fontPaths = fontPaths.stream().filter(path -> !path.isBlank()).toList();
+        this.timeout = timeout;
     }
 
     public boolean available() {
@@ -102,33 +110,58 @@ public class PdfConverter {
             fontPaths.forEach(path -> command.addAll(List.of("--font-path", path)));
         }
 
+        // Output goes to a file, not a pipe: reading a pipe to its end would wait for rhwp however long it
+        // runs, and the time limit below would never apply.
+        Path output = Files.createTempFile("rhwp-", ".log");
         boolean acquired = false;
         Process process = null;
         try {
-            acquired = slots.tryAcquire(TIMEOUT.toSeconds(), TimeUnit.SECONDS);
+            acquired = slots.tryAcquire(timeout.toMillis(), TimeUnit.MILLISECONDS);
             if (!acquired) {
                 throw new HwpDocumentException("문서 변환 대기 시간이 초과되었습니다.");
             }
-            process = new ProcessBuilder(command).redirectErrorStream(true).start();
+            process = new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(output.toFile()).start();
             process.getOutputStream().close();
-            byte[] log = process.getInputStream().readAllBytes();
-            if (!process.waitFor(TIMEOUT.toSeconds(), TimeUnit.SECONDS)) {
+            if (!process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
+                stop(process);
                 throw new HwpDocumentException("문서 변환 시간이 초과되었습니다.");
             }
             if (process.exitValue() != 0) {
-                throw new HwpDocumentException(
-                        "문서를 변환하지 못했습니다: " + new String(log, StandardCharsets.UTF_8).strip());
+                throw new HwpDocumentException("문서를 변환하지 못했습니다: " + shown(output));
             }
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new HwpDocumentException("문서 변환이 중단되었습니다.", exception);
         } finally {
             if (process != null && process.isAlive()) {
+                process.descendants().forEach(ProcessHandle::destroyForcibly);
                 process.destroyForcibly();
             }
             if (acquired) {
                 slots.release();
             }
+            deleteOutput(output);
+        }
+    }
+
+    /** Kills rhwp and anything it started, and waits briefly for them to go so their output file is free. */
+    private static void stop(Process process) throws InterruptedException {
+        process.descendants().forEach(ProcessHandle::destroyForcibly);
+        process.destroyForcibly().waitFor(5, TimeUnit.SECONDS);
+    }
+
+    /** The end of rhwp's output, without job ids: its workspace paths name the applicant's job. */
+    private static String shown(Path output) throws IOException {
+        String text = Files.readString(output, StandardCharsets.UTF_8).strip();
+        String tail = text.length() > LOG_SHOWN ? "…" + text.substring(text.length() - LOG_SHOWN) : text;
+        return JobIds.masked(tail);
+    }
+
+    private static void deleteOutput(Path output) {
+        try {
+            Files.deleteIfExists(output);
+        } catch (IOException stillOpen) { // no-excuse-ok: catch - a process killed on Windows can hold the file a moment; the OS clears temp files
+            output.toFile().deleteOnExit();
         }
     }
 

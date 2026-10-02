@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import kr.yesulin.actor.document.JobIds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
@@ -36,7 +37,7 @@ public final class RequestLogFilter extends OncePerRequestFilter {
             long millis = (System.nanoTime() - started) / 1_000_000;
             int status = response.getStatus();
             String line = "{} {} -> {} {}ms ip={}";
-            Object[] args = {request.getMethod(), request.getRequestURI(), status, millis, request.getRemoteAddr()};
+            Object[] args = {request.getMethod(), JobIds.masked(request.getRequestURI()), status, millis, request.getRemoteAddr()};
             if (status >= 500) {
                 log.warn(line, args);
             } else {

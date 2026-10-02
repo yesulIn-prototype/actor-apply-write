@@ -7,6 +7,7 @@ import java.util.Optional;
 import kr.yesulin.actor.document.CellAddress;
 import kr.yesulin.actor.document.CellWrite;
 import kr.yesulin.actor.document.EditTarget;
+import kr.yesulin.actor.document.JobContent;
 import kr.yesulin.actor.document.TableGrowth;
 
 /**
@@ -17,17 +18,13 @@ final class FormComposer {
     private FormComposer() {}
 
     /**
-     * What to do to the blank form: rows to add, then cells to write, addressed in the grown form.
+     * What one build does to the blank form: rows to add, then cells to write and the cells that open each
+     * answer from the preview, both addressed in the grown form. Rows an applicant added or dropped since the
+     * last build move the cells below them, so this is worked out again for every build.
+     *
+     * @param cellTexts what each cell of the blank form says, for edit outputs
      */
-    record Composed(List<TableGrowth> growths, List<CellWrite> writes) {
-        Composed {
-            growths = List.copyOf(growths);
-            writes = List.copyOf(writes);
-        }
-    }
-
-    /** @param cellTexts what each cell of the blank form says, for edit outputs */
-    static Composed compose(FormDefinition definition, FormAnswers answers, Map<CellAddress, String> cellTexts) {
+    static JobContent compose(FormDefinition definition, FormAnswers answers, Map<CellAddress, String> cellTexts) {
         List<TableGrowth> growths = new ArrayList<>();
         for (FormOutput output : definition.outputs()) {
             if (output instanceof FormOutput.Rows rows && added(rows, answers) > 0) {
@@ -36,6 +33,7 @@ final class FormComposer {
             }
         }
         List<CellWrite> writes = new ArrayList<>();
+        List<EditTarget> targets = new ArrayList<>();
         for (FormOutput output : definition.outputs()) {
             CellAddress cell = moved(output.cell(), growths);
             switch (output) {
@@ -51,11 +49,12 @@ final class FormComposer {
                     // Rows added for an output with no rows of its own sit under the row above its cell, so
                     // they moved its cell too: its first row is where they start.
                     int first = cell.rowIndex() - (rows.formRows() == 0 ? added(rows, answers) : 0);
-                    writes.addAll(rowWrites(definition, rows, answers, first));
+                    rows(definition, rows, answers, first, writes, targets);
                 }
             }
+            editedItem(output).ifPresent(id -> targets.add(new EditTarget(id, cell)));
         }
-        return new Composed(growths, writes);
+        return new JobContent(growths, writes, targets);
     }
 
     /** Rows beyond the form's own, when the output may add them. */
@@ -72,24 +71,31 @@ final class FormComposer {
         return new CellAddress(cell.tableIndex(), cell.rowIndex() + shift, cell.cellIndex());
     }
 
-    private static List<CellWrite> rowWrites(
-            FormDefinition definition, FormOutput.Rows rows, FormAnswers answers, int firstRow) {
+    /**
+     * Writes each entry into its row; every row there is (the form's own, written or not, and the added ones)
+     * opens the rows item from the preview.
+     */
+    private static void rows(FormDefinition definition, FormOutput.Rows rows, FormAnswers answers, int firstRow,
+            List<CellWrite> writes, List<EditTarget> targets) {
         List<String> columnIds = definition.item(rows.item()).orElseThrow().columns().stream()
                 .map(FormItem.Column::id)
                 .toList();
         List<List<String>> entries = answers.rows(rows.item());
-        List<CellWrite> writes = new ArrayList<>();
-        for (int row = 0; row < entries.size(); row++) {
+        int shown = rows.formRows() + added(rows, answers);
+        for (int row = 0; row < shown; row++) {
             for (int at = 0; at < rows.columns().size(); at++) {
                 int column = columnIds.indexOf(rows.columns().get(at));
-                String value = column < 0 ? "" : entries.get(row).get(column);
+                if (column < 0) {
+                    continue;
+                }
+                CellAddress cell = new CellAddress(rows.cell().tableIndex(), firstRow + row, rows.cell().cellIndex() + at);
+                targets.add(new EditTarget(rows.item(), cell));
+                String value = row < entries.size() ? entries.get(row).get(column) : "";
                 if (!value.isEmpty()) {
-                    writes.add(new CellWrite.Replace(new CellAddress(
-                            rows.cell().tableIndex(), firstRow + row, rows.cell().cellIndex() + at), value));
+                    writes.add(new CellWrite.Replace(cell, value));
                 }
             }
         }
-        return writes;
     }
 
     /**
@@ -102,25 +108,18 @@ final class FormComposer {
                 .orElse("");
     }
 
-    /** Where each output's answer is edited from the preview: the first item it names. */
-    static List<EditTarget> targets(FormDefinition definition) {
-        List<EditTarget> targets = new ArrayList<>();
-        for (FormOutput output : definition.outputs()) {
-            Optional<String> item = switch (output) {
-                case FormOutput.Text text -> Placeholders.names(text.template()).stream().findFirst();
-                case FormOutput.Append append -> Placeholders.names(append.template()).stream().findFirst();
-                case FormOutput.Photo photo -> Optional.of(photo.item());
-                case FormOutput.Edit edit -> edit.replacements().stream()
-                        .flatMap(replacement -> named(replacement).stream())
-                        .findFirst();
-                case FormOutput.Rows rows -> {
-                    rows.formCells().forEach(cell -> targets.add(new EditTarget(rows.item(), cell)));
-                    yield Optional.empty();
-                }
-            };
-            item.ifPresent(id -> targets.add(new EditTarget(id, output.cell())));
-        }
-        return targets;
+    /** The answer an output's cell opens from the preview: the first item it names. */
+    private static Optional<String> editedItem(FormOutput output) {
+        return switch (output) {
+            case FormOutput.Text text -> Placeholders.names(text.template()).stream().findFirst();
+            case FormOutput.Append append -> Placeholders.names(append.template()).stream().findFirst();
+            case FormOutput.Photo photo -> Optional.of(photo.item());
+            case FormOutput.Edit edit -> edit.replacements().stream()
+                    .flatMap(replacement -> named(replacement).stream())
+                    .findFirst();
+            // Its rows open it, cell by cell (rows above).
+            case FormOutput.Rows rows -> Optional.empty();
+        };
     }
 
     private static Optional<String> filled(String template, String join, FormAnswers answers) {

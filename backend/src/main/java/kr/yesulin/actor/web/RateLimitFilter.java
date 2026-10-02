@@ -13,6 +13,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import kr.yesulin.actor.document.JobIds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,7 +64,7 @@ public final class RateLimitFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
             return;
         }
-        log.warn("rate limited ip={} path={}", request.getRemoteAddr(), request.getRequestURI());
+        log.warn("rate limited ip={} path={}", request.getRemoteAddr(), JobIds.masked(request.getRequestURI()));
         response.setStatus(429);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());

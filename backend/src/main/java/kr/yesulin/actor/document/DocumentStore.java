@@ -75,8 +75,13 @@ public final class DocumentStore {
         return replace(require(id).withFields(fields));
     }
 
-    StoredDocument attachOwner(UUID id, String owner, java.util.List<EditTarget> targets) {
-        return replace(require(id).withOwner(owner, targets));
+    StoredDocument attachOwner(UUID id, String owner) {
+        return replace(require(id).withOwner(owner));
+    }
+
+    /** A notice-form job's preview places; each build sets them again, since added rows move cells. */
+    void attachTargets(UUID id, java.util.List<EditTarget> targets) {
+        replace(require(id).withTargets(targets));
     }
 
     void attachCompletedFileName(UUID id, CompletedFileName fileName) {
@@ -114,7 +119,7 @@ public final class DocumentStore {
             removeExpiredOrphans();
         } catch (IOException exception) {
             // The next scheduled cleanup retries directories that are temporarily locked.
-            log.warn("orphan cleanup failed: {}", exception.toString());
+            log.warn("orphan cleanup failed: {}", JobIds.masked(exception.toString()));
         }
     }
 
@@ -128,7 +133,7 @@ public final class DocumentStore {
             documents.remove(id, document);
         } catch (IOException exception) {
             // A later cleanup cycle can retry files held by another local process.
-            log.warn("delete failed document={}: {}", id, exception.toString());
+            log.warn("delete failed: {}", JobIds.masked(exception.toString()));
         }
     }
 

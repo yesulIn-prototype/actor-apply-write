@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import kr.yesulin.actor.document.JobIds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,7 +50,7 @@ public final class AdminTokenFilter extends OncePerRequestFilter {
                 ? header.substring(PREFIX.length()).strip().getBytes(StandardCharsets.UTF_8)
                 : new byte[0];
         if (!MessageDigest.isEqual(token, given)) {
-            log.warn("admin token rejected ip={} path={}", request.getRemoteAddr(), request.getRequestURI());
+            log.warn("admin token rejected ip={} path={}", request.getRemoteAddr(), JobIds.masked(request.getRequestURI()));
             reject(response, 401, "ADMIN_UNAUTHORIZED", "운영자 토큰이 맞지 않습니다.");
             return;
         }

@@ -3,6 +3,7 @@ package kr.yesulin.actor.web;
 import kr.yesulin.actor.document.CompletedFileName;
 import kr.yesulin.actor.document.DocumentStore;
 import kr.yesulin.actor.document.HwpDocumentException;
+import kr.yesulin.actor.document.JobIds;
 import kr.yesulin.actor.document.PdfConverter;
 import kr.yesulin.actor.document.UploadValidator;
 import kr.yesulin.actor.form.FormExceptions;
@@ -55,7 +56,7 @@ public final class ApiExceptionHandler {
     /** Written for the applicant ("연락처 번호를 확인해주세요"); it never quotes the answer itself. */
     @ExceptionHandler(InvalidAnswerException.class)
     ResponseEntity<ApiError> invalidAnswer(InvalidAnswerException exception) {
-        log.info("rejected answer: {}", exception.getMessage());
+        log.info("rejected answer: {}", JobIds.masked(exception.getMessage()));
         return response(HttpStatus.BAD_REQUEST, "INVALID_ANSWER", exception.getMessage());
     }
 
@@ -72,7 +73,7 @@ public final class ApiExceptionHandler {
 
     @ExceptionHandler(UploadValidator.InvalidUploadException.class)
     ResponseEntity<ApiError> invalidUpload(UploadValidator.InvalidUploadException exception) {
-        log.info("rejected upload: {}", exception.getMessage());
+        log.info("rejected upload: {}", JobIds.masked(exception.getMessage()));
         return response(HttpStatus.BAD_REQUEST, "INVALID_UPLOAD", exception.getMessage());
     }
 
@@ -86,7 +87,7 @@ public final class ApiExceptionHandler {
         // A validation message can quote the rejected value (an applicant's answer), so only its fields are logged.
         String detail = exception instanceof MethodArgumentNotValidException invalid
                 ? invalid.getFieldErrors().stream().map(error -> error.getField()).toList().toString()
-                : exception.getMessage();
+                : JobIds.masked(exception.getMessage());
         log.warn("invalid request {}: {}", exception.getClass().getSimpleName(), detail);
         return response(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", exception.getMessage());
     }
@@ -99,7 +100,7 @@ public final class ApiExceptionHandler {
 
     @ExceptionHandler(HwpDocumentException.class)
     ResponseEntity<ApiError> invalidDocument(HwpDocumentException exception) {
-        log.warn("document processing failed: {}", exception.getMessage(), exception.getCause());
+        log.warn("document processing failed: {}", JobIds.masked(exception.getMessage()), exception.getCause());
         return response(HttpStatusCode.valueOf(422), "HWP_PROCESSING_FAILED", exception.getMessage());
     }
 

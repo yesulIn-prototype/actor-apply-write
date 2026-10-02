@@ -150,7 +150,7 @@ sequenceDiagram
 | `FormDefinitionParser`, `ItemParser`, `OutputParser` | JSON → 타입 있는 정의. 문제는 한 번에 모두 모아 알려줌 |
 | `SourceCheck` | 정의를 원본과 대조: 칸 존재, `edit`의 `find` 글자 |
 | `FormAnswers` | 답 검사: 필수, 선택지가 정의에 있는지, 전화번호, 길이, multi 개수. 배우에게 보일 문구로 거절(`INVALID_ANSWER`) |
-| `FormComposer` | **출력 규칙 적용**: text/append/edit/photo/rows → 끼울 표 줄(`TableGrowth`)과 칸 쓰기 목록. 끼운 줄 아래 칸은 주소를 밀어 쓴다. 파일 이름 템플릿 채우기. 미리보기 hotspot 대상 |
+| `FormComposer` | **출력 규칙 적용**: text/append/edit/photo/rows → 끼울 표 줄(`TableGrowth`)과 칸 쓰기 목록. 끼운 줄 아래 칸은 주소를 밀어 쓴다. 파일 이름 템플릿 채우기. 미리보기 hotspot 대상도 같은 밀린 주소로 **생성할 때마다** 다시 정한다(`JobContent`, 줄을 늘리거나 줄여 다시 만들어도 맞음) |
 | `Placeholders`, `PhoneNumber` | `{id}` 치환, 전화번호 형식(010-1234-5678, 02-123-4567) |
 
 ### 문서 엔진 (`document/`)
@@ -251,7 +251,7 @@ Content-Disposition: attachment; filename*=UTF-8''<이름>.hwp  (PDF는 같은 �
 | 배우 작업(원본 복사본, 사진, 완성 HWP·PDF, 미리보기) | `yesulin.workspace` (운영 `/tmp/yesulin-actor`) | **30분**, 재시작하면 사라짐 | 배우 생성 API |
 | 배우의 답 | 브라우저 메모리 | 새로고침하면 사라짐(서버에 답을 저장하지 않음) | 브라우저 |
 | 완성 횟수 | `/data/completed-count.txt` | 계속 | 첫 완성마다 +1 |
-| 로그 | `/data/logs` | 14개 회전 | 작업 ID·개수·시간만. 이름·답·파일 이름·사진은 남기지 않음 |
+| 로그 | `/data/logs` | 14개 회전 | 개수·시간·공고 버전만. 작업 ID(`<job>`으로 가림)·이름·답·파일 이름·사진은 남기지 않음 |
 
 공고 폴더 모양:
 ```
@@ -277,7 +277,8 @@ Content-Disposition: attachment; filename*=UTF-8''<이름>.hwp  (PDF는 같은 �
 
 - 운영자 API: `YESULIN_ADMIN_TOKEN`(Railway 변수). 비면 운영자 기능이 꺼진다. `/admin` 화면 자체는 누구나 열 수 있지만, 데이터는 토큰 없이는 오지 않는다.
 - 배우 API는 공개다. 대신 요청 제한(IP당 10분 60회), 동시 작업 300개, 업로드 크기(문서 20MB, 사진 12MB), 서버 측 답 검사가 있다.
-- 완성본은 작업 ID만 알면 30분 동안 받을 수 있다. 그래서 작업 ID(`?doc=`)는 분석·로그로 보내지 않는다.
+- 완성본은 작업 ID만 알면 30분 동안 받을 수 있다. 그래서 작업 ID(`?doc=`)는 분석·로그로 보내지 않는다. 요청 경로와 오류 메시지(작업공간 경로)에 든 작업 ID는 `<job>`으로 가린다(`JobIds`, `logging.exception-conversion-word`).
+- rhwp(PDF·미리보기·줄 끼우기)는 한 번에 60초까지만 돈다. 출력은 파이프가 아닌 임시 파일로 받아 시간 제한이 실제로 걸리고, 넘으면 rhwp와 그 자식 프로세스를 끝낸다.
 - 미리보기 SVG는 업로드된 문서에서 만들어지므로 API 응답에 스크립트 실행 금지 CSP를 건다.
 
 ---
