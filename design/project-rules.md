@@ -56,4 +56,5 @@
 | `domain-design.md` | 현재 도메인 설계표, 관계·상태·데이터 수명 |
 | `user-policy.md`, `operator-policy.md` | 사용자 기능 정책과 운영자 운영 절차 |
 | `service-review-2026-10-03.md` | 재점검 근거, 진행 상태, 남은 작업과 개선 후보 |
+| `mvp-evaluation.md` | 공고별 시험 기록, 통과 조건과 MVP 성능 지표 |
 | `project-rules.md` | 이 문서 |

@@ -46,6 +46,7 @@
 - [사용자 정책](design/user-policy.md): 배우의 작성·수정·보관·파일 전달과 제한
 - [운영자 정책](design/operator-policy.md): 공고 준비·공개·종료·백업·검증 절차
 - [2026-10-03 서비스 점검](design/service-review-2026-10-03.md): 배포·실사이트·테스트 근거와 남은 작업
+- [공고별 MVP 평가표](design/mvp-evaluation.md): 요구사항·모바일 입력·결과 문서·수정·제출 확인과 회차별 성능 지표
 
 ## 실행
 
