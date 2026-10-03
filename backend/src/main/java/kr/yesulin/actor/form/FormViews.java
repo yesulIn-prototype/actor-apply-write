@@ -24,9 +24,10 @@ public final class FormViews {
      * @param fileName   the operator's file name template ("{name}_지원서"), "" for none; the screen fills it in
      *                   as the suggested name, which the applicant may change
      * @param sourceName the form's own file name, for the default name when there is no template
+     * @param submission where to send the finished file and the mail subject the notice asks for
      */
-    public record PublicForm(
-            String vid, int version, String title, String fileName, String sourceName, List<FormItem> items) {}
+    public record PublicForm(String vid, int version, String title, String fileName, String sourceName,
+            List<FormItem> items, Submission submission) {}
 
     /**
      * @param version    0 on the first build; afterwards the version the screen was built from

@@ -16,15 +16,15 @@ import java.util.stream.Collectors;
  * grew by its rows (rhwp numbers top-level tables only, so a form with tables inside tables could grow the
  * wrong one), and every new row has as many cells as the row it copies, or answers would land in the wrong cells.
  */
-final class RowInserter {
+public final class RowInserter {
     private final PdfConverter rhwp;
 
-    RowInserter(PdfConverter rhwp) {
+    public RowInserter(PdfConverter rhwp) {
         this.rhwp = rhwp;
     }
 
     /** Returns a new file in {@code directory}; the caller deletes it. */
-    Path grow(Path source, Path directory, List<TableGrowth> growths) throws IOException, HwpDocumentException {
+    public Path grow(Path source, Path directory, List<TableGrowth> growths) throws IOException, HwpDocumentException {
         List<CellSnapshot> blank = HwpDocument.open(source).cells();
         Path current = directory.resolve("grown-" + UUID.randomUUID() + ".hwp");
         Files.copy(source, current);

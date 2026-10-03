@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import kr.yesulin.actor.document.CellSnapshot;
 import kr.yesulin.actor.document.DocumentService;
 import kr.yesulin.actor.document.HwpDocument;
@@ -26,12 +27,15 @@ public final class FormAdminService {
     private final FormBuilder builder;
     private final DocumentService documents;
     private final PreviewService previews;
+    private final StandardForms standards;
 
-    public FormAdminService(FormStore store, FormBuilder builder, DocumentService documents, PreviewService previews) {
+    public FormAdminService(FormStore store, FormBuilder builder, DocumentService documents, PreviewService previews,
+            StandardForms standards) {
         this.store = store;
         this.builder = builder;
         this.documents = documents;
         this.previews = previews;
+        this.standards = standards;
     }
 
     public List<FormViews.Summary> list() throws IOException {
@@ -60,7 +64,7 @@ public final class FormAdminService {
         boolean tested = !info.testedHash().isEmpty() && info.testedHash().equals(builder.fingerprint(vid, editing));
         return new FormViews.Detail(vid.value(), status(state), state.published(), editing,
                 state.published().contains(editing), info.originalName(), source.isPresent(),
-                store.definition(vid, editing).orElse(""), problems(vid, editing, cells), tested,
+                written(vid, editing), problems(vid, editing, cells), tested,
                 cells.stream().map(FormAdminService::cell).toList());
     }
 
@@ -70,6 +74,7 @@ public final class FormAdminService {
         int draft = store.draft(vid);
         String name = upload.getOriginalFilename() == null ? "지원서.hwp" : Path.of(upload.getOriginalFilename()).getFileName().toString();
         store.saveSource(vid, draft, name, hwp);
+        store.deleteSpec(vid, draft);
         PreviewService.deleteRendering(store.renderDirectory(vid, draft));
         return detail(vid);
     }
@@ -78,8 +83,25 @@ public final class FormAdminService {
         if (definition.length() > LONGEST_DEFINITION) {
             throw new IllegalArgumentException("양식 정의가 너무 깁니다.");
         }
-        store.saveDefinition(vid, store.draft(vid), definition);
+        int draft = store.draft(vid);
+        if (!standards.isSpec(definition)) {
+            store.saveDefinition(vid, draft, definition);
+            store.deleteSpec(vid, draft);
+            return detail(vid);
+        }
+        // A notice on the standard form: its form file and full definition are made from what was written.
+        StandardForms.Expanded expanded = standards.expand(definition);
+        store.saveSource(vid, draft, StandardForms.FILE_NAME, expanded.form());
+        store.saveDefinition(vid, draft, expanded.definition());
+        store.saveSpec(vid, draft, definition);
+        PreviewService.deleteRendering(store.renderDirectory(vid, draft));
         return detail(vid);
+    }
+
+    /** What the operator wrote: a standard-form notice's settings, or the definition itself. */
+    private String written(Vid vid, int version) throws IOException {
+        Optional<String> spec = store.spec(vid, version);
+        return spec.isPresent() ? spec.get() : store.definition(vid, version).orElse("");
     }
 
     /** The blank form's pages with every cell's box, so the operator can read off cell addresses. */
@@ -102,7 +124,7 @@ public final class FormAdminService {
         int editing = editing(vid);
         FormDefinition definition = builder.definition(vid, editing);
         return new FormViews.PublicForm(vid.value(), editing, definition.title(), definition.fileName(),
-                store.info(vid, editing).originalName(), definition.items());
+                store.info(vid, editing).originalName(), definition.items(), definition.submission());
     }
 
     public FormBuilder.Built test(Vid vid, FormViews.GenerateRequest request, Map<String, MultipartFile> photos)

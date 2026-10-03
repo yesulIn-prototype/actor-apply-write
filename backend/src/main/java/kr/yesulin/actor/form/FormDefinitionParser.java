@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -13,7 +14,10 @@ import tools.jackson.databind.json.JsonMapper;
  * output names must exist, and each item must be written somewhere — the document or the file name.
  */
 public final class FormDefinitionParser {
-    private static final Set<String> KEYS = Set.of("title", "fileName", "note", "items", "outputs");
+    private static final Set<String> KEYS = Set.of("title", "fileName", "note", "items", "outputs", "submission");
+    private static final Set<String> SUBMISSION_KEYS = Set.of("email", "subject", "deadline", "note");
+    private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
+    private static final Pattern DATE = Pattern.compile("^\\d{4}-\\d{2}-\\d{2}$");
     private final JsonMapper json;
 
     public FormDefinitionParser(JsonMapper json) {
@@ -38,12 +42,33 @@ public final class FormDefinitionParser {
         }
         List<FormItem> items = new ItemParser(problems).parse(root.path("items"));
         List<FormOutput> outputs = new OutputParser(problems).parse(root.path("outputs"));
-        FormDefinition definition = new FormDefinition(title, Json.text(root, "fileName").strip(), items, outputs);
+        FormDefinition definition = new FormDefinition(
+                title, Json.text(root, "fileName").strip(), items, outputs, submission(root.path("submission"), problems));
         checkReferences(definition, problems);
         if (!problems.isEmpty()) {
             throw new InvalidFormDefinitionException(problems);
         }
         return definition;
+    }
+
+    private static Submission submission(JsonNode node, List<String> problems) {
+        if (node.isMissingNode()) {
+            return Submission.NONE;
+        }
+        if (!node.isObject()) {
+            problems.add("submission: 제출 안내는 { email, subject, deadline, note } 객체여야 합니다.");
+            return Submission.NONE;
+        }
+        Json.unknownKeys("submission", node, SUBMISSION_KEYS, problems);
+        Submission submission = new Submission(Json.text(node, "email").strip(), Json.text(node, "subject").strip(),
+                Json.text(node, "deadline").strip(), Json.text(node, "note").strip());
+        if (!submission.email().isEmpty() && !EMAIL.matcher(submission.email()).matches()) {
+            problems.add("submission.email: 이메일 주소 형식이 아닙니다. (현재: '" + submission.email() + "')");
+        }
+        if (!submission.deadline().isEmpty() && !DATE.matcher(submission.deadline()).matches()) {
+            problems.add("submission.deadline: 마감일은 2026-10-07 형식이어야 합니다. (현재: '" + submission.deadline() + "')");
+        }
+        return submission;
     }
 
     private static void checkReferences(FormDefinition definition, List<String> problems) {
@@ -72,6 +97,7 @@ public final class FormDefinitionParser {
             }
         }
         answers(definition, "fileName", definition.fileName(), used, problems);
+        answers(definition, "submission.subject", definition.submission().subject(), used, problems);
         for (FormItem item : definition.items()) {
             if (!used.contains(item.id())) {
                 problems.add("items (" + item.id() + "): 문서나 파일 이름 어디에도 쓰이지 않습니다.");

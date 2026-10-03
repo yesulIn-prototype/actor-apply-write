@@ -1,0 +1,27 @@
+{
+  "note": "표준 지원서 v1에 공고마다 붙이는 추가 항목 목록(design/standard-form.md 결정 10). 키가 항목 id가 되고, label이 화면 이름과 문서 줄의 라벨이 된다. item은 정의 JSON의 항목 설정 그대로다. operatorOptions가 true면 선택지를 공고 설정에서 받는다.",
+  "extras": {
+    "video": { "label": "영상 링크",
+      "item": { "type": "text", "multiline": true, "maxLength": 600,
+                "help": "설명과 링크를 한 줄에 하나씩, 3개까지 적어주세요 (예: 자유연기 youtu.be/…)" } },
+    "age": { "label": "나이", "item": { "type": "text", "maxLength": 10, "help": "예: 27" } },
+    "sns": { "label": "SNS", "item": { "type": "text", "maxLength": 100, "help": "인스타그램 등 계정이나 주소" } },
+    "auditionDates": { "label": "오디션 가능 날짜", "operatorOptions": true,
+      "item": { "type": "multi", "help": "가능한 날짜를 모두 골라주세요" } },
+    "tour": { "label": "지방·순회 공연",
+      "item": { "type": "single", "options": [ { "id": "yes", "label": "가능" }, { "id": "no", "label": "어려움" } ] } },
+    "driving": { "label": "운전",
+      "item": { "type": "single", "options": [ { "id": "yes", "label": "가능" }, { "id": "no", "label": "불가" } ] } },
+    "otherRole": { "label": "다른 배역 수용",
+      "item": { "type": "single", "options": [ { "id": "yes", "label": "가능" }, { "id": "no", "label": "어려움" } ] } },
+    "longTerm": { "label": "장기 참여",
+      "item": { "type": "single", "options": [ { "id": "yes", "label": "가능" }, { "id": "no", "label": "어려움" } ] } },
+    "agency": { "label": "소속", "item": { "type": "text", "maxLength": 60, "help": "극단·기획사 (없으면 비워 두세요)" } },
+    "nameEn": { "label": "영문 이름", "item": { "type": "text", "maxLength": 40 } },
+    "military": { "label": "병역",
+      "item": { "type": "single", "options": [ { "id": "done", "label": "군필" }, { "id": "notYet", "label": "미필" },
+                                               { "id": "exempt", "label": "면제" }, { "id": "none", "label": "해당 없음" } ] } },
+    "vocalRange": { "label": "음역대", "item": { "type": "text", "maxLength": 40, "help": "예: G3~C5, 소프라노" } },
+    "hobby": { "label": "취미", "item": { "type": "text", "maxLength": 80 } }
+  }
+}

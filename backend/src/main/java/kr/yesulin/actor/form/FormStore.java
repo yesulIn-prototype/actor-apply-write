@@ -16,7 +16,9 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Shared forms on disk, one folder per notice and one per version:
- * {@code <root>/<vid>/state.json} and {@code <root>/<vid>/v<n>/{source.hwp, definition.json, version.json}}.
+ * {@code <root>/<vid>/state.json} and {@code <root>/<vid>/v<n>/{source.hwp, definition.json, version.json}},
+ * plus {@code spec.json} for a notice on the standard form (what the operator wrote; source and definition are
+ * made from it).
  * A published version is never written again; editing one starts a new draft version.
  */
 @Component
@@ -25,6 +27,7 @@ public final class FormStore {
     private static final String SOURCE = "source.hwp";
     private static final String DEFINITION = "definition.json";
     private static final String INFO = "version.json";
+    private static final String SPEC = "spec.json";
     private final Path root;
     private final JsonMapper json;
 
@@ -89,7 +92,7 @@ public final class FormStore {
         Files.createDirectories(target);
         if (!versions.isEmpty()) {
             Path previous = version(vid, versions.getLast());
-            for (String name : List.of(SOURCE, DEFINITION)) {
+            for (String name : List.of(SOURCE, DEFINITION, SPEC)) {
                 if (Files.exists(previous.resolve(name))) {
                     Files.copy(previous.resolve(name), target.resolve(name));
                 }
@@ -106,6 +109,20 @@ public final class FormStore {
 
     synchronized void saveDefinition(Vid vid, int number, String definition) throws IOException {
         writeBytes(version(vid, number).resolve(DEFINITION), definition.getBytes(StandardCharsets.UTF_8));
+    }
+
+    synchronized void saveSpec(Vid vid, int number, String spec) throws IOException {
+        writeBytes(version(vid, number).resolve(SPEC), spec.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** A hand-written definition or an uploaded form replaces the standard-form notice's settings. */
+    synchronized void deleteSpec(Vid vid, int number) throws IOException {
+        Files.deleteIfExists(version(vid, number).resolve(SPEC));
+    }
+
+    Optional<String> spec(Vid vid, int number) throws IOException {
+        Path file = version(vid, number).resolve(SPEC);
+        return Files.exists(file) ? Optional.of(Files.readString(file, StandardCharsets.UTF_8)) : Optional.empty();
     }
 
     synchronized void markTested(Vid vid, int number, String hash) throws IOException {

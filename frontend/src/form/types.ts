@@ -29,6 +29,16 @@ export type FormItem = {
   readonly maxRows: number
 }
 
+/** How the notice takes applications; empty strings for what the operator did not give. */
+export type Submission = {
+  readonly email: string
+  /** Template like the file name's: "꼬마박사장영실_{role}_{name}". */
+  readonly subject: string
+  /** "2026-10-07". */
+  readonly deadline: string
+  readonly note: string
+}
+
 export type PublicForm = {
   readonly vid: string
   readonly version: number
@@ -38,6 +48,7 @@ export type PublicForm = {
   /** The form's own file name, for the default name. */
   readonly sourceName: string
   readonly items: readonly FormItem[]
+  readonly submission: Submission
 }
 
 /**

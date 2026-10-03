@@ -27,6 +27,7 @@ const form: PublicForm = {
     },
     { id: 'photo', label: '프로필 사진', help: '', required: false, type: 'PHOTO', multiline: false, maxLength: 0, options: [], min: 0, max: 0, columns: [], maxRows: 0 },
   ],
+  submission: { email: '', subject: '', deadline: '', note: '' },
 }
 
 const JOB = '7907f91f-de04-418f-a284-75836cbebce5'
@@ -118,6 +119,32 @@ test('takes a rows item row by row up to the limit and sends only the rows writt
 
   await screen.findByText('지원서 파일이 만들어졌어요')
   expect(JSON.parse(await sentRequest(0).text()).answers.career).toEqual(['햄릿', ''])
+})
+
+test('shows where to send, with the mail subject filled from the answers', async () => {
+  const withSubmission = {
+    ...form,
+    submission: { email: 'audition@example.com', subject: '숲속공주_{role}_{name}', deadline: '2026-10-15', note: '자유곡 영상 링크도 보내주세요' },
+  }
+  vi.mocked(fetch).mockImplementation(async (url) => {
+    if (String(url) === '/api/forms/22382') return new Response(JSON.stringify(withSubmission), { status: 200 })
+    if (String(url).endsWith('/preview')) return new Response(JSON.stringify({ pages: [], hotspots: [] }), { status: 200 })
+    return new Response(new Blob(['hwp']), { status: 200, headers: { 'X-Document-Id': JOB } })
+  })
+  render(<ApplyApp vid="22382" />)
+  fireEvent.change(await screen.findByLabelText('이름 *'), { target: { value: '홍길동' } })
+  fireEvent.change(screen.getByLabelText('연락처 *'), { target: { value: '01012345678' } })
+  fireEvent.click(screen.getByRole('button', { name: '여' }))
+  fireEvent.click(screen.getByRole('button', { name: '곰역' }))
+
+  fireEvent.click(screen.getByRole('button', { name: '지원서 만들기' }))
+
+  const guide = within(await screen.findByRole('region', { name: '제출 안내' }))
+  expect(guide.getByText('숲속공주_곰_홍길동')).toBeInTheDocument()
+  expect(guide.getByText('10월 15일까지')).toBeInTheDocument()
+  expect(guide.getByText('자유곡 영상 링크도 보내주세요')).toBeInTheDocument()
+  expect(guide.getByRole('link', { name: '이 주소로 메일 쓰기' }))
+    .toHaveAttribute('href', `mailto:audition@example.com?subject=${encodeURIComponent('숲속공주_곰_홍길동')}`)
 })
 
 test('offers the operator template as the file name and sends the name the applicant typed instead', async () => {

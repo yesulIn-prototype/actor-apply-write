@@ -34,7 +34,8 @@
 ```
 <forms-dir>/<vid>/state.json            {"published":[1,2],"closed":false}  마지막 값이 링크가 보여주는 버전
 <forms-dir>/<vid>/v<n>/source.hwp       원본(HWP 5)
-<forms-dir>/<vid>/v<n>/definition.json  운영자가 쓴 정의 그대로
+<forms-dir>/<vid>/v<n>/definition.json  운영자가 쓴 정의 그대로(표준 지원서 공고는 공고 설정에서 펼친 정의)
+<forms-dir>/<vid>/v<n>/spec.json        표준 지원서 공고만: 운영자가 쓴 공고 설정. 운영자 화면에는 이것이 보인다
 <forms-dir>/<vid>/v<n>/version.json     원본 파일 이름, 마지막 테스트 성공 지문(원본+정의 SHA-256)
 <forms-dir>/<vid>/v<n>/render/          운영자용 원본 페이지 그림(칸 위치)
 ```
@@ -50,9 +51,14 @@
   "title": "가족 뮤지컬 「잠자는 숲속의 공주」 배우 지원서",   // 배우 화면 제목
   "fileName": "{name}_{role}_지원서",                         // 선택. 완성 파일 이름 기본값(다중 선택은 _로 연결). 배우가 화면에서 고칠 수 있다
   "items": [ /* 배우 화면, 적은 순서대로 */ ],
-  "outputs": [ /* 문서 칸마다 하나 */ ]
+  "outputs": [ /* 문서 칸마다 하나 */ ],
+  "submission": { "email": "…", "subject": "{name}_{role}", "deadline": "2026-10-15", "note": "…" }  // 선택. 완료 화면의 제출 안내
 }
 ```
+
+### 표준 지원서 공고 설정
+
+지원서 파일이 없는 공고는 정의 대신 공고 설정을 저장한다(`"base": "standard-v1"`이 있으면 공고 설정으로 본다). 서버(`StandardForms`)가 표준 지원서 HWP의 지원 정보 표를 고쳐(추가 항목 줄 끼우기, 뺄 줄 지우기, 공고 제목 넣기, 라벨 쓰기) 그 공고의 `source.hwp`를 만들고, 기본 정의(`standard-v1.definition.json`)에 배역 목록·추가 항목·안내·제출 안내를 더한 `definition.json`을 만든다. 설정이 틀리면 저장하지 않고 409 `FORM_NOT_READY`로 고칠 곳을 모두 알린다. 원본을 다시 올리거나 일반 정의를 저장하면 공고 설정은 지워진다. 형식과 추가 항목 목록은 `form-definition-guide.md`.
 
 ### items
 
@@ -92,7 +98,7 @@
 | GET | `/api/admin/forms` | 토큰 | 공고 목록 |
 | GET | `/api/admin/forms/{vid}` | 토큰 | 편집 중 버전, 원본 칸 목록, 정의, 문제, 테스트 여부 |
 | POST | `/api/admin/forms/{vid}/source` | 토큰 | 원본 올리기(공개된 버전이면 새 버전) |
-| PUT | `/api/admin/forms/{vid}/definition` | 토큰 | 정의 저장(공개된 버전이면 새 버전) |
+| PUT | `/api/admin/forms/{vid}/definition` | 토큰 | 정의 저장(공개된 버전이면 새 버전). `"base"`가 있으면 표준 지원서 공고 설정으로 보고 원본·정의를 만든다. 설정 오류는 409 `FORM_NOT_READY` |
 | GET | `/api/admin/forms/{vid}/layout`, `/layout/{page}` | 토큰 | 원본 페이지와 칸 위치 |
 | GET | `/api/admin/forms/{vid}/form` | 토큰 | 편집 중 버전의 배우 화면 |
 | POST | `/api/admin/forms/{vid}/test` | 토큰 | 테스트 생성(공개와 같은 형식) |

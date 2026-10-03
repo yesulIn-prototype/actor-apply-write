@@ -9,6 +9,7 @@ import { Footer, Toast, TopBar } from '../ui'
 import { useDelivery } from '../useDelivery'
 import { buildForm, fetchForm } from './api'
 import { suggestedFileName } from './fileName'
+import { SubmissionGuide } from './SubmissionGuide'
 import { ItemInput } from './ItemInput'
 import { NoticeFillScreen } from './NoticeFillScreen'
 import type { PublicForm } from './types'
@@ -118,6 +119,7 @@ export function ApplyApp({ vid }: { vid: string }) {
         <DoneScreen
           completed={completed}
           labels={new Map(phase.form.items.map((item) => [item.id, item.label]))}
+          guide={<SubmissionGuide form={phase.form} answers={answers.answers} onCopied={showToast} />}
           renderEditor={(id) => {
             const item = phase.form.items.find((candidate) => candidate.id === id)
             return item && (

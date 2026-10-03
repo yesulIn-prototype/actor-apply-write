@@ -12,6 +12,8 @@ type Props = {
   labels: ReadonlyMap<string, string>
   /** The input for one answer, shown in the edit sheet. */
   renderEditor: (id: string) => ReactNode
+  /** What the notice asks about sending (address, mail subject); nothing for a form without it. */
+  guide?: ReactNode
   pdfBusy: boolean
   /** The sheet opens: remember the answers, so closing it without applying can put them back. */
   onEditOpen: () => void
@@ -90,6 +92,7 @@ export function DoneScreen(props: Props) {
             ? '제출하기 전에 빈칸·사진·공고 필수 항목을 확인해주세요. 오른쪽 위 확대 버튼으로 크게 보고, 칸을 누르면 수정할 수 있어요.'
             : '앱에서 만든 지원서를 이어서 열었어요. 저장하거나 메일로 보내주세요. 고칠 곳이 있으면 새로 작성해주세요.'}
         </p>
+        {props.guide}
 
         <div className="preview">
           {!current && (

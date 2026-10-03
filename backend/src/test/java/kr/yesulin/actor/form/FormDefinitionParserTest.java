@@ -32,6 +32,27 @@ class FormDefinitionParserTest {
     }
 
     @Test
+    @DisplayName("제출 안내는 메일 제목에 쓴 항목도 쓰인 것으로 보고, 주소·날짜 형식과 없는 항목을 알린다")
+    void parse_ReadsSubmission_AndChecksItsFormat() throws IOException {
+        String withSubmission = sampleDefinition().replace("\"items\": [", """
+                "submission": { "email": "audition@example.com", "subject": "숲속_{role}_{name}",
+                                "deadline": "2026-10-15", "note": "영상 링크 함께" },
+                "items": [""");
+        FormDefinition definition = parser.parse(withSubmission);
+        assertThat(definition.submission()).isEqualTo(
+                new Submission("audition@example.com", "숲속_{role}_{name}", "2026-10-15", "영상 링크 함께"));
+        assertThat(parser.parse(sampleDefinition()).submission()).isEqualTo(Submission.NONE);
+
+        String wrong = withSubmission.replace("audition@example.com", "audition")
+                .replace("2026-10-15", "10월 15일").replace("{role}", "{nobody}");
+        assertThatThrownBy(() -> parser.parse(wrong))
+                .isInstanceOfSatisfying(InvalidFormDefinitionException.class, invalid -> assertThat(invalid.problems())
+                        .anyMatch(problem -> problem.startsWith("submission.email"))
+                        .anyMatch(problem -> problem.startsWith("submission.deadline"))
+                        .anyMatch(problem -> problem.contains("{nobody}")));
+    }
+
+    @Test
     @DisplayName("타입에 맞지 않는 설정과 잘못된 참조를 한 번에 모두 알려준다")
     void parse_ListsEveryProblem_WhenDefinitionIsWrong() {
         // given

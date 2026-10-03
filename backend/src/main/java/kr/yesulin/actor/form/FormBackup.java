@@ -22,7 +22,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The operator's backup of every notice form: one zip laid out like the forms folder
- * ({@code <vid>/state.json}, {@code <vid>/v<n>/source.hwp|definition.json|version.json}) plus {@code backup.json}.
+ * ({@code <vid>/state.json}, {@code <vid>/v<n>/source.hwp|definition.json|version.json|spec.json}) plus
+ * {@code backup.json}.
  * Rendered page images are left out; they are drawn again when needed. Restoring adds only the notices this
  * server does not have yet and never overwrites one, so a stale backup cannot undo newer work.
  */
@@ -31,7 +32,7 @@ public final class FormBackup {
     static final int FORMAT = 1;
     private static final String MANIFEST = "backup.json";
     private static final Pattern ENTRY = Pattern.compile(
-            "^([0-9]{1,12})/(state\\.json|v[0-9]{1,6}/(source\\.hwp|definition\\.json|version\\.json))$");
+            "^([0-9]{1,12})/(state\\.json|v[0-9]{1,6}/(source\\.hwp|definition\\.json|version\\.json|spec\\.json))$");
     /** Zip bombs: no file bigger than an upload may be, and a sane total. */
     private static final long MAX_FILE_BYTES = 25L * 1024L * 1024L;
     private static final long MAX_TOTAL_BYTES = 500L * 1024L * 1024L;

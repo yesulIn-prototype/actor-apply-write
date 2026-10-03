@@ -74,6 +74,26 @@ public class PdfConverter {
         }
     }
 
+    /** Removes row {@code row} of table {@code table} (top-level tables, export-tables numbering). */
+    public void deleteRow(Path hwp, Path output, int table, int row) throws IOException, HwpDocumentException {
+        Files.deleteIfExists(output);
+        run(List.of("edit", "delete-row", hwp.toString(), "--table", Integer.toString(table),
+                "--row", Integer.toString(row), "-o", output.toString()), false);
+        if (!Files.isRegularFile(output) || Files.size(output) == 0) {
+            throw new HwpDocumentException("표 줄을 지우지 못했습니다.");
+        }
+    }
+
+    /** Replaces {@code find} everywhere in the body and tables; it must occur at least once. */
+    public void replaceText(Path hwp, Path output, String find, String replace) throws IOException, HwpDocumentException {
+        Files.deleteIfExists(output);
+        run(List.of("edit", "replace-text", hwp.toString(), "--find", find, "--replace", replace,
+                "-o", output.toString()), false);
+        if (!Files.isRegularFile(output) || Files.size(output) == 0) {
+            throw new HwpDocumentException("문서에서 '" + find + "'를 찾지 못했습니다.");
+        }
+    }
+
     /** Merges columns {@code fromColumn}..{@code toColumn} of one row (export-tables grid coordinates). */
     public void mergeCells(Path hwp, Path output, int table, int row, int fromColumn, int toColumn)
             throws IOException, HwpDocumentException {

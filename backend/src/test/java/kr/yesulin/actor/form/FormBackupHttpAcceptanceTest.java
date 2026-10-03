@@ -47,6 +47,9 @@ class FormBackupHttpAcceptanceTest {
     @Autowired
     private FormStore store;
 
+    @Autowired
+    private kr.yesulin.actor.document.PdfConverter rhwp;
+
     @Test
     @DisplayName("백업을 받아 두면 공고 폴더를 잃어도 올려서 같은 링크·같은 버전으로 되살린다")
     void restore_BringsBackLostNotices_WithTheirPublishedVersions() throws Exception {
@@ -69,6 +72,17 @@ class FormBackupHttpAcceptanceTest {
         mockMvc.perform(get("/api/forms/50001")).andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1));
         mockMvc.perform(multipart("/api/forms/{vid}/generate", "50001").file(answers(1)).file(photo()))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("표준 지원서 공고는 운영자가 쓴 공고 설정도 함께 백업한다")
+    void backup_KeepsTheSettingsOfAStandardFormNotice() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(rhwp.available(), "rhwp not installed — run tools/install-rhwp.sh");
+        mockMvc.perform(admin(put("/api/admin/forms/50004/definition"))
+                        .contentType(MediaType.APPLICATION_JSON).content(StandardNoticeHttpAcceptanceTest.SPEC))
+                .andExpect(jsonPath("$.problems").isEmpty());
+
+        assertThat(entries(download())).contains("50004/v1/spec.json", "50004/v1/source.hwp", "50004/v1/definition.json");
     }
 
     @Test

@@ -108,7 +108,7 @@ sequenceDiagram
 ### 공통 화면·기능 (업로드 흐름과 같이 씀)
 | 파일 | 역할 |
 |---|---|
-| `DoneScreen.tsx` | 완성 화면: 미리보기, 칸 눌러 수정(시트), 확대, 저장·메일 버튼. 무엇을 수정할지는 부모가 `labels`·`renderEditor`로 넘긴다 |
+| `DoneScreen.tsx` | 완성 화면: 미리보기, 칸 눌러 수정(시트), 확대, 저장·메일 버튼. 무엇을 수정할지는 부모가 `labels`·`renderEditor`로 넘긴다. 공고의 제출 안내는 `guide`로 받아 보인다(`form/SubmissionGuide.tsx`: 받는 곳, 답으로 채운 메일 제목, 마감, 복사, 메일 쓰기) |
 | `PreviewPage.tsx`, `PreviewZoom.tsx` | 서버가 준 SVG 페이지 위에 누를 수 있는 칸(hotspot)을 겹쳐 그림 |
 | `photo.ts` | PNG 8MB 이하는 그대로, 그 외(HEIC·WebP·큰 JPEG)는 캔버스로 다시 그려 최대 2400px JPEG(품질 0.9). EXIF 회전도 이때 바로잡힘 |
 | `useDelivery.ts`, `delivery.ts` | 한글로 저장(실제 URL로 다운로드), PDF로 저장(서버에 먼저 만들게 한 뒤 다운로드), 메일로 보내기(공유 시트, 안 되면 저장 후 메일 작성 화면) |
@@ -145,6 +145,7 @@ sequenceDiagram
 | `FormController` / `AdminFormController` | 배우 API `/api/forms/**`, 운영자 API `/api/admin/forms/**` |
 | `FormApplyService` | 배우 쪽 규칙: 공개된 적 없는 공고 → 404, 종료 → 410, 요청 버전이 공개 이력에 없으면 → 409 `FORM_CHANGED`. 열어 둔 화면은 연 버전으로 생성됨 |
 | `FormAdminService` | 운영자 쪽: 업로드(못 읽는 파일은 저장 전에 거절), 정의 저장, 칸 위치, 테스트, 공개 조건 확인, 종료 |
+| `StandardForms`, `StandardSpec` | 지원서 없는 공고의 공고 설정(`"base": "standard-v1"`)을 읽어, 표준 지원서 HWP의 지원 정보 표를 고친 그 공고의 원본과 전체 정의를 만든다(추가 항목 목록 `standard-v1.extras.json`) |
 | `FormBuilder` | **생성의 핵심**: 정의 읽기 → 답 검사 → 출력 조합 → 작업 만들기/재사용 → 문서 엔진에 쓰기 요청. 테스트 지문(SHA-256) 계산 |
 | `FormStore` | 디스크 저장(`yesulin.forms-dir`). 공개된 버전은 다시 쓰지 않고, 고치면 새 버전(`draft()`) |
 | `FormDefinitionParser`, `ItemParser`, `OutputParser` | JSON → 타입 있는 정의. 문제는 한 번에 모두 모아 알려줌 |

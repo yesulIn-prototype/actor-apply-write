@@ -9,17 +9,19 @@ const FORBIDDEN = /[\\/:*?"<>|]/g
  * or "<form name>_완성.hwp" when there is no template.
  */
 export function suggestedFileName(form: PublicForm, answers: Answers): string {
-  const byId = new Map(form.items.map((item) => [item.id, item]))
-  const filled = form.fileName
-    .replace(PLACEHOLDER, (whole, id: string) => {
-      const item = byId.get(id)
-      return item ? written(item, answers[id] ?? []) : whole
-    })
-    .replace(FORBIDDEN, '')
-    .trim()
+  const filled = filledTemplate(form, answers, form.fileName).replace(FORBIDDEN, '').trim()
   if (filled && filled !== form.fileName.replace(PLACEHOLDER, '').trim()) return `${filled}.hwp`
   const stem = form.sourceName.replace(/\.hwpx?$/i, '') || form.title || '지원서'
   return `${stem.endsWith('_완성') ? stem : `${stem}_완성`}.hwp`
+}
+
+/** An operator's template ("{name}_{role}") with the answers so far; several picks join with "_". */
+export function filledTemplate(form: PublicForm, answers: Answers, template: string): string {
+  const byId = new Map(form.items.map((item) => [item.id, item]))
+  return template.replace(PLACEHOLDER, (whole, id: string) => {
+    const item = byId.get(id)
+    return item ? written(item, answers[id] ?? []) : whole
+  })
 }
 
 /** An answer as the document gets it: picked options by their document text, phone numbers formatted. */
