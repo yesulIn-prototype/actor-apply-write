@@ -14,6 +14,8 @@ import kr.dogfoot.hwplib.tool.objectfinder.ControlFinder;
 import kr.dogfoot.hwplib.writer.HWPWriter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class InputTypographyTest {
     @TempDir
@@ -65,6 +67,54 @@ class InputTypographyTest {
         assertThat(completed.getDocInfo().getCharShapeList().get(newShape).getCharColor().getValue()).isZero();
         assertThat(HwpDocument.open(output).cells()).filteredOn(cell -> cell.address().equals(name))
                 .extracting(CellSnapshot::text).anySatisfy(text -> assertThat(text).contains("성명(한글)", "검증배우"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"예시 입력 16", "예시 입력 16\n둘째 줄"})
+    void appendText_UsesNormalWeightFromFirstCharacter_WhenLabelIsBold(String value) throws Exception {
+        // given: a synthetic label and a paragraph terminator, as in an uploaded HWP
+        CellAddress address = new CellAddress(0, 8, 1);
+        Path fixture = Path.of(getClass().getResource("/forms/sample-notice.hwp").toURI());
+        HWPFile source = HWPReader.fromFile(fixture.toFile());
+        Paragraph label = cell(source, address).getParagraphList().getParagraph(0);
+        label.createText();
+        label.getText().addString("지원동기");
+        CharShape bold = source.getDocInfo().getCharShapeList().get(firstShapeId(label)).clone();
+        bold.getProperty().setBold(true);
+        source.getDocInfo().getCharShapeList().add(bold);
+        label.getCharShape().getPositonShapeIdPairList().clear();
+        label.getCharShape().addParaCharShape(0, source.getDocInfo().getCharShapeList().size() - 1);
+        Path input = work.resolve("bold-label.hwp");
+        HWPWriter.toFile(source, input.toString());
+        Path output = work.resolve("appended-bold-label.hwp");
+
+        // when
+        HwpDocument document = HwpDocument.open(input);
+        document.appendText(address, value);
+        document.save(output);
+
+        // then: reparse and inspect the style effective on each glyph, not just the final style run
+        HWPFile completed = HWPReader.fromFile(output.toFile());
+        Paragraph paragraph = cell(completed, address).getParagraphList().getParagraph(0);
+        assertThat(shapeAt(completed, paragraph, 0).getProperty().isBold()).isTrue();
+        for (int position = "지원동기\n".length(); position < paragraph.getText().getCharSize() - 1; position++) {
+            assertThat(shapeAt(completed, paragraph, position).getProperty().isBold())
+                    .as("input weight at HWP character position %s", position).isFalse();
+        }
+        assertThat(paragraph.getText().getCharList().stream().filter(character -> character.getCode() == 0x0a))
+                .hasSize(value.split("\n", -1).length);
+        assertThat(HwpDocument.open(output).cells()).filteredOn(snapshot -> snapshot.address().equals(address))
+                .extracting(CellSnapshot::text).containsExactly("지원동기" + value.replace("\n", ""));
+    }
+
+    private static CharShape shapeAt(HWPFile file, Paragraph paragraph, int position) {
+        int shape = firstShapeId(paragraph);
+        for (var run : paragraph.getCharShape().getPositonShapeIdPairList()) {
+            if (run.getPosition() <= position) {
+                shape = Math.toIntExact(run.getShapeId());
+            }
+        }
+        return file.getDocInfo().getCharShapeList().get(shape);
     }
 
     private Path withOutlierFont(String fixture, CellAddress address) throws Exception {

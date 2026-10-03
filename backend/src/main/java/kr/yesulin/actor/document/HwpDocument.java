@@ -94,12 +94,16 @@ public final class HwpDocument {
             var paragraphs = cell(address).getParagraphList();
             Paragraph paragraph = paragraphs.getParagraph(paragraphs.getParagraphCount() - 1);
             ParaText text = CellContent.text(paragraph);
-            int start = text.getCharList().size();
-            for (String line : lines(value)) {
+            String[] inputLines = lines(value);
+            text.addNewCharControlChar().setCode(LINE_BREAK);
+            text.addString(inputLines[0]);
+            // addString moves the paragraph terminator; shape offsets use HWP character widths.
+            int start = text.getCharSize() - inputLines[0].length() - 1;
+            for (int index = 1; index < inputLines.length; index++) {
                 text.addNewCharControlChar().setCode(LINE_BREAK);
-                text.addString(line);
+                text.addString(inputLines[index]);
             }
-            CellContent.styleAppendedText(file, paragraph, representativeShapeId, inputSize, start + 1);
+            CellContent.styleAppendedText(file, paragraph, representativeShapeId, inputSize, start);
             paragraph.deleteLineSeg();
         } catch (Exception exception) { // no-excuse-ok: catch - translate hwplib append failures at this boundary
             throw invalidAddress(address, exception);
