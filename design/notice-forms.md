@@ -93,11 +93,12 @@
 
 | 메서드 | 경로 | 권한 | 내용 |
 |---|---|---|---|
-| GET | `/api/forms/{vid}` | 공개 | 최신 공개 버전의 제목·항목(칸·원문 없음). 없음 404 `FORM_NOT_FOUND`, 종료 410 `FORM_CLOSED` |
+| GET | `/api/forms/{vid}` | 공개 | 최신 공개 버전의 제목·항목·제출 안내(`submission`)·`pdfFirst`(표준 지원서 공고면 true)(칸·원문 없음). 없음 404 `FORM_NOT_FOUND`, 종료 410 `FORM_CLOSED` |
 | POST | `/api/forms/{vid}/generate` | 공개 | multipart `request`(`{version, documentId, answers, fileName}`; `fileName`이 비면 템플릿) + `photo-<항목id>`. HWP 첨부와 `X-Document-Id`. 공개된 적 없는 버전 409 `FORM_CHANGED`, 답 오류 400 `INVALID_ANSWER` |
 | GET | `/api/admin/forms` | 토큰 | 공고 목록 |
 | GET | `/api/admin/forms/{vid}` | 토큰 | 편집 중 버전, 원본 칸 목록, 정의, 문제, 테스트 여부 |
 | POST | `/api/admin/forms/{vid}/source` | 토큰 | 원본 올리기(공개된 버전이면 새 버전) |
+| GET | `/api/admin/standard` | 토큰 | 표준 지원서 추가 항목 목록(`{base, extras: [{key, label, type, operatorOptions}]}`), 운영자 설정 화면의 체크 목록 |
 | PUT | `/api/admin/forms/{vid}/definition` | 토큰 | 정의 저장(공개된 버전이면 새 버전). `"base"`가 있으면 표준 지원서 공고 설정으로 보고 원본·정의를 만든다. 설정 오류는 409 `FORM_NOT_READY` |
 | GET | `/api/admin/forms/{vid}/layout`, `/layout/{page}` | 토큰 | 원본 페이지와 칸 위치 |
 | GET | `/api/admin/forms/{vid}/form` | 토큰 | 편집 중 버전의 배우 화면 |

@@ -28,6 +28,7 @@ const form: PublicForm = {
     { id: 'photo', label: '프로필 사진', help: '', required: false, type: 'PHOTO', multiline: false, maxLength: 0, options: [], min: 0, max: 0, columns: [], maxRows: 0 },
   ],
   submission: { email: '', subject: '', deadline: '', note: '' },
+  pdfFirst: false,
 }
 
 const JOB = '7907f91f-de04-418f-a284-75836cbebce5'
@@ -145,6 +146,40 @@ test('shows where to send, with the mail subject filled from the answers', async
   expect(guide.getByText('자유곡 영상 링크도 보내주세요')).toBeInTheDocument()
   expect(guide.getByRole('link', { name: '이 주소로 메일 쓰기' }))
     .toHaveAttribute('href', `mailto:audition@example.com?subject=${encodeURIComponent('숲속공주_곰_홍길동')}`)
+})
+
+test('on a standard-form notice, puts the PDF first and sends the PDF from the mail button', async () => {
+  const share = vi.fn(async () => undefined)
+  Object.defineProperty(navigator, 'share', { value: share, configurable: true })
+  Object.defineProperty(navigator, 'canShare', { value: () => true, configurable: true })
+  vi.mocked(fetch).mockImplementation(async (url) => {
+    const address = String(url)
+    if (address === '/api/forms/22382') return new Response(JSON.stringify({ ...form, pdfFirst: true }), { status: 200 })
+    if (address.endsWith('/preview')) return new Response(JSON.stringify({ pages: [], hotspots: [] }), { status: 200 })
+    if (address.endsWith('/completed.pdf')) return new Response(new Blob(['%PDF']), { status: 200 })
+    return new Response(new Blob(['hwp']), { status: 200, headers: { 'X-Document-Id': JOB } })
+  })
+  render(<ApplyApp vid="22382" />)
+  fireEvent.change(await screen.findByLabelText('이름 *'), { target: { value: '홍길동' } })
+  fireEvent.change(screen.getByLabelText('연락처 *'), { target: { value: '01012345678' } })
+  fireEvent.click(screen.getByRole('button', { name: '여' }))
+  fireEvent.click(screen.getByRole('button', { name: '지원서 만들기' }))
+  const mail = await screen.findByRole('button', { name: 'PDF 메일로 보내기' })
+  const saves = screen.getAllByRole('button', { name: /로 저장$/ }).map((button) => button.textContent)
+  expect(saves).toEqual(['PDF로 저장', '한글로 저장'])
+  await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).endsWith('/completed.pdf'))).toBe(true))
+
+  await waitFor(async () => {
+    fireEvent.click(mail)
+    await Promise.resolve()
+    expect(share).toHaveBeenCalled()
+  })
+
+  const shared = (share.mock.calls[0] as unknown as [ShareData])[0].files?.[0]
+  expect(shared?.type).toBe('application/pdf')
+  expect(shared?.name.endsWith('.pdf')).toBe(true)
+  Reflect.deleteProperty(navigator, 'share')
+  Reflect.deleteProperty(navigator, 'canShare')
 })
 
 test('offers the operator template as the file name and sends the name the applicant typed instead', async () => {

@@ -325,3 +325,109 @@
   background: var(--grey-100);
   font-size: 0.92em;
 }
+
+/* The standard-form settings: fields grouped by what the notice asks. */
+.admin-fieldset {
+  margin: 16px 0 0;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--grey-200);
+  border-radius: 12px;
+}
+
+.admin-fieldset legend {
+  padding: 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.admin-fieldset h3 {
+  margin-top: 16px;
+}
+
+.admin-field {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--grey-700);
+}
+
+.admin-field input {
+  width: 100%;
+}
+
+.admin-narrow input {
+  width: 180px;
+}
+
+.admin input[type="checkbox"],
+.admin input[type="radio"] {
+  min-height: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-choice,
+.admin-check > label,
+.admin-required {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 16px 0 0;
+  font-size: 15px;
+}
+
+.admin-required {
+  margin-top: 0;
+  font-size: 13px;
+  color: var(--grey-600);
+}
+
+.admin-fieldset textarea {
+  display: block;
+  width: 100%;
+  min-height: 84px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--grey-300);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 15px;
+}
+
+.admin-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px 16px;
+}
+
+.admin-check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 8px;
+}
+
+.admin-custom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.admin-custom input:not([type="checkbox"]) {
+  flex: 1 1 220px;
+}
+
+.admin-advanced {
+  margin-top: 16px;
+}
+
+.admin-advanced > summary {
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--grey-600);
+}

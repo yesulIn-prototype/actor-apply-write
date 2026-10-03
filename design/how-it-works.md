@@ -108,7 +108,7 @@ sequenceDiagram
 ### 공통 화면·기능 (업로드 흐름과 같이 씀)
 | 파일 | 역할 |
 |---|---|
-| `DoneScreen.tsx` | 완성 화면: 미리보기, 칸 눌러 수정(시트), 확대, 저장·메일 버튼. 무엇을 수정할지는 부모가 `labels`·`renderEditor`로 넘긴다. 공고의 제출 안내는 `guide`로 받아 보인다(`form/SubmissionGuide.tsx`: 받는 곳, 답으로 채운 메일 제목, 마감, 복사, 메일 쓰기) |
+| `DoneScreen.tsx` | 완성 화면: 미리보기, 칸 눌러 수정(시트), 확대, 저장·메일 버튼. 무엇을 수정할지는 부모가 `labels`·`renderEditor`로 넘긴다. 공고의 제출 안내는 `guide`로 받아 보인다(`form/SubmissionGuide.tsx`: 받는 곳, 답으로 채운 메일 제목, 마감, 복사, 메일 쓰기). 표준 지원서 공고(`pdfFirst`)는 PDF 버튼을 앞에 두고 PDF를 메일로 공유한다(`useDelivery`가 미리 받아 둠) |
 | `PreviewPage.tsx`, `PreviewZoom.tsx` | 서버가 준 SVG 페이지 위에 누를 수 있는 칸(hotspot)을 겹쳐 그림 |
 | `photo.ts` | PNG 8MB 이하는 그대로, 그 외(HEIC·WebP·큰 JPEG)는 캔버스로 다시 그려 최대 2400px JPEG(품질 0.9). EXIF 회전도 이때 바로잡힘 |
 | `useDelivery.ts`, `delivery.ts` | 한글로 저장(실제 URL로 다운로드), PDF로 저장(서버에 먼저 만들게 한 뒤 다운로드), 메일로 보내기(공유 시트, 안 되면 저장 후 메일 작성 화면) |
@@ -124,6 +124,7 @@ sequenceDiagram
 | `LinkPanel.tsx` | 상태(준비 중/공개 중/공개 종료), 배우 링크 복사, 공개·종료·재공개 |
 | `LayoutPanel.tsx` | 원본 SVG 위에 칸 주소 표시(누르면 주소 복사), 칸 목록 표(**에이전트에게 줄 복사본**) |
 | `DefinitionPanel.tsx`, `DefinitionGuide.tsx` | JSON 입력·저장, 문제 목록, 짧은 쓰는 법, 예시로 시작 |
+| `StandardPanel.tsx`, `StandardExtras.tsx`, `standardSpec.ts` | 지원서 없는 공고: 표준 지원서 설정 화면(배역, 묻는 줄, 추가 질문 체크·직접 적기, 안내, 제출 안내)과 화면↔공고 설정 JSON 변환. 새 공고는 `FormEditor`가 "HWP 올리기 / 표준 지원서로 시작"을 먼저 묻는다 |
 | `TestPanel.tsx` | 편집 중 버전의 배우 화면(`FormFields`)으로 테스트 생성, 결과 미리보기·HWP·PDF 링크 |
 | `adminApi.ts` | 모든 요청에 `Authorization: Bearer <토큰>`. 원본 페이지 그림도 토큰이 필요해 fetch → blob URL로 보여줌 |
 

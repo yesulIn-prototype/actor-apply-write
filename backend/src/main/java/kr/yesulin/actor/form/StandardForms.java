@@ -56,6 +56,15 @@ public final class StandardForms {
 
     record Expanded(byte[] form, String definition) {}
 
+    /** The extras an operator can tick, in the catalog's order. */
+    FormViews.StandardCatalog catalog() {
+        List<FormViews.CatalogItem> extras = new ArrayList<>();
+        catalog.properties().forEach(entry -> extras.add(new FormViews.CatalogItem(entry.getKey(),
+                entry.getValue().path("label").asString(), entry.getValue().path("item").path("type").asString(),
+                entry.getValue().path("operatorOptions").asBoolean(false))));
+        return new FormViews.StandardCatalog(BASE, extras);
+    }
+
     /** A definition written as a standard-form notice names its base: {@code "base": "standard-v1"}. */
     boolean isSpec(String text) {
         try {

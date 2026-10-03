@@ -8,7 +8,7 @@ import { message, resumeLink, useLeaveInAppBrowser, useToast } from '../shell'
 import { Footer, Toast, TopBar } from '../ui'
 import { useDelivery } from '../useDelivery'
 import { buildForm, fetchForm } from './api'
-import { suggestedFileName } from './fileName'
+import { filledTemplate, suggestedFileName } from './fileName'
 import { SubmissionGuide } from './SubmissionGuide'
 import { ItemInput } from './ItemInput'
 import { NoticeFillScreen } from './NoticeFillScreen'
@@ -34,7 +34,12 @@ export function ApplyApp({ vid }: { vid: string }) {
   const [typedName, setTypedName] = useState<string>()
   const [toast, showToast] = useToast()
   const answers = useAnswers(showToast)
-  const delivery = useDelivery(completed, showToast)
+  const shown = phase.kind === 'done' ? phase.form : undefined
+  const delivery = useDelivery(completed, showToast, {
+    pdfFirst: shown?.pdfFirst,
+    mailTo: shown?.submission.email,
+    mailSubject: shown ? filledTemplate(shown, answers.answers, shown.submission.subject).trim() : undefined,
+  })
   useLeaveInAppBrowser(platform)
 
   useEffect(() => {
@@ -133,6 +138,7 @@ export function ApplyApp({ vid }: { vid: string }) {
             )
           }}
           pdfBusy={delivery.pdfBusy}
+          pdfFirst={phase.form.pdfFirst}
           onEditOpen={answers.remember}
           onEditCancel={answers.restore}
           onApply={() => apply(phase.form)}

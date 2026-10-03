@@ -36,7 +36,20 @@ export type Detail = {
   readonly problems: readonly string[]
   readonly tested: boolean
   readonly cells: readonly Cell[]
+  /** A notice on the standard form: `definition` holds its settings. */
+  readonly standard: boolean
 }
+
+/** One question an operator can add to a standard-form notice. */
+export type CatalogItem = {
+  readonly key: string
+  readonly label: string
+  readonly type: string
+  /** The operator lists the choices (오디션 가능 날짜). */
+  readonly operatorOptions: boolean
+}
+
+export type StandardCatalog = { readonly base: string; readonly extras: readonly CatalogItem[] }
 
 export type Box = {
   readonly address: string
@@ -78,6 +91,8 @@ async function json<T>(url: string, init: RequestInit = { method: 'GET' }): Prom
 export const listForms = () => json<readonly Summary[]>('/api/admin/forms')
 
 export const loadForm = (vid: string) => json<Detail>(`/api/admin/forms/${vid}`)
+
+export const loadCatalog = () => json<StandardCatalog>('/api/admin/standard')
 
 export function uploadSource(vid: string, file: File): Promise<Detail> {
   const body = new FormData()

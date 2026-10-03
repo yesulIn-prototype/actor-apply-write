@@ -1,23 +1,53 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { track } from './analytics'
 import type { Completed } from './api'
-import { preparePdf } from './api'
+import { preparePdf, request } from './api'
 import { openMailDraft, saveFile, shareFile } from './delivery'
 
+export type DeliveryOptions = {
+  /** Send and save the PDF first (a standard-form notice: applicants send a profile). */
+  readonly pdfFirst?: boolean
+  /** The notice's address and mail subject, for the mail draft opened when the file can't be shared. */
+  readonly mailTo?: string
+  readonly mailSubject?: string
+}
+
+type PdfFile = { readonly documentId: string; readonly file?: File; readonly failed?: boolean }
+
 /** Sending and saving the finished file, the same on every screen that finishes one. */
-export function useDelivery(completed: Completed | undefined, showToast: (text: string) => void) {
+export function useDelivery(completed: Completed | undefined, showToast: (text: string) => void, options: DeliveryOptions = {}) {
   const [pdfBusy, setPdfBusy] = useState(false)
+  const [pdf, setPdf] = useState<PdfFile>()
+  const pdfFirst = options.pdfFirst === true
+
+  // The share sheet only opens straight from a tap (iOS drops the gesture after an await), so the PDF to
+  // send is fetched as soon as the file is done, not when the button is pressed.
+  useEffect(() => {
+    if (!pdfFirst || !completed) return
+    let active = true
+    loadPdf(completed)
+      .then((file) => { if (active) setPdf({ documentId: completed.documentId, file }) })
+      .catch(() => { if (active) setPdf({ documentId: completed.documentId, failed: true }) })
+    return () => { active = false }
+  }, [pdfFirst, completed])
 
   async function mail() {
     if (!completed) return
-    const result = await shareFile(completed.file)
+    const ready = pdf?.documentId === completed.documentId ? pdf : undefined
+    if (pdfFirst && !ready) {
+      showToast('PDF를 준비하고 있어요. 잠시 후 다시 눌러주세요')
+      return
+    }
+    const file = ready?.file ?? completed.file
+    const result = await shareFile(file)
     if (result === 'shared') track('send_mail', { method: 'share' })
     if (result === 'cancelled') track('send_mail_cancel')
     if (result !== 'unsupported') return
     track('send_mail', { method: 'download' })
-    saveFile(completed.downloadUrl, completed.file.name)
+    saveFile(ready?.file ? completed.pdfUrl : completed.downloadUrl, file.name)
     showToast('파일을 저장했어요. 메일에 첨부해서 보내주세요')
-    window.setTimeout(() => openMailDraft(completed.file.name.replace(/\.hwp$/i, '')), 800)
+    const subject = options.mailSubject || file.name.replace(/\.(hwp|pdf)$/i, '')
+    window.setTimeout(() => openMailDraft(subject, options.mailTo ?? ''), 800)
   }
 
   function save() {
@@ -32,7 +62,7 @@ export function useDelivery(completed: Completed | undefined, showToast: (text: 
     setPdfBusy(true)
     try {
       await preparePdf(completed)
-      saveFile(completed.pdfUrl, completed.file.name.replace(/\.hwp$/i, '.pdf'))
+      saveFile(completed.pdfUrl, pdfName(completed))
       track('save_pdf')
       showToast('PDF를 저장했어요')
     } catch {
@@ -45,4 +75,13 @@ export function useDelivery(completed: Completed | undefined, showToast: (text: 
   }
 
   return { mail, save, savePdf, pdfBusy }
+}
+
+function pdfName(completed: Completed): string {
+  return completed.file.name.replace(/\.hwp$/i, '.pdf')
+}
+
+async function loadPdf(completed: Completed): Promise<File> {
+  const response = await request(completed.pdfUrl, { method: 'GET' })
+  return new File([await response.blob()], pdfName(completed), { type: 'application/pdf' })
 }

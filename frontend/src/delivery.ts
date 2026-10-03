@@ -27,6 +27,7 @@ export async function shareFile(file: File): Promise<ShareResult> {
   }
 }
 
-export function openMailDraft(subject: string) {
-  window.location.href = `mailto:?subject=${encodeURIComponent(subject)}`
+/** @param to the notice's address when it gave one; empty leaves the recipient to the applicant */
+export function openMailDraft(subject: string, to = '') {
+  window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}`
 }

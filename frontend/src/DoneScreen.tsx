@@ -15,6 +15,8 @@ type Props = {
   /** What the notice asks about sending (address, mail subject); nothing for a form without it. */
   guide?: ReactNode
   pdfBusy: boolean
+  /** Sends the PDF and puts saving it first (a standard-form notice). */
+  pdfFirst?: boolean
   /** The sheet opens: remember the answers, so closing it without applying can put them back. */
   onEditOpen: () => void
   /** The sheet closed without applying: put back what it changed. */
@@ -132,10 +134,19 @@ export function DoneScreen(props: Props) {
         )}
       </section>
       <BottomCTA>
-        <Button onClick={props.onMail}>메일로 보내기</Button>
+        <Button onClick={props.onMail}>{props.pdfFirst ? 'PDF 메일로 보내기' : '메일로 보내기'}</Button>
         <div className="button-row">
-          <Button variant="secondary" onClick={props.onSave}>한글로 저장</Button>
-          <Button variant="secondary" onClick={props.onSavePdf} loading={props.pdfBusy}>PDF로 저장</Button>
+          {props.pdfFirst ? (
+            <>
+              <Button variant="secondary" onClick={props.onSavePdf} loading={props.pdfBusy}>PDF로 저장</Button>
+              <Button variant="secondary" onClick={props.onSave}>한글로 저장</Button>
+            </>
+          ) : (
+            <>
+              <Button variant="secondary" onClick={props.onSave}>한글로 저장</Button>
+              <Button variant="secondary" onClick={props.onSavePdf} loading={props.pdfBusy}>PDF로 저장</Button>
+            </>
+          )}
         </div>
       </BottomCTA>
       </div>

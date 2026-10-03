@@ -25,9 +25,10 @@ public final class FormViews {
      *                   as the suggested name, which the applicant may change
      * @param sourceName the form's own file name, for the default name when there is no template
      * @param submission where to send the finished file and the mail subject the notice asks for
+     * @param pdfFirst   a notice on the standard form: applicants send a profile, so the PDF comes first
      */
     public record PublicForm(String vid, int version, String title, String fileName, String sourceName,
-            List<FormItem> items, Submission submission) {}
+            List<FormItem> items, Submission submission, boolean pdfFirst) {}
 
     /**
      * @param version    0 on the first build; afterwards the version the screen was built from
@@ -47,6 +48,7 @@ public final class FormViews {
      * @param editingVersion   the version the editor shows: the draft, or the latest published one
      * @param editingPublished saving it starts a new draft instead of changing what applicants see
      * @param tested           the current source and definition were built successfully as a test
+     * @param standard         a notice on the standard form: {@code definition} holds its settings
      */
     public record Detail(
             String vid,
@@ -59,7 +61,14 @@ public final class FormViews {
             String definition,
             List<String> problems,
             boolean tested,
-            List<Cell> cells) {}
+            List<Cell> cells,
+            boolean standard) {}
+
+    /** What the operator can add to a standard-form notice, for the settings screen. */
+    public record StandardCatalog(String base, List<CatalogItem> extras) {}
+
+    /** @param operatorOptions the operator lists the choices (오디션 가능 날짜) */
+    public record CatalogItem(String key, String label, String type, boolean operatorOptions) {}
 
     /** One cell of the blank form, addressed the way outputs name it ("0.2.1"). */
     public record Cell(String address, String text, int row, int column, int rowSpan, int columnSpan) {}

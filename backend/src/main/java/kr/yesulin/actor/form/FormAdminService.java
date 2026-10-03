@@ -55,7 +55,7 @@ public final class FormAdminService {
         FormStore.State state = store.state(vid);
         if (versions.isEmpty()) {
             return new FormViews.Detail(vid.value(), status(state), state.published(), 0, false, "", false, "",
-                    List.of(), false, List.of());
+                    List.of(), false, List.of(), false);
         }
         int editing = versions.getLast();
         FormStore.VersionInfo info = store.info(vid, editing);
@@ -65,7 +65,7 @@ public final class FormAdminService {
         return new FormViews.Detail(vid.value(), status(state), state.published(), editing,
                 state.published().contains(editing), info.originalName(), source.isPresent(),
                 written(vid, editing), problems(vid, editing, cells), tested,
-                cells.stream().map(FormAdminService::cell).toList());
+                cells.stream().map(FormAdminService::cell).toList(), store.spec(vid, editing).isPresent());
     }
 
     public FormViews.Detail uploadSource(Vid vid, MultipartFile upload) throws IOException, HwpDocumentException {
@@ -124,7 +124,8 @@ public final class FormAdminService {
         int editing = editing(vid);
         FormDefinition definition = builder.definition(vid, editing);
         return new FormViews.PublicForm(vid.value(), editing, definition.title(), definition.fileName(),
-                store.info(vid, editing).originalName(), definition.items(), definition.submission());
+                store.info(vid, editing).originalName(), definition.items(), definition.submission(),
+                store.spec(vid, editing).isPresent());
     }
 
     public FormBuilder.Built test(Vid vid, FormViews.GenerateRequest request, Map<String, MultipartFile> photos)

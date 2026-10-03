@@ -50,7 +50,7 @@ export function TestPanel({ vid, detail, revision, onTested }: {
 
   return (
     <section className="admin-section">
-      <h2>4. 테스트 입력으로 확인</h2>
+      <h2>{detail.standard ? '2' : '4'}. 테스트 입력으로 확인</h2>
       <p className="admin-help">
         배우가 볼 화면 그대로예요. 값을 넣고 만들어 본 뒤 칸·체크·사진 위치를 눈으로 확인하세요.
         {detail.tested ? ' 지금 내용으로 테스트를 마쳤어요.' : ' 정의나 원본을 바꾸면 다시 테스트해야 공개할 수 있어요.'}

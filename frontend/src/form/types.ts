@@ -49,6 +49,8 @@ export type PublicForm = {
   readonly sourceName: string
   readonly items: readonly FormItem[]
   readonly submission: Submission
+  /** A standard-form notice: applicants send a profile, so the PDF is sent and saved first. */
+  readonly pdfFirst: boolean
 }
 
 /**

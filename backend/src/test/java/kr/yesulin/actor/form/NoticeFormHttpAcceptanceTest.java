@@ -87,6 +87,7 @@ class NoticeFormHttpAcceptanceTest {
         // when: two applicants open the same link and build, and the first one fixes an answer
         mockMvc.perform(get("/api/forms/22382"))
                 .andExpect(jsonPath("$.version").value(1))
+                .andExpect(jsonPath("$.pdfFirst").value(false))
                 .andExpect(jsonPath("$.items[0].id").value("name"));
         MvcResult first = generate(1, null, "김배우", "f");
         MvcResult second = generate(1, null, "이배우", "m");

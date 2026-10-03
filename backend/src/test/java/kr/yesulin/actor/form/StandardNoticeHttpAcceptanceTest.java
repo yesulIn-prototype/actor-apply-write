@@ -72,6 +72,7 @@ class StandardNoticeHttpAcceptanceTest {
     void saveSettings_MakesTheNoticesOwnForm() throws Exception {
         save("60001", SPEC).andExpect(status().isOk())
                 .andExpect(jsonPath("$.problems").isEmpty())
+                .andExpect(jsonPath("$.standard").value(true))
                 .andExpect(jsonPath("$.hasSource").value(true))
                 .andExpect(jsonPath("$.definition").value(SPEC))
                 .andExpect(jsonPath("$.cells[?(@.address == '1.0.0')].text").value("지원 배역"))
@@ -85,7 +86,20 @@ class StandardNoticeHttpAcceptanceTest {
                 .andExpect(jsonPath("$.items[?(@.id == 'role')].options[*].label", hasItem("정원사")))
                 .andExpect(jsonPath("$.items[?(@.id == 'puppet')].required").value(true))
                 .andExpect(jsonPath("$.items[?(@.id == 'photoMain')].help").value("최근 6개월 이내 사진"))
-                .andExpect(jsonPath("$.submission.email").value("audition@example.com"));
+                .andExpect(jsonPath("$.submission.email").value("audition@example.com"))
+                .andExpect(jsonPath("$.pdfFirst").value(true));
+    }
+
+    @Test
+    @DisplayName("운영자 화면은 추가 항목 목록을 받아 체크 목록으로 보인다")
+    void catalog_ListsTheExtrasAnOperatorCanAdd() throws Exception {
+        mockMvc.perform(admin(get("/api/admin/standard")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.base").value("standard-v1"))
+                .andExpect(jsonPath("$.extras[0].key").value("video"))
+                .andExpect(jsonPath("$.extras[?(@.key == 'auditionDates')].operatorOptions").value(true))
+                .andExpect(jsonPath("$.extras[?(@.key == 'tour')].type").value("single"));
+        mockMvc.perform(get("/api/admin/standard")).andExpect(status().isUnauthorized());
     }
 
     @Test
