@@ -170,6 +170,26 @@ public final class HwpDocument {
         return count;
     }
 
+    /**
+     * Starts body paragraph {@code paragraph} of section {@code section} on a new page (the paragraph's own
+     * "쪽 나누기"; no paragraph is added).
+     *
+     * @return false when it already starts one, or there is no such paragraph
+     */
+    public boolean breakPageBefore(int section, int paragraph) {
+        var sections = file.getBodyText().getSectionList();
+        if (section < 0 || section >= sections.size()
+                || paragraph < 0 || paragraph >= sections.get(section).getParagraphCount()) {
+            return false;
+        }
+        var divide = sections.get(section).getParagraph(paragraph).getHeader().getDivideSort();
+        if (divide.isDividePage()) {
+            return false;
+        }
+        divide.setDividePage(true);
+        return true;
+    }
+
     public int embeddedImageCount() {
         return file.getBinData().getEmbeddedBinaryDataList().size();
     }

@@ -78,6 +78,28 @@ class StandardFormHttpAcceptanceTest {
     }
 
     @Test
+    @DisplayName("경력이 20줄이면 사진 표가 경력 표에 겹치지 않고 새 쪽으로 넘어간다")
+    void testBuild_MovesThePhotosToANewPage_WhenTwentyCareerRowsFillPageTwo() throws Exception {
+        // given
+        register("40003");
+
+        // when
+        byte[] built = testBuild("40003", null, 20, false).getResponse().getContentAsByteArray();
+
+        // then: rhwp's own page plan of the file, the same one its PDF follows
+        Path file = Files.createTempFile("standard-form-", ".hwp");
+        try {
+            Files.write(file, built);
+            JsonNode plan = JSON.readTree(rhwp.pages(file));
+            assertThat(plan.path("pageCount").asInt()).isEqualTo(3);
+            plan.path("pages").forEach(page -> assertThat(page.path("columns").get(0).path("usedHeight").asDouble())
+                    .isLessThanOrEqualTo(page.path("bodyArea").path("height").asDouble() + 0.5));
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
+
+    @Test
     @DisplayName("미리보기에서 누를 칸은 늘어난 줄을 따라가고, 줄을 줄여 다시 만들면 되돌아온다")
     void preview_FollowsAddedRows_WhenTheSameApplicantRebuildsWithMoreOrFewerRows() throws Exception {
         // given: an applicant built with 12 career rows and 2 items of their own

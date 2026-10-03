@@ -7,21 +7,27 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.UUID;
 import kr.yesulin.actor.stats.CompletionCounter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Writes answers into a fresh copy of the applicant's source and makes it their completed file.
  * The source itself is only read, so building again starts from the blank form every time.
  */
 final class CompletedDocumentWriter {
+    private static final Logger log = LoggerFactory.getLogger(CompletedDocumentWriter.class);
     private final DocumentStore store;
     private final CompletionCounter counter;
     private final RowInserter rows;
+    private final TableFlow flow;
 
     CompletedDocumentWriter(DocumentStore store, CompletionCounter counter, PdfConverter rhwp) {
         this.store = store;
         this.counter = counter;
         this.rows = new RowInserter(rhwp);
+        this.flow = new TableFlow(rhwp, JsonMapper.builder().build());
     }
 
     /**
@@ -54,6 +60,12 @@ final class CompletedDocumentWriter {
         }
         Path draft = stored.directory().resolve("completed-" + UUID.randomUUID() + ".hwp");
         document.save(draft);
+        try {
+            flow.keepTablesApart(document, draft);
+        } catch (HwpDocumentException unchecked) {
+            // The file itself is complete; only rhwp's PDF of it may draw a table over another.
+            log.warn("table flow check skipped: {}", JobIds.masked(unchecked.getMessage()));
+        }
         boolean firstCompletion = !Files.exists(stored.completedHwp());
         Files.move(draft, stored.completedHwp(), StandardCopyOption.REPLACE_EXISTING);
         store.attachCompletedFileName(stored.id(), fileName);

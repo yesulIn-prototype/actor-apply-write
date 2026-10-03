@@ -159,7 +159,7 @@ sequenceDiagram
 | `HwpDocument` | hwplib로 HWP 열기, 칸 목록(`cells()`), `setText`(칸을 비우고 쓰기, 줄마다 문단 서식 유지), `appendText`(라벨 아래 줄에), `insertImage`, `save` |
 | `CellContent` | 칸 글자 지우기(빈 줄은 남겨 칸 높이 유지), **입력 글자 서식**: 양식에서 가장 많이 쓴 글꼴·표의 대표 크기, 검정, 굵게·밑줄 없음 |
 | `CellImageInserter`, `PhotoPlacement` | 사진을 HWP 그림 개체로 넣기. 칸 안쪽 크기에 비율 유지로 맞춤(contain), 가운데 정렬 |
-| `CompletedDocumentWriter` | 작업의 `source.hwp`를 열어(끼울 줄이 있으면 `RowInserter`가 rhwp로 줄을 끼운 임시 사본을) 칸 쓰기 목록을 적용하고 `completed.hwp`로 교체 저장. PDF·미리보기 캐시 지우기, 첫 완성만 횟수 +1(운영자 테스트는 제외) |
+| `CompletedDocumentWriter` | 작업의 `source.hwp`를 열어(끼울 줄이 있으면 `RowInserter`가 rhwp로 줄을 끼운 임시 사본을) 칸 쓰기 목록을 적용하고 `completed.hwp`로 교체 저장. 저장 뒤 `TableFlow`가 rhwp 쪽 배치를 읽어, 쪽을 넘친 표가 있으면 그 표(제목 포함)에 쪽 나누기를 켠다(rhwp PDF에서 표가 겹쳐 그려지지 않게). PDF·미리보기 캐시 지우기, 첫 완성만 횟수 +1(운영자 테스트는 제외) |
 | `DocumentStore`, `StoredDocument` | 작업공간: 작업마다 UUID 폴더, 메모리 목록, 30분 만료, 5분마다 정리, 최대 300개 |
 | `DocumentService` | 작업 시작(`startJob`: 공용 원본 복사), 작업 생성(`buildJob`: 주인 확인 후 쓰기), 완성본·PDF 내려주기, HWPX→HWP 변환, (업로드 흐름) 분석·생성 |
 | `PdfConverter` | **rhwp CLI 실행기**: `export-pdf`, `export-svg`, `export-render-tree`, `convert`. 동시에 2개, 60초 제한 |

@@ -24,7 +24,11 @@ mm() { for x in "$@"; do printf '%s,' $(( (x * 2834650 + 50000) / 100000 )); don
 "$R" edit merge-cells "$WORK/5.hwp" --table 0 --row 4 --col 1 --end-row 4 --end-col 3 -o "$WORK/6.hwp" >/dev/null
 "$R" edit merge-cells "$WORK/6.hwp" --table 0 --row 5 --col 1 --end-row 5 --end-col 3 -o "$WORK/7.hwp" >/dev/null
 # 출연 경력 and 프로필 사진 start page 2 (paragraph 8 is the "3. 출연 경력" heading).
-"$R" edit insert-page-break "$WORK/7.hwp" --para 8 --offset 0 -o "$WORK/8.hwp" >/dev/null
+"$R" edit insert-page-break "$WORK/7.hwp" --para 8 --offset 0 -o "$WORK/8a.hwp" >/dev/null
+# The break leaves two empty paragraphs above the heading (scaffold's, and the one the break splits off). When
+# page 1 is full they would spill onto a page of their own, so they go.
+"$R" edit delete-paragraph "$WORK/8a.hwp" --para 8 -o "$WORK/8b.hwp" >/dev/null
+"$R" edit delete-paragraph "$WORK/8b.hwp" --para 7 -o "$WORK/8.hwp" >/dev/null
 # scaffold writes 1 mm rows; give them the heights of a form made in Hangul (mm).
 java -cp "$JAR" Heights.java "$WORK/8.hwp" "$OUT" \
   9,9,9,9,9,9 9.5,9.5,9.5,55 8,8,8,8,8,8,8,8,8,8,8 98.5

@@ -99,7 +99,16 @@ public class PdfConverter {
         run(List.of("export-render-tree", hwp.toString(), "-o", directory.toString()), false);
     }
 
-    private void run(List<String> arguments, boolean withFonts) throws IOException, HwpDocumentException {
+    /**
+     * rhwp's page plan of a file (dump-pages JSON): what lands on each page and how much of the page it uses.
+     * Read only; the file is not changed.
+     */
+    public String pages(Path hwp) throws IOException, HwpDocumentException {
+        return run(List.of("dump-pages", hwp.toString(), "--json"), false);
+    }
+
+    /** @return what rhwp printed (its standard output) */
+    private String run(List<String> arguments, boolean withFonts) throws IOException, HwpDocumentException {
         if (!available()) {
             throw new PdfUnavailableException();
         }
@@ -110,9 +119,10 @@ public class PdfConverter {
             fontPaths.forEach(path -> command.addAll(List.of("--font-path", path)));
         }
 
-        // Output goes to a file, not a pipe: reading a pipe to its end would wait for rhwp however long it
-        // runs, and the time limit below would never apply.
-        Path output = Files.createTempFile("rhwp-", ".log");
+        // Output goes to files, not pipes: reading a pipe to its end would wait for rhwp however long it
+        // runs, and the time limit below would never apply. Warnings stay apart from what a command prints.
+        Path output = Files.createTempFile("rhwp-", ".out");
+        Path errors = Files.createTempFile("rhwp-", ".err");
         boolean acquired = false;
         Process process = null;
         try {
@@ -120,15 +130,17 @@ public class PdfConverter {
             if (!acquired) {
                 throw new HwpDocumentException("문서 변환 대기 시간이 초과되었습니다.");
             }
-            process = new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(output.toFile()).start();
+            process = new ProcessBuilder(command)
+                    .redirectOutput(output.toFile()).redirectError(errors.toFile()).start();
             process.getOutputStream().close();
             if (!process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
                 stop(process);
                 throw new HwpDocumentException("문서 변환 시간이 초과되었습니다.");
             }
             if (process.exitValue() != 0) {
-                throw new HwpDocumentException("문서를 변환하지 못했습니다: " + shown(output));
+                throw new HwpDocumentException("문서를 변환하지 못했습니다: " + shown(errors, output));
             }
+            return Files.readString(output, StandardCharsets.UTF_8);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new HwpDocumentException("문서 변환이 중단되었습니다.", exception);
@@ -141,6 +153,7 @@ public class PdfConverter {
                 slots.release();
             }
             deleteOutput(output);
+            deleteOutput(errors);
         }
     }
 
@@ -150,9 +163,10 @@ public class PdfConverter {
         process.destroyForcibly().waitFor(5, TimeUnit.SECONDS);
     }
 
-    /** The end of rhwp's output, without job ids: its workspace paths name the applicant's job. */
-    private static String shown(Path output) throws IOException {
-        String text = Files.readString(output, StandardCharsets.UTF_8).strip();
+    /** The end of rhwp's messages, without job ids: its workspace paths name the applicant's job. */
+    private static String shown(Path errors, Path output) throws IOException {
+        String text = (Files.readString(errors, StandardCharsets.UTF_8) + "\n"
+                + Files.readString(output, StandardCharsets.UTF_8)).strip();
         String tail = text.length() > LOG_SHOWN ? "…" + text.substring(text.length() - LOG_SHOWN) : text;
         return JobIds.masked(tail);
     }
