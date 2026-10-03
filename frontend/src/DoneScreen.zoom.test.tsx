@@ -1,31 +1,12 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
-import type { AnalysisResponse } from './document'
 import { DoneScreen } from './DoneScreen'
-import { FieldEditor } from './FieldEditor'
+import { ItemInput } from './form/ItemInput'
+import type { FormItem } from './form/types'
 
-const analysis: AnalysisResponse = {
-  documentId: 'b3bcb48a-72b8-4dd9-9277-8cdce606233c',
-  fileName: '지원서.hwp',
-  expiresAt: '',
-  tableCount: 1,
-  cellCount: 2,
-  fields: [{
-    id: 'text-0-0-1',
-    label: '이름',
-    kind: 'TEXT',
-    address: { tableIndex: 0, rowIndex: 0, cellIndex: 1 },
-    currentText: '',
-    confidence: 1,
-    warning: '',
-    multiline: false,
-    style: 'BLANK',
-    hint: '',
-    group: '',
-    row: 0,
-    rowName: '',
-    column: '',
-  }],
+const item: FormItem = {
+  id: 'name', label: '이름', type: 'TEXT', help: '', required: false, multiline: false,
+  maxLength: 30, options: [], min: 0, max: 0, columns: [], maxRows: 0,
 }
 
 afterEach(() => {
@@ -36,16 +17,16 @@ afterEach(() => {
 test('opens an enlarged page and edits its field from the zoomed preview', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
     pages: [{ number: 1, width: 800, height: 1100 }],
-    hotspots: [{ fieldId: 'text-0-0-1', page: 1, x: 100, y: 100, width: 80, height: 30 }],
+    hotspots: [{ fieldId: 'name', page: 1, x: 100, y: 100, width: 80, height: 30 }],
   }), { status: 200 })))
   render(<DoneScreen
-    completed={{ documentId: analysis.documentId, file: new File(['hwp'], '지원서_완성.hwp'), downloadUrl: '', pdfUrl: '' }}
-    labels={new Map(analysis.fields.map((field) => [field.id, field.label]))}
-    renderEditor={(id) => <FieldEditor
-      field={analysis.fields.find((field) => field.id === id) ?? analysis.fields[0]}
-      values={{ 'text-0-0-1': '검증배우' }}
+    completed={{ documentId: 'b3bcb48a-72b8-4dd9-9277-8cdce606233c', file: new File(['hwp'], '지원서_완성.hwp'), downloadUrl: '', pdfUrl: '' }}
+    labels={new Map([[item.id, item.label]])}
+    renderEditor={() => <ItemInput
+      item={item}
+      values={['검증배우']}
       photos={{}}
-      onValue={() => undefined}
+      onValues={() => undefined}
       onPhoto={() => undefined}
     />}
     pdfBusy={false}

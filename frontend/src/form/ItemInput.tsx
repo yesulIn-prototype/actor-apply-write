@@ -1,4 +1,4 @@
-import { PhotoTile } from '../screens'
+import { PhotoTile } from '../PhotoTile'
 import { RowsInput } from './RowsInput'
 import type { FormItem, Photos } from './types'
 import { assertNever } from './types'

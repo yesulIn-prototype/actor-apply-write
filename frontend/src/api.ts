@@ -1,5 +1,4 @@
-import type { AnalysisResponse, ApiError } from './document'
-import { isChanged, outgoingValue } from './document'
+type ApiError = { readonly code: string; readonly message: string }
 
 export type Completed = {
   documentId: string
@@ -12,7 +11,7 @@ const MESSAGES: Record<string, string> = {
   INVALID_UPLOAD: '한글 파일(.hwp, .hwpx)인지 확인해주세요',
   UPLOAD_TOO_LARGE: '파일이 너무 커요. 20MB 이하로 올려주세요',
   HWP_PROCESSING_FAILED: '이 파일은 읽을 수 없어요. 암호가 걸려 있지 않은 한글 파일인지 확인해주세요',
-  DOCUMENT_NOT_FOUND: '시간이 지나 파일이 만료됐어요. 다시 올려주세요',
+  DOCUMENT_NOT_FOUND: '시간이 지나 파일이 만료됐어요. 공고 링크에서 다시 작성해주세요',
   INVALID_FILE_NAME: '파일 이름에 경로 기호나 특수 문자를 넣을 수 없어요',
   PDF_UNAVAILABLE: '지금은 PDF로 저장할 수 없어요. 한글 파일로 저장해주세요',
   RATE_LIMITED: '요청이 너무 많아요. 몇 분 뒤에 다시 시도해주세요',
@@ -26,68 +25,6 @@ const MESSAGES: Record<string, string> = {
 
 /** Codes whose server message is written for the reader as is: a missing answer, a definition problem. */
 const SERVER_WORDED = new Set(['INVALID_ANSWER', 'FORM_NOT_READY', 'INVALID_BACKUP'])
-
-export async function analyzeDocument(file: File): Promise<AnalysisResponse> {
-  const body = new FormData()
-  body.append('document', file)
-  const response = await request('/api/documents/analyze', { method: 'POST', body })
-  return response.json() as Promise<AnalysisResponse>
-}
-
-export async function fetchCompletedCount(): Promise<number | undefined> {
-  try {
-    const response = await fetch('/api/stats')
-    if (!response.ok) return undefined
-    const stats = (await response.json()) as { completedCount: number }
-    return stats.completedCount
-  } catch {
-    return undefined
-  }
-}
-
-export async function generateDocument(
-  analysis: AnalysisResponse,
-  values: Record<string, string>,
-  photos: Record<string, File | undefined>,
-  fileName: string,
-): Promise<Completed> {
-  const textFields = analysis.fields.filter((field) => field.kind === 'TEXT' && isChanged(field, values[field.id]))
-  const photoFields = analysis.fields.filter((field) => field.kind === 'PHOTO' && photos[field.id])
-  const body = new FormData()
-  body.append(
-    'request',
-    new Blob(
-      [JSON.stringify({
-        fileName,
-        textValues: textFields.map((field) => ({
-          fieldId: field.id,
-          address: field.address,
-          // Keep inner line breaks for multi-line boxes; drop blank lines at the edges.
-          value: outgoingValue(field, values[field.id].replace(/^\s*\n/, '').trimEnd()),
-        })),
-        photos: photoFields.map((field) => ({
-          fieldId: field.id,
-          address: field.address,
-          fileKey: `photo-${field.id}`,
-        })),
-      })],
-      { type: 'application/json' },
-    ),
-  )
-  photoFields.forEach((field) => {
-    const photo = photos[field.id] as File
-    body.append(`photo-${field.id}`, photo, photo.name)
-  })
-  const response = await request(`/api/documents/${analysis.documentId}/generate`, { method: 'POST', body })
-  const downloadedName = downloadName(response, analysis.fileName)
-  const blob = await response.blob()
-  return {
-    documentId: analysis.documentId,
-    file: new File([blob], downloadedName, { type: 'application/x-hwp' }),
-    downloadUrl: `/api/documents/${analysis.documentId}/completed`,
-    pdfUrl: `/api/documents/${analysis.documentId}/completed.pdf`,
-  }
-}
 
 /**
  * Reopens a form finished in an in-app browser (Threads, Instagram…) in the system browser, where

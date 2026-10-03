@@ -6,21 +6,18 @@ const MEASUREMENT_ID = 'G-DDJ8ZGPF8Q'
 const PRODUCTION_HOST = 'apply.yesulin.art'
 const CAMPAIGN_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term']
 
-export type Screen = 'upload' | 'fill' | 'done' | 'resume' | 'apply_fill' | 'apply_done'
+export type Screen = 'apply_fill' | 'apply_done' | 'apply_resume'
 
 /**
- * The app is one address, so each screen is reported as its own page to show where applicants stop.
- * "resume" is a form finished in an in-app browser and reopened here: counting it as done would count
+ * Each notice screen is reported as its own page to show where applicants stop.
+ * "apply_resume" is a form finished in an in-app browser and reopened here: counting it as done would count
  * that form twice.
  */
 const SCREENS: Record<Screen, { path: string; title: string }> = {
-  upload: { path: '/', title: '지원서 올리기' },
-  fill: { path: '/fill', title: '지원서 작성' },
-  done: { path: '/done', title: '완성' },
-  resume: { path: '/resume', title: '브라우저에서 이어하기' },
   // A notice link (/apply/22382): the notice number is not personal, but one path keeps the funnel simple.
   apply_fill: { path: '/apply/fill', title: '공고 지원서 작성' },
   apply_done: { path: '/apply/done', title: '공고 지원서 완성' },
+  apply_resume: { path: '/apply/resume', title: '공고 지원서 이어하기' },
 }
 
 /** The link's own tags, read before the app rewrites the address. */
@@ -76,7 +73,7 @@ export function startAnalytics(platform: Platform) {
   }
   tags = campaign(platform)
   gtag('js', new Date())
-  gtag('set', { page_location: pageLocation('upload', tags), page_title: SCREENS.upload.title })
+  gtag('set', { page_location: pageLocation('apply_fill', tags), page_title: SCREENS.apply_fill.title })
   gtag('config', MEASUREMENT_ID, {
     send_page_view: false,
     allow_google_signals: false,

@@ -25,7 +25,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Caps uploads and file builds per visitor (IP) in a sliding window. Each build parses a HWP and runs
+ * Caps applicant file builds per visitor (IP) in a sliding window. Each build parses a HWP and runs
  * the renderer, so one script hammering the API would slow everyone else down. Reads are not limited.
  */
 @Component

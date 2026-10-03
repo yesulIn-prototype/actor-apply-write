@@ -105,6 +105,16 @@ class NoticeFormHttpAcceptanceTest {
         assertThat(secondFile.get(NAME)).isEqualTo("이배우");
         assertThat(secondFile.get(GENDER)).isEqualTo("남( V )  여(  )");
         assertThat(secondFile.get(GUARDIAN)).isEqualTo("보호자 / 010-9999-8888");
+        mockMvc.perform(get("/api/documents/{id}", firstId))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.completed").value(true))
+                .andExpect(jsonPath("$.fileName").value("김배우수정_곰역_지원서.hwp"));
+        mockMvc.perform(get("/api/documents/{id}/completed.pdf", firstId))
+                .andExpect(status().isOk()).andExpect(header().string("Content-Type", "application/pdf"));
+        mockMvc.perform(get("/api/documents/{id}/preview", firstId))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.pages").isNotEmpty())
+                .andExpect(jsonPath("$.hotspots[?(@.fieldId == 'name')]").exists());
+        mockMvc.perform(get("/api/documents/{id}/preview/1", firstId))
+                .andExpect(status().isOk()).andExpect(header().string("Content-Type", "image/svg+xml"));
         assertThat(Files.readAllBytes(store.source(vid, 1).orElseThrow())).isEqualTo(sharedSource);
         assertThat(store.definition(vid, 1).orElseThrow()).isEqualTo(sharedDefinition);
     }

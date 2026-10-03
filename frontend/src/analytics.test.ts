@@ -18,16 +18,16 @@ test('names the in-app browser when the link had no tags', () => {
 })
 
 test('carries the source to the system browser without losing the finished form', () => {
-  const url = new URL(withCampaign(THREADS, 'https://apply.yesulin.art/?doc=0f8fad5b-d9cb-469f-a165-70867728950e'))
+  const url = new URL(withCampaign(THREADS, 'https://apply.yesulin.art/apply/22382?doc=0f8fad5b-d9cb-469f-a165-70867728950e'))
   expect(url.searchParams.get('doc')).toBe('0f8fad5b-d9cb-469f-a165-70867728950e')
   expect(url.searchParams.get('utm_source')).toBe('threads')
 })
 
 test('reports a screen by its path and source only, never the form id', () => {
-  window.history.replaceState(null, '', '/?doc=0f8fad5b-d9cb-469f-a165-70867728950e&utm_source=kakaotalk')
+  window.history.replaceState(null, '', '/apply/22382?doc=0f8fad5b-d9cb-469f-a165-70867728950e&utm_source=kakaotalk')
   const tags = new URLSearchParams('utm_source=kakaotalk&utm_medium=social')
-  expect(pageLocation('resume', tags)).toBe(`${window.location.origin}/resume?utm_source=kakaotalk&utm_medium=social`)
-  expect(pageLocation('upload', new URLSearchParams())).toBe(`${window.location.origin}/`)
+  expect(pageLocation('apply_resume', tags)).toBe(`${window.location.origin}/apply/resume?utm_source=kakaotalk&utm_medium=social`)
+  expect(pageLocation('apply_fill', new URLSearchParams())).toBe(`${window.location.origin}/apply/fill`)
   window.history.replaceState(null, '', '/')
 })
 

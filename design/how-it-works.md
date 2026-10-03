@@ -1,6 +1,6 @@
 # 예술in 지원서 서비스 — 동작 구조 정리
 
-공고별 작성 링크(`/apply/{vid}`)를 중심으로, **누가(사람·에이전트·브라우저·서버) 무엇을 어디서 하는지**를 코드 기준으로 정리한 문서다. 직접 업로드 흐름(`/`)은 같은 엔진을 쓰므로 차이만 짧게 적는다.
+공고별 작성 링크(`/apply/{vid}`)에서 **누가(사람·에이전트·브라우저·서버) 무엇을 어디서 하는지**를 코드 기준으로 정리한 문서다.
 
 ---
 
@@ -25,7 +25,7 @@ flowchart LR
 | **운영자(사람)** | 공고 확인, 원본 업로드, 정의 JSON 검토·저장, 테스트 생성으로 눈 확인, 공개·종료, 링크 공유 | — |
 | **AI 에이전트**(운영자가 대화로 쓰는 Claude Code·Codex) | `design/form-definition-guide.md`와 칸 목록을 보고 **정의 JSON 초안과 판단 목록을 대화로 돌려준다** | 서버 호출, 공개, 서비스 안에서 실행되는 것 없음. 서비스 코드에는 AI가 없다 |
 | **브라우저**(React, `frontend/`) | 화면 그리기, 입력 받기, 사진 변환(HEIC→JPEG), 필수 항목 안내, 파일 이름 제안, 다운로드·공유 시트, 인앱 브라우저 처리 | 문서 파일을 만들지 않는다. 칸 주소를 모른다(배우 화면) |
-| **서버**(Spring Boot, `backend/`) | 정의 검증, 답 검사, 출력 규칙 적용, **HWP 쓰기(hwplib)**, **PDF·미리보기(rhwp)**, 파일 이름 확정, 저장·만료, 권한 | 칸 추론(공고 링크에서는 안 함), 개인정보 로그 |
+| **서버**(Spring Boot, `backend/`) | 정의 검증, 답 검사, 출력 규칙 적용, **HWP 쓰기(hwplib)**, **PDF·미리보기(rhwp)**, 파일 이름 확정, 저장·만료, 권한 | 칸 추론, 개인정보 로그 |
 
 ---
 
@@ -89,13 +89,14 @@ sequenceDiagram
 ## 3. 브라우저가 맡는 것 (`frontend/src`)
 
 ### 입구 나누기
-- `Root.tsx`: 주소로 화면을 고른다. `/apply/<숫자>` → `form/ApplyApp`, `/admin…` → `admin/AdminApp`, 그 외 → `App`(직접 업로드).
+- `Root.tsx`: 주소로 화면을 고른다. `/apply/<숫자>` → `form/ApplyApp`, `/admin…` → `admin/AdminApp`, 그 외 → 공고별 링크로 접속하라는 안내.
 - 서버(`web/AppRoutes.java`)는 `/apply/{vid}`, `/admin`, `/admin/forms/{vid}` 요청에 같은 `index.html`을 돌려준다. 로컬에서는 Vite가 대신한다.
 
 ### 배우 화면 (`form/`)
 | 파일 | 역할 |
 |---|---|
 | `ApplyApp.tsx` | 공고 양식 불러오기 → 작성 → 생성 → 완성 화면. 작업 ID를 기억해 수정 시 같은 작업으로 다시 생성 |
+| `ResumeNotice.tsx` | `/apply/{vid}?doc=<작업ID>`에서 이미 만든 파일 이어받기. 공고 공개·마감 상태와 별개로 작업의 30분 수명 동안 다운로드. 답이 없어 편집은 하지 않음 |
 | `NoticeFillScreen.tsx` | 제목, 항목들, **완성 파일 이름 칸**, 필수 남은 개수, "지원서 만들기" |
 | `ItemInput.tsx` | 타입별 입력: text(한 줄/여러 줄), phone(전화 키패드), single/multi(칩, multi는 `max` 넘으면 막음), photo |
 | `useAnswers.ts` | 답·사진 상태. 사진은 `photo.ts`로 변환. 수정 시트 취소용 스냅숏 |
@@ -105,14 +106,14 @@ sequenceDiagram
 
 브라우저가 **하지 않는 것**: 칸 주소·문서 원문을 받지 않는다. 체크 표시(`( V )`, `■`), 복합 입력 조합, 전화번호 최종 형식은 서버가 정한다. 브라우저의 필수 검사·`max` 제한은 안내용이고, 서버가 다시 검사한다.
 
-### 공통 화면·기능 (업로드 흐름과 같이 씀)
+### 완성 화면·공통 기능
 | 파일 | 역할 |
 |---|---|
 | `DoneScreen.tsx` | 완성 화면: 미리보기, 칸 눌러 수정(시트), 확대, 저장·메일 버튼. 무엇을 수정할지는 부모가 `labels`·`renderEditor`로 넘긴다. 공고의 제출 안내는 `guide`로 받아 보인다(`form/SubmissionGuide.tsx`: 받는 곳, 답으로 채운 메일 제목, 마감, 복사, 메일 쓰기). 표준 지원서 공고(`pdfFirst`)는 PDF 버튼을 앞에 두고 PDF를 메일로 공유한다(`useDelivery`가 미리 받아 둠) |
 | `PreviewPage.tsx`, `PreviewZoom.tsx` | 서버가 준 SVG 페이지 위에 누를 수 있는 칸(hotspot)을 겹쳐 그림 |
 | `photo.ts` | PNG 8MB 이하는 그대로, 그 외(HEIC·WebP·큰 JPEG)는 캔버스로 다시 그려 최대 2400px JPEG(품질 0.9). EXIF 회전도 이때 바로잡힘 |
 | `useDelivery.ts`, `delivery.ts` | 한글로 저장(실제 URL로 다운로드), PDF로 저장(서버에 먼저 만들게 한 뒤 다운로드), 메일로 보내기(공유 시트, 안 되면 저장 후 메일 작성 화면) |
-| `shell.ts`, `InAppNotice.tsx`, `platform.ts` | 카카오톡·안드로이드 인앱이면 열자마자 기본 브라우저로 넘김, 아니면 안내. 완성 후 인앱이면 주소를 `/?doc=<작업ID>`로 바꿔 "브라우저에서 이어하기"가 완성본을 이어받게 함 |
+| `shell.ts`, `InAppNotice.tsx`, `platform.ts` | 카카오톡·안드로이드 인앱이면 열자마자 기본 브라우저로 넘김, 아니면 안내. 완성 후 인앱이면 주소를 `/apply/{vid}?doc=<작업ID>`로 바꿔 "브라우저에서 이어하기"가 완성본을 이어받게 함 |
 | `analytics.ts` | GA4. `apply.yesulin.art`에서만. 공고 링크는 `/apply/fill`, `/apply/done` 가상 페이지. 입력값·파일 이름·`?doc=`은 보내지 않음 |
 | `OutputNameField.tsx` | 파일 이름 입력칸(두 흐름 공통) |
 
@@ -136,9 +137,9 @@ sequenceDiagram
 | 패키지 | 내용 |
 |---|---|
 | `form/` | **공고 양식**: 정의 해석·검증, 답 검사, 출력 조합, 공고·버전 저장, 운영자·배우 API |
-| `document/` | **문서 엔진**: HWP 읽고 쓰기(hwplib), 사진 넣기, 작업공간(배우별 작업), 완성본 저장, PDF·미리보기(rhwp), 파일 이름, 직접 업로드 흐름의 칸 추론 |
+| `document/` | **문서 엔진**: HWP 읽고 쓰기(hwplib), 사진 넣기, 작업공간(배우별 작업), 완성본 저장, PDF·미리보기(rhwp), 파일 이름 |
 | `web/` | 필터(토큰, 요청 제한, 보안 헤더, 로그), 오류 코드 변환, SPA 경로 |
-| `stats/` | 완성 횟수(첫 화면 숫자) |
+| `stats/` | 완성 횟수의 내부 저장. 공개 조회·화면 표시 없음 |
 
 ### 공고 양식 (`form/`)
 | 파일 | 역할 |
@@ -163,12 +164,11 @@ sequenceDiagram
 | `CellImageInserter`, `PhotoPlacement` | 사진을 HWP 그림 개체로 넣기. 칸 안쪽 크기에 비율 유지로 맞춤(contain), 가운데 정렬 |
 | `CompletedDocumentWriter` | 작업의 `source.hwp`를 열어(끼울 줄이 있으면 `RowInserter`가 rhwp로 줄을 끼운 임시 사본을) 칸 쓰기 목록을 적용하고 `completed.hwp`로 교체 저장. 저장 뒤 `TableFlow`가 rhwp 쪽 배치를 읽어, 쪽을 넘친 표가 있으면 그 표(제목 포함)에 쪽 나누기를 켠다(rhwp PDF에서 표가 겹쳐 그려지지 않게). PDF·미리보기 캐시 지우기, 첫 완성만 횟수 +1(운영자 테스트는 제외) |
 | `DocumentStore`, `StoredDocument` | 작업공간: 작업마다 UUID 폴더, 메모리 목록, 30분 만료, 5분마다 정리, 최대 300개 |
-| `DocumentService` | 작업 시작(`startJob`: 공용 원본 복사), 작업 생성(`buildJob`: 주인 확인 후 쓰기), 완성본·PDF 내려주기, HWPX→HWP 변환, (업로드 흐름) 분석·생성 |
+| `DocumentService` | 작업 시작(`startJob`: 공용 원본 복사), 작업 생성(`buildJob`: 주인 확인 후 쓰기), 완성본·PDF 내려주기, HWPX→HWP 변환 |
 | `PdfConverter` | **rhwp CLI 실행기**: `export-pdf`, `export-svg`, `export-render-tree`, `convert`. 동시에 2개, 60초 제한 |
 | `PreviewService`, `PageLayout` | rhwp 출력으로 페이지 크기·칸 위치 계산 → 미리보기 hotspot, 운영자 칸 위치 |
 | `CompletedFileName` | 파일 이름 검사·기본값(6절) |
 | `UploadValidator` | HWP/HWPX 시그니처·20MB, 사진 JPEG/PNG·12MB·8000px·4천만 화소 |
-| `FieldExtractor` 외 | 직접 업로드 흐름 전용 칸 추론. 공고 링크에서는 쓰지 않음 |
 
 ### 웹 (`web/`)
 | 파일 | 역할 |
@@ -211,7 +211,6 @@ Content-Disposition: attachment; filename*=UTF-8''<이름>.hwp  (PDF는 같은 �
 - 답이 하나도 없어 템플릿이 비면: **원본 파일 이름 + `_완성`**(`이별장례식_오디션지원서_완성.hwp`).
 - 서버 검사(`CompletedFileName`): `.hwp`/`.hwpx`는 떼고 본다. 1~100자, 제어문자·`\ / : * ? " < > |` 금지, `.`으로 끝나기 금지, `CON`·`NUL` 같은 예약어 금지. 어기면 400 `INVALID_FILE_NAME`("파일 이름에 경로 기호나 특수 문자를 넣을 수 없어요").
 - 이 이름은 **내려받을 때의 이름**일 뿐이다. 서버 디스크에는 항상 `completed.hwp`, `completed.pdf`로 저장한다(파일 이름을 경로로 쓰지 않음).
-- 직접 업로드 흐름은 원본 파일 이름 속 자리표시(`tf_(이름)_(성별).hwp`)를 브라우저(`src/fileName.ts`)가 채워 제안한다. 같은 `OutputNameField`, 같은 서버 검사.
 
 ---
 

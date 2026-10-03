@@ -14,6 +14,7 @@ import { ItemInput } from './ItemInput'
 import { NoticeFillScreen } from './NoticeFillScreen'
 import type { PublicForm } from './types'
 import { useAnswers } from './useAnswers'
+import { ResumeNotice } from './ResumeNotice'
 import '../App.css'
 import './form.css'
 
@@ -27,6 +28,14 @@ type Phase =
  * their own file; the link only names the notice.
  */
 export function ApplyApp({ vid }: { vid: string }) {
+  const [resumeId] = useState(() => {
+    const id = new URLSearchParams(window.location.search).get('doc')
+    return id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : undefined
+  })
+  return resumeId ? <ResumeNotice vid={vid} documentId={resumeId} /> : <NoticeApplication vid={vid} />
+}
+
+function NoticeApplication({ vid }: { vid: string }) {
   const [platform] = useState(() => detectPlatform(navigator.userAgent))
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
   const [completed, setCompleted] = useState<Completed>()
@@ -57,12 +66,12 @@ export function ApplyApp({ vid }: { vid: string }) {
 
   useEffect(() => {
     // Inside an in-app browser the finished file's address carries its id, so "open in browser" continues
-    // with that file (the same hand-over as an uploaded form), not with a blank notice form.
+    // with that file on the same notice link.
     if (!platform.inApp || phase.kind !== 'done' || !completed) return
     const query = new URLSearchParams({ doc: completed.documentId })
     campaign(platform).forEach((value, key) => query.set(key, value))
-    window.history.replaceState(null, '', `/?${query}`)
-  }, [platform, phase.kind, completed])
+    window.history.replaceState(null, '', `/apply/${vid}?${query}`)
+  }, [platform, phase.kind, completed, vid])
 
   async function build(form: PublicForm, documentId?: string): Promise<Completed> {
     return buildForm({

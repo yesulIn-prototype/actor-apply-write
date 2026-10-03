@@ -18,4 +18,3 @@ artifacts/
 docs/
 .chrome-qa-*/
 .claude/
-frontend/eval/report.json

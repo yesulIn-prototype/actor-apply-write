@@ -3,7 +3,6 @@ package kr.yesulin.actor.document;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Path;
-import java.util.List;
 import kr.dogfoot.hwplib.object.HWPFile;
 import kr.dogfoot.hwplib.object.bodytext.control.ControlTable;
 import kr.dogfoot.hwplib.object.bodytext.control.ControlType;
@@ -22,10 +21,8 @@ class InputTypographyTest {
 
     @Test
     void setText_UsesOneFormTypeface_WhenInputCellsHaveDifferentFonts() throws Exception {
-        Path fixture = Path.of(getClass().getResource("/fixtures/application.hwp").toURI());
-        List<FieldCandidate> fields = new FieldExtractor().extract(HwpDocument.open(fixture).cells());
-        CellAddress name = address(fields, "이름");
-        CellAddress birthday = address(fields, "생년월일");
+        CellAddress name = new CellAddress(0, 0, 1);
+        CellAddress birthday = new CellAddress(0, 0, 3);
         Path source = withOutlierFont("application.hwp", name);
         HWPFile original = HWPReader.fromFile(source.toFile());
         assertThat(font(original, name)).isNotEqualTo(font(original, birthday));
@@ -85,10 +82,6 @@ class InputTypographyTest {
         Path source = work.resolve("source.hwp");
         HWPWriter.toFile(file, source.toString());
         return source;
-    }
-
-    private static CellAddress address(List<FieldCandidate> fields, String label) {
-        return fields.stream().filter(field -> field.label().equals(label)).findFirst().orElseThrow().address();
     }
 
     private static Cell cell(HWPFile file, CellAddress address) {

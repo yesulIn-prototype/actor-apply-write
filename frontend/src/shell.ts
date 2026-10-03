@@ -25,7 +25,7 @@ export function useLeaveInAppBrowser(platform: Platform) {
 
 /** "?doc=<id>": a form finished in an in-app browser, handed over to the system browser. */
 export function resumeLink(documentId: string): string {
-  return `${window.location.origin}/?doc=${documentId}`
+  return `${window.location.origin}${window.location.pathname}?doc=${documentId}`
 }
 
 /** True when this visit already did it; the first call records it. With storage blocked it reports true. */

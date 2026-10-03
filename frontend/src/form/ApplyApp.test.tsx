@@ -50,6 +50,33 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  window.history.replaceState(null, '', '/')
+})
+
+test('reopens a completed notice file from its own notice link without uploading or restoring answers', async () => {
+  window.history.replaceState(null, '', `/apply/22382?doc=${JOB}`)
+  vi.mocked(fetch).mockImplementation(async (url) => {
+    const path = String(url)
+    if (path === '/api/forms/22382') return new Response(JSON.stringify(form))
+    if (path === `/api/documents/${JOB}`) return new Response(JSON.stringify({ fileName: '테스트_지원서.hwp', completed: true }))
+    if (path.endsWith('/preview')) return new Response(JSON.stringify({ pages: [{ number: 1, width: 800, height: 1100 }], hotspots: [{ fieldId: 'name', page: 1, x: 0, y: 0, width: 100, height: 20 }] }))
+    return new Response(new Blob(['hwp']))
+  })
+  render(<ApplyApp vid="22382" />)
+  expect(await screen.findByText('지원서 파일이 만들어졌어요')).toBeInTheDocument()
+  expect(screen.queryByLabelText('지원서 파일')).not.toBeInTheDocument()
+  expect(screen.queryByLabelText('이름 *')).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: '이름 수정' })).not.toBeInTheDocument()
+  expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url) === '/api/forms/22382')).toBe(false)
+  expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url) === `/api/documents/${JOB}/completed`)).toBe(true)
+})
+
+test('shows an expired notice file message without falling back to upload', async () => {
+  window.history.replaceState(null, '', `/apply/22382?doc=${JOB}`)
+  vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ code: 'DOCUMENT_NOT_FOUND' }), { status: 404 }))
+  render(<ApplyApp vid="22382" />)
+  expect(await screen.findByRole('alert')).toHaveTextContent('공고 링크에서 다시 작성해주세요')
+  expect(screen.queryByLabelText('지원서 파일')).not.toBeInTheDocument()
 })
 
 function sentRequest(call: number) {
@@ -222,8 +249,8 @@ test('in an in-app browser, asks for the system browser and hands the finished f
 
   await screen.findByText('지원서 파일이 만들어졌어요')
   await waitFor(() => expect(window.location.search).toContain(`doc=${JOB}`))
-  expect(window.location.pathname).toBe('/')
-  expect(screen.getByRole('link', { name: '브라우저에서 이어하기' })).toHaveAttribute('href', expect.stringContaining(`/?doc=${JOB}`))
+  expect(window.location.pathname).toBe('/apply/22382')
+  expect(screen.getByRole('link', { name: '브라우저에서 이어하기' })).toHaveAttribute('href', expect.stringContaining(`/apply/22382?doc=${JOB}`))
   window.history.replaceState(null, '', '/')
   vi.restoreAllMocks()
 })

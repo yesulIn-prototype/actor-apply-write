@@ -1,21 +1,14 @@
 package kr.yesulin.actor.document;
 
-import jakarta.validation.Valid;
 import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.UUID;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 @RestController
 @RequestMapping("/api/documents")
@@ -27,29 +20,6 @@ public final class DocumentController {
     public DocumentController(DocumentService service, PreviewService previews) {
         this.service = service;
         this.previews = previews;
-    }
-
-    @PostMapping(path = "/analyze", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public AnalysisResponse analyze(@RequestPart("document") MultipartFile document)
-            throws IOException, HwpDocumentException {
-        return service.analyze(document);
-    }
-
-    @PostMapping(
-            path = "/{documentId}/generate",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
-            produces = "application/x-hwp")
-    public ResponseEntity<ByteArrayResource> generate(
-            @PathVariable UUID documentId,
-            @Valid @RequestPart("request") GenerateRequest request,
-            MultipartHttpServletRequest multipartRequest) throws IOException, HwpDocumentException {
-        Map<String, MultipartFile> photos = new LinkedHashMap<>();
-        multipartRequest.getFileMap().forEach((key, value) -> {
-            if (!key.equals("request")) {
-                photos.put(key, value);
-            }
-        });
-        return attachment(service.generate(documentId, request, photos));
     }
 
     @GetMapping("/{documentId}")

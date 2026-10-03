@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
 @Component
 public final class DocumentStore {
     private static final Logger log = LoggerFactory.getLogger(DocumentStore.class);
-    /** Uploads kept at once; with 20 MB forms and photos this bounds disk use. */
+    /** Jobs kept at once; with 20 MB forms and photos this bounds disk use. */
     private static final int DEFAULT_CAPACITY = 300;
     private final Path root;
     private final int capacity;
@@ -65,14 +65,10 @@ public final class DocumentStore {
         Path source = directory.resolve("source.hwp");
         Files.write(source, content);
         StoredDocument stored = new StoredDocument(
-                id, safeFileName(originalName), directory, source, clock.instant().plus(ttl), java.util.List.of(),
+                id, safeFileName(originalName), directory, source, clock.instant().plus(ttl),
                 CompletedFileName.defaultFor(safeFileName(originalName)), "", java.util.List.of());
         documents.put(id, stored);
         return stored;
-    }
-
-    StoredDocument attachFields(UUID id, java.util.List<FieldCandidate> fields) {
-        return replace(require(id).withFields(fields));
     }
 
     StoredDocument attachOwner(UUID id, String owner) {
@@ -190,7 +186,7 @@ public final class DocumentStore {
         private static final long serialVersionUID = 1L;
 
         public DocumentNotFoundException() {
-            super("문서를 찾을 수 없거나 보관 시간이 지났습니다. 다시 업로드해 주세요.");
+            super("문서를 찾을 수 없거나 보관 시간이 지났습니다. 공고 링크에서 다시 만들어 주세요.");
         }
     }
 }

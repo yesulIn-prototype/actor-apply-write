@@ -1,4 +1,4 @@
-/* Notice links (/apply/<vid>): the same look as the upload flow, plus what an operator-defined form needs. */
+/* Operator-defined notice links (/apply/<vid>). */
 .notice-lead {
   margin-top: 8px;
   font-size: 15px;

@@ -14,7 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.ErrorResponse;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
@@ -88,13 +87,9 @@ public final class ApiExceptionHandler {
         return response(HttpStatus.BAD_REQUEST, "INVALID_FILE_NAME", exception.getMessage());
     }
 
-    @ExceptionHandler({IllegalArgumentException.class, MethodArgumentNotValidException.class})
-    ResponseEntity<ApiError> invalidRequest(Exception exception) {
-        // A validation message can quote the rejected value (an applicant's answer), so only its fields are logged.
-        String detail = exception instanceof MethodArgumentNotValidException invalid
-                ? invalid.getFieldErrors().stream().map(error -> error.getField()).toList().toString()
-                : JobIds.masked(exception.getMessage());
-        log.warn("invalid request {}: {}", exception.getClass().getSimpleName(), detail);
+    @ExceptionHandler(IllegalArgumentException.class)
+    ResponseEntity<ApiError> invalidRequest(IllegalArgumentException exception) {
+        log.warn("invalid request {}: {}", exception.getClass().getSimpleName(), JobIds.masked(exception.getMessage()));
         return response(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", exception.getMessage());
     }
 

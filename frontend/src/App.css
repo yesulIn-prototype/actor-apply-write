@@ -43,33 +43,6 @@
   padding: 8px var(--gutter) calc(var(--cta-height) + 56px + env(safe-area-inset-bottom));
 }
 
-.content.home {
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100vh - 56px - env(safe-area-inset-top));
-  min-height: calc(100dvh - 56px - env(safe-area-inset-top));
-}
-
-.counter {
-  margin-top: 12px;
-  font-size: 15px;
-  line-height: 1.7;
-  color: var(--grey-700);
-  font-variant-numeric: tabular-nums;
-}
-
-.counter-number {
-  display: inline-block;
-  padding: 1px 8px;
-  border-radius: 9px;
-  background: var(--blue-50);
-  color: var(--blue-600);
-  font-size: 19px;
-  font-weight: 800;
-  line-height: 1.45;
-  vertical-align: baseline;
-}
-
 /* Footer */
 .footer {
   display: flex;
@@ -84,7 +57,7 @@
   word-break: keep-all;
 }
 
-.content:not(.home) .footer {
+.content .footer {
   margin-top: 48px;
   padding-top: 0;
 }
@@ -113,48 +86,6 @@
   font-size: 15px;
   color: var(--grey-600);
   overflow-wrap: anywhere;
-}
-
-.section-title {
-  margin: 40px 0 16px;
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-/* Upload */
-.drop-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 220px;
-  margin-top: 32px;
-  border-radius: 20px;
-  background: var(--grey-50);
-  border: 1px dashed var(--grey-300);
-  transition: background 200ms var(--ease);
-}
-
-.drop-card:active:not(:disabled) {
-  background: var(--grey-100);
-}
-
-.drop-card:disabled {
-  cursor: progress;
-}
-
-.drop-card strong {
-  margin-top: 12px;
-  font-size: 17px;
-  font-weight: 600;
-}
-
-.drop-card small {
-  margin-top: 4px;
-  font-size: 13px;
-  color: var(--grey-500);
 }
 
 /* Text field */
@@ -226,51 +157,12 @@
   margin-top: 24px;
 }
 
-/* Fill-in templates: inputs and chips instead of raw text */
+/* Operator-defined labels and choices */
 .field-label {
   margin-bottom: 8px;
   font-size: 13px;
   font-weight: 600;
   color: var(--grey-700);
-}
-
-.template-line {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.template-line + .template-line {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--grey-200);
-}
-
-.slot label,
-.choice-name {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--grey-600);
-}
-
-.slot-input {
-  position: relative;
-}
-
-.slot-input input {
-  padding-right: 48px;
-}
-
-.unit {
-  position: absolute;
-  top: 50%;
-  right: 16px;
-  transform: translateY(-50%);
-  font-size: 17px;
-  color: var(--grey-500);
-  pointer-events: none;
 }
 
 .chips {
@@ -305,82 +197,6 @@
   background: var(--blue-50);
   color: var(--blue-500);
   font-weight: 600;
-}
-
-.template-preview {
-  margin-top: 16px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--grey-100);
-}
-
-.template-preview span {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--grey-500);
-}
-
-.template-preview p {
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--grey-800);
-  white-space: pre-wrap;
-  word-break: keep-all;
-  overflow-wrap: anywhere;
-}
-
-.table-row .template-preview {
-  background: var(--white);
-}
-
-/* Tables (학력, 공연경력) shown row by row */
-.table-group {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.table-title {
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.table-row {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-  border-radius: 16px;
-  background: var(--grey-50);
-  border: 1px solid var(--grey-200);
-}
-
-.table-row-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--blue-500);
-}
-
-.table-row .text-field input,
-.table-row .text-field textarea {
-  background: var(--white);
-}
-
-.add-row {
-  height: 48px;
-  border-radius: 14px;
-  background: var(--blue-50);
-  color: var(--blue-500);
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.add-row:active {
-  background: #d6e8ff;
 }
 
 /* Photos */

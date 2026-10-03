@@ -4,12 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import kr.yesulin.actor.stats.CompletionCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,78 +19,13 @@ import org.springframework.web.multipart.MultipartFile;
 public final class DocumentService {
     private static final Logger log = LoggerFactory.getLogger(DocumentService.class);
     private final DocumentStore store;
-    private final FieldExtractor extractor;
     private final PdfConverter pdfConverter;
     private final CompletedDocumentWriter writer;
 
     public DocumentService(DocumentStore store, CompletionCounter counter, PdfConverter pdfConverter) {
         this.store = store;
         this.pdfConverter = pdfConverter;
-        this.extractor = new FieldExtractor();
         this.writer = new CompletedDocumentWriter(store, counter, pdfConverter);
-    }
-
-    public AnalysisResponse analyze(MultipartFile upload) throws IOException, HwpDocumentException {
-        long started = System.nanoTime();
-        byte[] content = hwpSource(upload);
-        StoredDocument stored = store.create(upload.getOriginalFilename(), content);
-        try {
-            HwpDocument document = HwpDocument.open(stored.source());
-            List<CellSnapshot> cells = document.cells();
-            List<FieldCandidate> fields = TableReadingOrder.sort(
-                    extractor.extract(cells), cells, pdfConverter, stored.source());
-            stored = store.attachFields(stored.id(), fields);
-            int tableCount = (int) cells.stream()
-                    .map(cell -> cell.address().tableIndex())
-                    .distinct()
-                    .count();
-            log.info("analyzed bytes={} tables={} cells={} textFields={} photoFields={} {}ms",
-                    content.length, tableCount, cells.size(),
-                    fields.stream().filter(field -> field.kind() == FieldCandidate.FieldKind.TEXT).count(),
-                    fields.stream().filter(field -> field.kind() == FieldCandidate.FieldKind.PHOTO).count(),
-                    elapsed(started));
-            if (fields.isEmpty()) {
-                log.warn("no fields found tables={} cells={}", tableCount, cells.size());
-            }
-            return new AnalysisResponse(
-                    stored.id(), stored.originalName(), stored.expiresAt(), tableCount, cells.size(), fields);
-        } catch (HwpDocumentException | RuntimeException exception) {
-            log.warn("analyze failed bytes={} {}: {}", content.length,
-                    exception.getClass().getSimpleName(), JobIds.masked(exception.getMessage()));
-            store.remove(stored.id());
-            throw exception;
-        }
-    }
-
-    public GeneratedDocument generate(
-            UUID documentId,
-            GenerateRequest request,
-            Map<String, MultipartFile> uploadedPhotos) throws IOException, HwpDocumentException {
-        long started = System.nanoTime();
-        StoredDocument stored = store.require(documentId);
-        CompletedFileName fileName = CompletedFileName.chosenOrDefault(request.fileName(), stored.originalName());
-        Map<String, FieldCandidate> allowed = stored.fields().stream()
-                .collect(Collectors.toUnmodifiableMap(FieldCandidate::id, Function.identity()));
-        List<CellWrite> writes = new ArrayList<>();
-        for (GenerateRequest.TextValue value : request.textValues()) {
-            requireCandidate(allowed, value.fieldId(), value.address(), FieldCandidate.FieldKind.TEXT);
-            String text = value.value() == null ? "" : value.value();
-            writes.add(allowed.get(value.fieldId()).style() == FieldCandidate.InputStyle.APPEND
-                    ? new CellWrite.Append(value.address(), text)
-                    : new CellWrite.Replace(value.address(), text));
-        }
-        for (GenerateRequest.PhotoValue photo : request.photos()) {
-            requireCandidate(allowed, photo.fieldId(), photo.address(), FieldCandidate.FieldKind.PHOTO);
-            MultipartFile upload = uploadedPhotos.get(photo.fileKey());
-            if (upload == null) {
-                throw new IllegalArgumentException("사진 파일이 없습니다: " + photo.fileKey());
-            }
-            writes.add(new CellWrite.Photo(photo.address(), upload));
-        }
-        boolean first = writer.write(stored, fileName, List.of(), writes, true);
-        log.info("generated texts={} photos={} first={} bytes={} {}ms", request.textValues().size(), request.photos().size(), first,
-                Files.size(stored.completedHwp()), elapsed(started));
-        return completed(documentId);
     }
 
     /**
@@ -207,16 +137,5 @@ public final class DocumentService {
 
     private static long elapsed(long started) {
         return (System.nanoTime() - started) / 1_000_000;
-    }
-
-    private static void requireCandidate(
-            Map<String, FieldCandidate> allowed,
-            String fieldId,
-            CellAddress address,
-            FieldCandidate.FieldKind kind) {
-        FieldCandidate candidate = allowed.get(fieldId);
-        if (candidate == null || candidate.kind() != kind || !candidate.address().equals(address)) {
-            throw new IllegalArgumentException("분석 결과와 일치하지 않는 입력 위치입니다: " + fieldId);
-        }
     }
 }
