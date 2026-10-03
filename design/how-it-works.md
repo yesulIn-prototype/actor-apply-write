@@ -8,9 +8,9 @@
 
 ```mermaid
 flowchart LR
-  OTR[OTR 공고 + 첨부 HWP] --> OP[운영자]
-  OP -- 칸 목록 복사 + 규칙 문서 --> AG[AI 에이전트<br/>Claude Code·Codex]
-  AG -- 정의 JSON --> OP
+  OTR[OTR 본문·이미지 + 지원서 있으면 첨부] --> OP[운영자]
+  OP -- 공고 자료·규칙 문서<br/>지정 양식은 원본·칸 목록도 --> AG[외부 AI 에이전트<br/>이미지 읽기·OCR]
+  AG -- 정의 또는 표준 설정 JSON<br/>요구사항 반영표·확인 목록 --> OP
   OP -- 원본 업로드·JSON 저장·테스트·공개<br/>/admin --> SV[(서버<br/>Spring Boot)]
   SV -- 공고 양식 저장 --> VOL[(/data/forms<br/>볼륨)]
   OP -- 링크 공유 --> ACT[배우]
@@ -23,7 +23,7 @@ flowchart LR
 | 주체 | 하는 일 | 하지 않는 일 |
 |---|---|---|
 | **운영자(사람)** | 공고 확인, 원본 업로드, 정의 JSON 검토·저장, 테스트 생성으로 눈 확인, 공개·종료, 링크 공유 | — |
-| **AI 에이전트**(운영자가 대화로 쓰는 Claude Code·Codex) | `design/form-definition-guide.md`와 칸 목록을 보고 **정의 JSON 초안과 판단 목록을 대화로 돌려준다** | 서버 호출, 공개, 서비스 안에서 실행되는 것 없음. 서비스 코드에는 AI가 없다 |
+| **AI 에이전트**(팀원이 대화로 쓰는 Claude Code·Codex 등) | `design/form-definition-guide.md`와 OTR 이미지·본문을 함께 읽는다. 지정 양식은 원본·칸 목록으로 정의 JSON, 없으면 표준 설정 JSON을 쓰고 요구사항 반영표·확인 목록을 돌려준다 | 공고 자동 수집·서버 호출·공개·접수 완료 확인을 하지 않는다. 서비스 코드에는 AI가 없다 |
 | **브라우저**(React, `frontend/`) | 화면 그리기, 입력 받기, 사진 변환(HEIC→JPEG), 필수 항목 안내, 파일 이름 제안, 다운로드·공유 시트, 인앱 브라우저 처리 | 문서 파일을 만들지 않는다. 칸 주소를 모른다(배우 화면) |
 | **서버**(Spring Boot, `backend/`) | 정의 검증, 답 검사, 출력 규칙 적용, **HWP 쓰기(hwplib)**, **PDF·미리보기(rhwp)**, 파일 이름 확정, 저장·만료, 권한 | 칸 추론, 개인정보 로그 |
 
@@ -46,8 +46,8 @@ sequenceDiagram
   O->>S: GET .../layout, .../layout/{page}
   S->>S: rhwp export-svg + export-render-tree (원본, 한 번만)
   S-->>O: 페이지 SVG + 칸 박스 → 칸 주소를 그림 위에 표시
-  O->>A: 규칙 문서 + 칸 목록 복사본 + 공고 안내
-  A-->>O: 정의 JSON + 확인할 판단
+  O->>A: 규칙 문서 + 원본·칸 목록 + OTR 본문·이미지
+  A-->>O: 정의 JSON + 요구사항 반영표·확인할 판단
   O->>S: PUT .../definition (JSON 텍스트)
   S->>S: 파싱·참조 검사 + 원본 대조(칸 존재, edit find)
   S->>D: definition.json 저장
@@ -59,6 +59,8 @@ sequenceDiagram
   S->>S: 문제 0건 + 지금 지문으로 테스트 성공했는지 확인
   S->>D: state.json published에 버전 추가
 ```
+
+위 순서도는 지정 지원서가 있는 공고다. 없는 공고는 원본 업로드·칸 목록 단계 없이, 본문·이미지로 받은 `base: standard-v1` 설정을 "표준 지원서로 시작" → "설정 JSON 직접 고치기"에 넣는다. 서버가 공고용 HWP와 정의를 만든 뒤 테스트·공개는 같은 절차를 따른다. 이미지 읽기는 외부 에이전트의 작성 보조이며, 서버의 JSON 검증은 OCR 정확도나 공고 조건 전체를 검증하지 않는다. 제출 형식·표준 사진 필수 장수·마감 시각은 현재 안내만 가능하며 한계는 가이드의 반영표로 확인한다.
 
 ### 2-2. 배우: 링크에서 지원서 만들기
 
