@@ -122,6 +122,10 @@
   color: var(--grey-600);
 }
 
+.admin-test-help {
+  word-break: keep-all;
+}
+
 .admin-error {
   margin-top: 12px;
   padding: 10px 12px;

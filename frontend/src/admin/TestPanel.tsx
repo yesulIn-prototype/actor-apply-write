@@ -7,6 +7,7 @@ import { useAnswers } from '../form/useAnswers'
 import { message } from '../shell'
 import type { Detail } from './adminApi'
 import { loadEditingForm, testBuild } from './adminApi'
+import { exampleAnswers } from './exampleAnswers'
 
 /**
  * The applicant's screen for the version being edited, filled with test answers. A successful build of
@@ -23,6 +24,7 @@ export function TestPanel({ vid, detail, revision, onTested }: {
   const [building, setBuilding] = useState(false)
   const [result, setResult] = useState<{ completed: Completed; preview?: Preview }>()
   const answers = useAnswers(setError)
+  const testAnswers = { ...exampleAnswers(form?.items ?? []), ...answers.answers }
 
   useEffect(() => {
     let active = true
@@ -37,7 +39,7 @@ export function TestPanel({ vid, detail, revision, onTested }: {
     setBuilding(true)
     setError('')
     try {
-      const completed = await testBuild(vid, form, answers.answers, answers.photos)
+      const completed = await testBuild(vid, form, testAnswers, answers.photos)
       setResult({ completed })
       onTested()
       setResult({ completed, preview: await fetchPreview(completed.documentId) })
@@ -51,15 +53,16 @@ export function TestPanel({ vid, detail, revision, onTested }: {
   return (
     <section className="admin-section">
       <h2>{detail.standard ? '2' : '4'}. 테스트 입력으로 확인</h2>
-      <p className="admin-help">
-        배우가 볼 화면 그대로예요. 값을 넣고 만들어 본 뒤 칸·체크·사진 위치를 눈으로 확인하세요.
+      <p className="admin-help admin-test-help">
+        사진을 제외하고 예시 값을 넣어뒀어요. 선택지는 첫 번째를 골랐으니, 최소 선택 개수가 있으면 더 골라주세요.
+        값을 자유롭게 고치고 사진을 올린 뒤 칸·체크·사진 위치를 눈으로 확인하세요.
         {detail.tested ? ' 지금 내용으로 테스트를 마쳤어요.' : ' 정의나 원본을 바꾸면 다시 테스트해야 공개할 수 있어요.'}
       </p>
       {error && <p className="admin-error" role="alert">{error}</p>}
       {form && (
         <div className="admin-test-form">
           <h3>{form.title}</h3>
-          <FormFields form={form} answers={answers.answers} photos={answers.photos} onValues={answers.setValues} onPhoto={answers.pickPhoto} />
+          <FormFields form={form} answers={testAnswers} photos={answers.photos} onValues={answers.setValues} onPhoto={answers.pickPhoto} />
           <div className="admin-row">
             <button type="button" className="admin-primary" disabled={building} onClick={build}>
               {building ? '만드는 중…' : '테스트 생성'}
