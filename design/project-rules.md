@@ -53,4 +53,7 @@
 | `standard-items.md` | P1 결과: 표준 지원서 항목 등장 비율 |
 | `standard-form.md` | P2 설계: 표준 지원서와 "기본 + 추가" 결정 |
 | `standard-extras.md` | 지원서 없는 공고의 요구사항 조사, 추가 항목·제출 안내 제안 |
+| `domain-design.md` | 현재 도메인 설계표, 관계·상태·데이터 수명 |
+| `user-policy.md`, `operator-policy.md` | 사용자 기능 정책과 운영자 운영 절차 |
+| `service-review-2026-10-03.md` | 재점검 근거, 진행 상태, 남은 작업과 개선 후보 |
 | `project-rules.md` | 이 문서 |
