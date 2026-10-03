@@ -52,4 +52,5 @@
 | `roadmap-standard-form.md` | 다음 단계 결정과 우선순위 |
 | `standard-items.md` | P1 결과: 표준 지원서 항목 등장 비율 |
 | `standard-form.md` | P2 설계: 표준 지원서와 "기본 + 추가" 결정 |
+| `standard-extras.md` | 지원서 없는 공고의 요구사항 조사, 추가 항목·제출 안내 제안 |
 | `project-rules.md` | 이 문서 |
