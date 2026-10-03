@@ -35,7 +35,7 @@
 | 출력 규칙 | 표.행.칸 주소, 출력 방식 | text·append·edit·photo·rows. 한 입력을 여러 칸에 쓰거나 여러 입력을 한 칸에 조합 | 공용 정의 안에 저장 | FormOutput, OutputParser, FormComposer |
 | 표준 양식 자산 | standard-v1 | 합성 HWP와 기본 정의·추가 항목 목록. 재생성 스크립트 제공 | 저장소·배포 파일 | resources/standard, tools/standard-form |
 | 표준 공고 설정 | base, title, roles, pickRoles, drop, extras, help, submission | 공고 원본과 전체 정의를 생성. 이후 일반 양식과 같은 검증·테스트·공개 | spec.json + 생성한 source/definition | StandardSpec, StandardForms |
-| 추가 질문 | 카탈로그 키 또는 custom id | 영상·나이·SNS·일정·예/아니오·소속 등. 운영자가 질문·필수 여부 결정 | spec와 펼친 definition | standard-v1.extras.json, StandardExtras |
+| 추가 질문 | 카탈로그 키 또는 custom id | 영상·나이·SNS·일정·예/아니오·소속 등. 외부 AI의 extras JSON을 운영자가 검토·등록 | spec와 펼친 definition | standard-v1.extras.json, StandardSpec |
 | 배우 입력 | answers, photos, 지정 파일 이름 | 브라우저 메모리. 서버 요청 때 검사. 새로고침·탭 종료 시 복구용 저장 없음 | 브라우저 세션 메모리 | useAnswers, ApplyApp |
 | 배우 작업 | 무작위 documentId, owner, expiresAt | 공유 원본 복사. 작업별 결과 분리. owner는 공고·버전/테스트 구분이며 배우 계정 인증이 아님 | 메모리 인덱스 + 임시 폴더, 생성 후 30분 | DocumentStore, StoredDocument, FormBuilder |
 | 문서 생성 | JobContent: growths, writes, targets | 원본 사본에서 매번 생성. 줄 증감에 맞춰 쓰기 주소와 미리보기 주소 함께 계산 | completed.hwp와 임시 사진 | FormComposer, CompletedDocumentWriter |

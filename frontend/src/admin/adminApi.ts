@@ -40,17 +40,6 @@ export type Detail = {
   readonly standard: boolean
 }
 
-/** One question an operator can add to a standard-form notice. */
-export type CatalogItem = {
-  readonly key: string
-  readonly label: string
-  readonly type: string
-  /** The operator lists the choices (오디션 가능 날짜). */
-  readonly operatorOptions: boolean
-}
-
-export type StandardCatalog = { readonly base: string; readonly extras: readonly CatalogItem[] }
-
 export type Box = {
   readonly address: string
   readonly page: number
@@ -74,7 +63,7 @@ export function savedToken(): string {
 export function saveToken(token: string) {
   try {
     window.sessionStorage.setItem(TOKEN_KEY, token)
-  } catch {
+  } catch { // no-excuse-ok: catch - session storage is optional at this browser boundary
     // Without storage the token lives until the page reloads.
   }
 }
@@ -91,8 +80,6 @@ async function json<T>(url: string, init: RequestInit = { method: 'GET' }): Prom
 export const listForms = () => json<readonly Summary[]>('/api/admin/forms')
 
 export const loadForm = (vid: string) => json<Detail>(`/api/admin/forms/${vid}`)
-
-export const loadCatalog = () => json<StandardCatalog>('/api/admin/standard')
 
 export function uploadSource(vid: string, file: File): Promise<Detail> {
   const body = new FormData()

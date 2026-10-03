@@ -28,6 +28,11 @@ export function DefinitionGuide() {
     <details className="admin-guide">
       <summary>쓰는 법</summary>
       <dl>
+        <dt>지정 지원서가 없으면 표준 설정 JSON</dt>
+        <dd>
+          <code>"base": "standard-v1"</code>과 공고 제목·추가 질문 등을 담은 설정을 넣어요. 원본 파일 업로드와 칸 주소 지정은 필요 없어요.
+          {' '}두 JSON의 작성 규칙은 <code>design/form-definition-guide.md</code>에 있어요. 아래 items·outputs 설명은 지정 지원서의 정의에 해당해요.
+        </dd>
         <dt>items (배우 화면, 적은 순서대로 보임)</dt>
         <dd>
           공통: <code>id</code>(영문) · <code>label</code> · <code>help</code> · <code>required</code> · <code>type</code><br />
