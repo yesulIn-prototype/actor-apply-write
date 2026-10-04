@@ -6,11 +6,12 @@ type Props = {
   readonly labels: ReadonlyMap<string, string>
   readonly imageUrl: string
   readonly enlarged?: boolean
+  readonly selectedId?: string
   readonly onEdit: (hotspot: Hotspot, opener: HTMLButtonElement) => void
   readonly onZoom?: (opener: HTMLButtonElement) => void
 }
 
-export function PreviewPage({ page, hotspots, labels, imageUrl, enlarged = false, onEdit, onZoom }: Props) {
+export function PreviewPage({ page, hotspots, labels, imageUrl, enlarged = false, selectedId, onEdit, onZoom }: Props) {
   return (
     <div className="preview-page" style={{ aspectRatio: `${page.width} / ${page.height}` }}>
       <img src={imageUrl} alt={`${page.number}쪽 ${enlarged ? '확대 ' : ''}미리보기`} />
@@ -28,7 +29,7 @@ export function PreviewPage({ page, hotspots, labels, imageUrl, enlarged = false
         <button
           key={`${hotspot.fieldId}-${index}`}
           type="button"
-          className="hotspot"
+          className={`hotspot${hotspot.marker ? ' numbered-hotspot' : ''}${hotspot.fieldId === selectedId ? ' selected-hotspot' : ''}`}
           aria-label={`${labels.get(hotspot.fieldId) ?? '칸'} 수정`}
           style={{
             left: `${(hotspot.x / page.width) * 100}%`,
@@ -37,7 +38,7 @@ export function PreviewPage({ page, hotspots, labels, imageUrl, enlarged = false
             height: `${(hotspot.height / page.height) * 100}%`,
           }}
           onClick={(event) => onEdit(hotspot, event.currentTarget)}
-        />
+        >{hotspot.marker && <span className="region-number" aria-hidden="true">{hotspot.marker}</span>}</button>
       ))}
     </div>
   )

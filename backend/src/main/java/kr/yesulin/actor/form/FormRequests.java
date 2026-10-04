@@ -30,6 +30,7 @@ final class FormRequests {
     static ResponseEntity<ByteArrayResource> built(FormBuilder.Built built) {
         return Attachments.download(built.document(), Attachments.HWP)
                 .header(DOCUMENT_ID, built.documentId().toString())
+                .header(kr.yesulin.actor.document.DocumentEdits.TOKEN_HEADER, built.editToken())
                 .body(new ByteArrayResource(built.document().content()));
     }
 }

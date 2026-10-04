@@ -66,7 +66,7 @@ public final class DocumentStore {
         Files.write(source, content);
         StoredDocument stored = new StoredDocument(
                 id, safeFileName(originalName), directory, source, clock.instant().plus(ttl),
-                CompletedFileName.defaultFor(safeFileName(originalName)), "", java.util.List.of());
+                CompletedFileName.defaultFor(safeFileName(originalName)), "", java.util.List.of(), UUID.randomUUID().toString());
         documents.put(id, stored);
         return stored;
     }
@@ -124,12 +124,14 @@ public final class DocumentStore {
         if (document == null) {
             return;
         }
-        try {
-            deleteDirectory(document.directory());
-            documents.remove(id, document);
-        } catch (IOException exception) {
-            // A later cleanup cycle can retry files held by another local process.
-            log.warn("delete failed: {}", JobIds.masked(exception.toString()));
+        synchronized (document.directory()) {
+            try {
+                deleteDirectory(document.directory());
+                documents.remove(id, document);
+            } catch (IOException exception) {
+                // A later cleanup cycle can retry files held by another local process.
+                log.warn("delete failed: {}", JobIds.masked(exception.toString()));
+            }
         }
     }
 
@@ -141,7 +143,9 @@ public final class DocumentStore {
                         .creationTime()
                         .toInstant();
                 if (createdAt.isBefore(cutoff)) {
-                    deleteDirectory(entry);
+                    var active = documents.values().stream().filter(job -> job.directory().equals(entry)).findFirst();
+                    if (active.isPresent()) remove(active.get().id());
+                    else deleteDirectory(entry);
                 }
             }
         }

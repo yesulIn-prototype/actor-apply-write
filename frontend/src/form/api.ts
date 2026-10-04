@@ -15,6 +15,7 @@ type Build = {
   readonly photos: Photos
   /** The applicant's own job after the first build, so a fix replaces only their file. */
   readonly documentId?: string
+  readonly editToken?: string
   /** The applicant's chosen name; empty lets the server use the operator's template. */
   readonly fileName?: string
   readonly headers?: Readonly<Record<string, string>>
@@ -24,7 +25,7 @@ type Build = {
  * Sends the answers (no cells: the server applies the operator's rules) and returns the finished file.
  * The response names the job, which later builds and downloads use.
  */
-export async function buildForm({ url, form, answers, photos, documentId, fileName, headers }: Build): Promise<Completed> {
+export async function buildForm({ url, form, answers, photos, documentId, editToken, fileName, headers }: Build): Promise<Completed> {
   const body = new FormData()
   const filled = filledAnswers(form, answers)
   body.append('request', new Blob(
@@ -34,13 +35,14 @@ export async function buildForm({ url, form, answers, photos, documentId, fileNa
   Object.entries(photos).forEach(([id, photo]) => {
     if (photo) body.append(`photo-${id}`, photo, photo.name)
   })
-  const response = await request(url, { method: 'POST', body, headers: { ...headers } })
+  const response = await request(url, { method: 'POST', body, headers: { ...headers, ...(editToken ? { 'X-Document-Edit-Token': editToken } : {}) } })
   const job = response.headers.get('X-Document-Id')
   if (!job) throw new Error('처리하지 못했어요. 다시 시도해주세요')
   const savedName = downloadName(response, `${form.title}.hwp`)
   const blob = await response.blob()
   return {
     documentId: job,
+    editToken: response.headers.get('X-Document-Edit-Token') ?? undefined,
     file: new File([blob], savedName, { type: 'application/x-hwp' }),
     downloadUrl: `/api/documents/${job}/completed`,
     pdfUrl: `/api/documents/${job}/completed.pdf`,

@@ -31,11 +31,16 @@ public final class FormApplyService {
 
     public FormBuilder.Built generate(Vid vid, FormViews.GenerateRequest request, Map<String, MultipartFile> photos)
             throws IOException, HwpDocumentException {
+        return generate(vid, request, photos, null);
+    }
+
+    public FormBuilder.Built generate(Vid vid, FormViews.GenerateRequest request, Map<String, MultipartFile> photos,
+            String editToken) throws IOException, HwpDocumentException {
         FormStore.State state = open(vid);
         if (!state.published().contains(request.version())) {
             throw new FormExceptions.Changed();
         }
-        return builder.build(vid, request.version(), owner(vid, request.version()), request, photos, true);
+        return builder.build(vid, request.version(), owner(vid, request.version()), request, photos, true, editToken);
     }
 
     static String owner(Vid vid, int version) {

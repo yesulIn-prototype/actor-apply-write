@@ -1,0 +1,22 @@
+.document-editor { margin-top: 20px; }
+.edit-toolbar { margin: 12px 0; padding: 16px; border: 1px solid var(--grey-200); border-radius: 12px; background: var(--grey-50); }
+.edit-toolbar p, .edit-help { font-size: 13px; line-height: 1.6; color: var(--grey-600); word-break: keep-all; }
+.edit-number-form { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.edit-number-form label { font-size: 14px; font-weight: 600; }
+.edit-number-form input { flex: 1; width: 96px; min-width: 80px; padding: 10px; border: 1px solid var(--grey-300); border-radius: 8px; font-size: 16px; background: var(--white); }
+.edit-number-form button, .edit-small-button { min-height: 44px; padding: 10px 12px; border-radius: 8px; font-size: 14px; color: var(--blue-500); background: var(--white); border: 1px solid var(--grey-200); }
+.numbered-hotspot { border: 1px dashed var(--blue-500); background: rgba(49, 130, 246, 0.03); }
+.selected-hotspot { box-shadow: inset 0 0 0 2px var(--blue-500); background: rgba(49, 130, 246, 0.14); }
+.region-number { position: absolute; right: 0; top: 0; padding: 1px 3px; border-radius: 2px; background: var(--blue-500); color: var(--white); font-size: 10px; font-weight: 600; line-height: 13px; white-space: nowrap; }
+.zoom-page-wrap .region-number { font-size: 13px; line-height: 17px; }
+.document-edit-sheet fieldset { border: 0; padding: 0; margin: 12px 0 0; min-width: 0; }
+.edit-label { display: block; font-size: 14px; font-weight: 600; margin: 12px 0 6px; }
+.document-edit-sheet textarea, .document-edit-sheet input:not([type="checkbox"]) { display: block; width: 100%; padding: 12px; border: 1px solid var(--grey-300); border-radius: 10px; font: inherit; font-size: 16px; line-height: 1.5; background: var(--grey-50); resize: vertical; }
+.document-edit-sheet textarea:disabled { opacity: 0.6; }
+.edit-small-button { margin: 8px 0; }
+.edit-check { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.6; padding: 10px 0; word-break: keep-all; }
+.edit-check input { width: 18px; height: 18px; flex: 0 0 18px; margin-top: 2px; }
+.edit-move { border-top: 1px solid var(--grey-200); padding-top: 12px; margin-top: 8px; }
+.edit-target-text { max-height: 150px; overflow: auto; padding: 12px; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: 13px; background: var(--grey-50); border-radius: 8px; }
+.edit-error { color: var(--red-500, #b42318); font-size: 14px; padding: 10px 0; word-break: keep-all; }
+.edit-success { padding: 12px; margin: 12px 0; border-radius: 8px; font-size: 14px; line-height: 1.5; background: var(--grey-50); color: var(--blue-500); word-break: keep-all; }

@@ -26,6 +26,21 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 public final class ApiExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
+    @ExceptionHandler(kr.yesulin.actor.document.DocumentEdits.Invalid.class)
+    ResponseEntity<ApiError> invalidEdit(kr.yesulin.actor.document.DocumentEdits.Invalid exception) {
+        return response(HttpStatus.BAD_REQUEST, "INVALID_DOCUMENT_EDIT", exception.getMessage());
+    }
+
+    @ExceptionHandler(kr.yesulin.actor.document.DocumentEdits.Conflict.class)
+    ResponseEntity<ApiError> staleEdit(kr.yesulin.actor.document.DocumentEdits.Conflict exception) {
+        return response(HttpStatus.CONFLICT, "DOCUMENT_EDIT_CONFLICT", exception.getMessage());
+    }
+
+    @ExceptionHandler(kr.yesulin.actor.document.DocumentEdits.Forbidden.class)
+    ResponseEntity<ApiError> forbiddenEdit(kr.yesulin.actor.document.DocumentEdits.Forbidden exception) {
+        return response(HttpStatus.FORBIDDEN, "DOCUMENT_EDIT_FORBIDDEN", exception.getMessage());
+    }
+
     @ExceptionHandler(DocumentStore.DocumentNotFoundException.class)
     ResponseEntity<ApiError> notFound(DocumentStore.DocumentNotFoundException exception) {
         return response(HttpStatus.NOT_FOUND, "DOCUMENT_NOT_FOUND", exception.getMessage());

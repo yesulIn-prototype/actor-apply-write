@@ -28,9 +28,8 @@ export function ResumeNotice({ vid, documentId }: { readonly vid: string; readon
     <main className="app">
       <InAppNotice platform={platform} resumeUrl={resumeLink(documentId)} />
       {completed ? (
-        <DoneScreen completed={completed} labels={new Map()} renderEditor={() => undefined}
-          pdfBusy={delivery.pdfBusy} onEditOpen={() => undefined} onEditCancel={() => undefined}
-          onApply={async () => false} onBack={() => { window.location.href = `/apply/${vid}` }}
+        <DoneScreen completed={completed}
+          pdfBusy={delivery.pdfBusy} onBack={() => { window.location.href = `/apply/${vid}` }}
           onMail={delivery.mail} onSave={delivery.save} onSavePdf={delivery.savePdf} />
       ) : (
         <><TopBar /><section className="content">

@@ -1,6 +1,6 @@
 # 예술in 지원서 서비스 — 도메인 설계표
 
-기준: 2026-10-03. 현재 구현을 정리한 문서다. 새로운 구조나 정책을 확정하는 문서가 아니다.
+기준: 2026-10-04 로컬 구현. 번호 직접 수정은 운영 배포 전이며 [검증 문서](numbered-document-editing.md)를 따른다.
 
 - [사용자 정책](user-policy.md)
 - [운영자 정책](operator-policy.md)
@@ -40,7 +40,8 @@
 | 배우 작업 | 무작위 documentId, owner, expiresAt | 공유 원본 복사. 작업별 결과 분리. owner는 공고·버전/테스트 구분이며 배우 계정 인증이 아님 | 메모리 인덱스 + 임시 폴더, 생성 후 30분 | DocumentStore, StoredDocument, FormBuilder |
 | 문서 생성 | JobContent: growths, writes, targets | 원본 사본에서 매번 생성. 줄 증감에 맞춰 쓰기 주소와 미리보기 주소 함께 계산 | completed.hwp와 임시 사진 | FormComposer, CompletedDocumentWriter |
 | 가변 표·쪽 배치 | TableGrowth, TableFlow | 가로 병합 복원, 세로 병합·중첩 표 제약. rhwp 쪽 배치로 겹침 보정 시도 | 생성 결과에 반영 | RowInserter, TableFlow |
-| 미리보기·PDF | 페이지 그림, hotspot, completed.pdf | 서버 rhwp 렌더링. 재생성 시 캐시 무효화. 미리보기 클릭으로 항목 수정 | 작업 폴더, 작업 만료까지 | PreviewService, PageLayout, PdfConverter |
+| 미리보기·PDF | 페이지 그림, hotspot, completed.pdf | 서버 rhwp 렌더링. 재생성·직접 수정 시 캐시 무효화. 최신 HWP와 PDF 객체 연결 | 작업 폴더, 작업 만료까지 | PreviewService, PageLayout, PdfConverter, useDelivery |
+| 완성본 직접 수정 | editToken, SHA-256 revision, region id/text/boxes | 생성 브라우저의 수정 권한, 안전한 최상위 표/본문만. 지문 일치·작업 잠금·재파싱·렌더링 후 교체. 입력값 재생성은 확인 후 직접 수정 삭제 | 현재 완성 HWP·임시 후보, 최초 30분 수명 유지. 토큰은 브라우저/서버 메모리 | DocumentEditingService, HwpTextEditor, DocumentRegionLayout, DocumentEditor |
 | 파일 이름 | 다운로드 stem | 배우 수정 우선. HWP/PDF 같은 stem. 서버 실제 저장 경로에는 사용자 파일 이름을 사용하지 않음 | 작업 메타데이터 | CompletedFileName, form/fileName.ts |
 | 제출 안내 | email, subject, deadline, note | 받는 곳·치환한 제목·마감·별도 첨부 안내. 마감일은 표시용 | 공용 definition → 배우 화면 | Submission, SubmissionGuide |
 | 파일 전달 | File, 다운로드 URL, mailto | 표준 공고 PDF 우선. OS 공유 또는 저장 후 메일 작성. 서버 발송·접수 확인 없음 | 전달 상태 장기 저장 없음 | useDelivery, delivery |

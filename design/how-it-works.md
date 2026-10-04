@@ -111,7 +111,7 @@ sequenceDiagram
 ### 완성 화면·공통 기능
 | 파일 | 역할 |
 |---|---|
-| `DoneScreen.tsx` | 완성 화면: 미리보기, 칸 눌러 수정(시트), 확대, 저장·메일 버튼. 무엇을 수정할지는 부모가 `labels`·`renderEditor`로 넘긴다. 공고의 제출 안내는 `guide`로 받아 보인다(`form/SubmissionGuide.tsx`: 받는 곳, 답으로 채운 메일 제목, 마감, 복사, 메일 쓰기). 표준 지원서 공고(`pdfFirst`)는 PDF 버튼을 앞에 두고 PDF를 메일로 공유한다(`useDelivery`가 미리 받아 둠) |
+| `DoneScreen.tsx`, `document-editing/` | 완성 화면: 실제 HWP의 번호를 눌러 글 수정·삭제·이동, 확대, 저장·메일. 입력값 재생성은 별도 확인 후 수행. 수정 토큰 없는 이어받기는 읽기 전용. 제출 안내는 `guide`로 받으며 표준 공고는 PDF 우선 |
 | `PreviewPage.tsx`, `PreviewZoom.tsx` | 서버가 준 SVG 페이지 위에 누를 수 있는 칸(hotspot)을 겹쳐 그림 |
 | `photo.ts` | PNG 8MB 이하는 그대로, 그 외(HEIC·WebP·큰 JPEG)는 캔버스로 다시 그려 최대 2400px JPEG(품질 0.9). EXIF 회전도 이때 바로잡힘 |
 | `useDelivery.ts`, `delivery.ts` | 한글로 저장(실제 URL로 다운로드), PDF로 저장(서버에 먼저 만들게 한 뒤 다운로드), 메일로 보내기(공유 시트, 안 되면 저장 후 메일 작성 화면) |
@@ -168,6 +168,7 @@ sequenceDiagram
 | `DocumentService` | 작업 시작(`startJob`: 공용 원본 복사), 작업 생성(`buildJob`: 주인 확인 후 쓰기), 완성본·PDF 내려주기, HWPX→HWP 변환 |
 | `PdfConverter` | **rhwp CLI 실행기**: `export-pdf`, `export-svg`, `export-render-tree`, `convert`. 동시에 2개, 60초 제한 |
 | `PreviewService`, `PageLayout` | rhwp 출력으로 페이지 크기·칸 위치 계산 → 미리보기 hotspot, 운영자 칸 위치 |
+| `DocumentEditingService`, `HwpTextEditor`, `DocumentRegionLayout` | 수정 권한·문서 지문 확인, 현재 완성본의 안전한 텍스트 영역 수정, 재파싱·렌더링 후 교체. 번호는 브라우저에서 표시하며 문서에 쓰지 않음 |
 | `CompletedFileName` | 파일 이름 검사·기본값(6절) |
 | `UploadValidator` | HWP/HWPX 시그니처·20MB, 사진 JPEG/PNG·12MB·8000px·4천만 화소 |
 
@@ -235,9 +236,15 @@ Content-Disposition: attachment; filename*=UTF-8''<이름>.hwp  (PDF는 같은 �
    - `edit`: 원문에서 `find`를 `replace`로 바꾼 전체 글자로 교체(서식은 칸의 문단 서식 유지)
    - `photo`: 사진 파일
    - 답이 없는 칸은 목록에 넣지 않는다 → 원본 그대로
-3. 처음이면 공용 `source.hwp`를 작업 폴더로 **복사**해 새 작업(UUID)을 만든다. 두 번째부터는 받은 `documentId`의 작업을 쓴다(다른 공고·버전·테스트의 작업이면 새로 만든다).
+3. 처음이면 공용 `source.hwp`를 작업 폴더로 **복사**해 새 작업(UUID)을 만든다. 공개 재생성은 받은 `documentId`와 수정 토큰을 확인한다. 토큰이 없거나 다른 공고·버전·테스트의 작업이면 새 작업이다. 잘못된 토큰은 거절한다. 관리자 테스트 재사용은 별도 운영자 인증을 따른다.
 4. `CompletedDocumentWriter`가 작업의 `source.hwp`를 **매번 새로** 열어(끼울 줄이 있으면 rhwp `edit insert-row`·`merge-cells`로 줄을 끼운 임시 사본을 열고, 다 쓰면 지운다) 칸을 쓰고(사진은 형식·크기 검사 후 그림 개체로), 임시 파일에 저장한 뒤 `completed.hwp`로 바꿔치기한다. 그래서 다시 만들어도 이전 답이 겹쳐 쌓이지 않는다.
-5. 응답 본문이 HWP 파일 자체이고, 헤더 `X-Document-Id`로 작업 ID를 돌려준다.
+5. 응답 본문이 HWP 파일 자체이고, 헤더 `X-Document-Id`로 작업 ID, `X-Document-Edit-Token`으로 그 작업의 수정 권한을 돌려준다. 조회·이어받기는 수정 권한을 발급하지 않는다.
+
+### 완성본 직접 수정과 재생성의 차이
+
+번호 편집은 `GET /api/documents/{id}/editing`에서 현재 완성본의 글·위치·지문을 받고, `POST`에 선택한 영역의 새 글과 시트를 열 때의 지문을 보낸다. 서버는 작업별 잠금 아래 임시 HWP를 재파싱·렌더링하고 만료를 확인한 뒤 교체한다. 그림을 포함한 영역과 안전하게 연결할 수 없는 복합 구조는 편집하지 않는다.
+
+이 수정은 입력값이나 공용 정의에 역반영되지 않는다. 배우가 입력 화면에서 다시 만들면 수정·삭제·이동이 사라진다는 확인을 받고 원본 사본부터 재생성한다. 직접 수정과 재생성 모두 미리보기·PDF를 무효화하고 브라우저가 보유한 최신 HWP/PDF를 맞춘다. 수정 권한은 브라우저 메모리뿐이며 작업의 최초 30분 수명은 연장하지 않는다. [구현 범위·로컬 검증](numbered-document-editing.md)을 참고한다. 2026-10-04 현재 이 변경은 운영 배포 전이다.
 
 ### 실행 환경
 - 로컬: rhwp는 `tools/install-rhwp.sh`로 `tools/rhwp/`에 설치(`yesulin.rhwp.path`). 없으면 PDF·미리보기·HWPX만 안 되고 HWP 생성은 된다.

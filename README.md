@@ -48,6 +48,8 @@
 - [운영자 정책](design/operator-policy.md): 공고 준비·공개·종료·백업·검증 절차
 - [2026-10-03 서비스 점검](design/service-review-2026-10-03.md): 배포·실사이트·테스트 근거와 남은 작업
 - [공고별 MVP 평가표](design/mvp-evaluation.md): 요구사항·모바일 입력·결과 문서·수정·제출 확인과 회차별 성능 지표
+- [HWP 웹 직접 편집 시험](design/hwp-web-editor-poc.md): 지원동기 이동·안내문 삭제의 실제 시험 결과와 도입 선택지
+- [번호로 완성 지원서 수정](design/numbered-document-editing.md): 구현 범위·재생성 확인 정책·로컬 검증 결과
 
 ## 실행
 
@@ -98,6 +100,7 @@ cloudflared tunnel --url http://localhost:5173
 | 스레드·인스타 (iOS) | 우상단 ··· → 외부 브라우저로 열기 안내 | Safari에서 |
 
 - 완성 화면 미리보기는 `GET /api/documents/{id}/preview`(페이지 크기 + 칸별 누를 수 있는 영역)와 `GET /api/documents/{id}/preview/{page}`(SVG)로 받는다. 영역은 rhwp의 render tree에서 표 셀 위치를 읽어 만든다.
+- 같은 브라우저에서 만든 완성본은 **지원서 직접 수정**으로 번호를 선택해 글 수정·비우기·옮기기를 한다. 수정 결과로 HWP·미리보기·PDF를 갱신한다. 입력 화면에서 다시 만들면 직접 수정이 사라지므로 먼저 확인한다. 지원 범위와 배포 전 확인은 [번호 편집 문서](design/numbered-document-editing.md)를 따른다.
 - 사진은 한글의 그림 개체로 넣고 줄 배치 정보를 함께 기록한다. 이 정보가 없으면 rhwp가 일부 양식(ESTC·하츄핑)에서 사진을 PDF에 그리지 않는다.
 - PDF는 `GET /api/documents/{id}/completed.pdf`에서 rhwp로 한 번 만들어 재사용하고, 한글 파일을 다시 만들면 새로 만든다. 한컴 전용 글꼴은 배포할 수 없어 시스템 글꼴로 대체되므로 글자 모양만 원본과 조금 다르다.
 - 완성본은 `GET /api/documents/{id}/completed`의 실제 URL로 내려받는다. 인앱 웹뷰는 `blob:` 다운로드를 처리하지 못하기 때문이다.

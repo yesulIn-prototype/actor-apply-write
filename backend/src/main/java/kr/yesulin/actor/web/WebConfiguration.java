@@ -21,6 +21,6 @@ public class WebConfiguration implements WebMvcConfigurer {
                 .allowedOrigins(allowedOrigins)
                 .allowedMethods("GET", "POST", "PUT", "OPTIONS")
                 .allowedHeaders("*")
-                .exposedHeaders("Content-Disposition", "X-Document-Id");
+                .exposedHeaders("Content-Disposition", "X-Document-Id", "X-Document-Edit-Token");
     }
 }

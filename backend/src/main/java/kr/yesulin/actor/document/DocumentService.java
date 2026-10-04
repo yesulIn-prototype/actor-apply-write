@@ -39,6 +39,11 @@ public final class DocumentService {
         return stored.id();
     }
 
+    /** Only generation responses expose this capability; resume/download responses never do. */
+    public String editToken(UUID documentId) { return store.require(documentId).editToken(); }
+
+    public void verifyEditToken(UUID documentId, String token) { store.require(documentId).requireEditToken(token); }
+
     /**
      * Builds a job started from a shared form; another form's job id is treated as unknown.
      *
@@ -48,18 +53,20 @@ public final class DocumentService {
     public GeneratedDocument buildJob(UUID documentId, String owner, String fileName, JobContent content,
             boolean counted)
             throws IOException, HwpDocumentException {
-        long started = System.nanoTime();
-        StoredDocument stored = store.require(documentId);
-        if (!stored.owner().equals(owner)) {
-            throw new DocumentStore.DocumentNotFoundException();
+        synchronized (store.require(documentId).directory()) {
+            long started = System.nanoTime();
+            StoredDocument stored = store.require(documentId);
+            if (!stored.owner().equals(owner)) {
+                throw new DocumentStore.DocumentNotFoundException();
+            }
+            boolean first = writer.write(stored, CompletedFileName.chosenOrDefault(fileName, stored.originalName()),
+                    content.growths(), content.writes(), counted);
+            store.attachTargets(documentId, content.targets());
+            log.info("generated job owner={} cells={} addedRows={} first={} {}ms", owner,
+                    content.writes().size(), content.growths().stream().mapToInt(TableGrowth::count).sum(), first,
+                    elapsed(started));
+            return completed(documentId);
         }
-        boolean first = writer.write(stored, CompletedFileName.chosenOrDefault(fileName, stored.originalName()),
-                content.growths(), content.writes(), counted);
-        store.attachTargets(documentId, content.targets());
-        log.info("generated job owner={} cells={} addedRows={} first={} {}ms", owner,
-                content.writes().size(), content.growths().stream().mapToInt(TableGrowth::count).sum(), first,
-                elapsed(started));
-        return completed(documentId);
     }
 
     /** Checks an uploaded Hangul file and returns it as HWP 5, converting HWPX once. */
@@ -77,38 +84,42 @@ public final class DocumentService {
 
     /** Serves the latest completed file over a plain GET so in-app browsers can hand it to their download manager. */
     public GeneratedDocument completed(UUID documentId) throws IOException {
-        StoredDocument stored = store.require(documentId);
-        Path path = stored.completedHwp();
-        if (!Files.exists(path)) {
-            throw new DocumentStore.DocumentNotFoundException();
+        synchronized (store.require(documentId).directory()) {
+            StoredDocument stored = store.require(documentId);
+            Path path = stored.completedHwp();
+            if (!Files.exists(path)) {
+                throw new DocumentStore.DocumentNotFoundException();
+            }
+            return new GeneratedDocument(stored.completedFileName().hwp(), Files.readAllBytes(path));
         }
-        return new GeneratedDocument(stored.completedFileName().hwp(), Files.readAllBytes(path));
     }
 
     /** Renders the latest completed HWP to PDF once and reuses it until the HWP is regenerated. */
     public GeneratedDocument completedPdf(UUID documentId) throws IOException, HwpDocumentException {
-        StoredDocument stored = store.require(documentId);
-        Path hwp = stored.completedHwp();
-        if (!Files.exists(hwp)) {
-            throw new DocumentStore.DocumentNotFoundException();
-        }
-        Path pdf = stored.completedPdf();
-        if (!Files.exists(pdf)) {
-            Path draft = stored.directory().resolve("completed-" + UUID.randomUUID() + ".pdf");
-            long started = System.nanoTime();
-            try {
-                pdfConverter.convert(hwp, draft);
-                Files.move(draft, pdf, StandardCopyOption.REPLACE_EXISTING);
-                log.info("pdf rendered bytes={} {}ms", Files.size(pdf), elapsed(started));
-            } catch (HwpDocumentException | IOException | RuntimeException exception) {
-                log.warn("pdf failed {}: {}", exception.getClass().getSimpleName(),
-                        JobIds.masked(exception.getMessage()));
-                throw exception;
-            } finally {
-                Files.deleteIfExists(draft);
+        synchronized (store.require(documentId).directory()) {
+            StoredDocument stored = store.require(documentId);
+            Path hwp = stored.completedHwp();
+            if (!Files.exists(hwp)) {
+                throw new DocumentStore.DocumentNotFoundException();
             }
+            Path pdf = stored.completedPdf();
+            if (!Files.exists(pdf)) {
+                Path draft = stored.directory().resolve("completed-" + UUID.randomUUID() + ".pdf");
+                long started = System.nanoTime();
+                try {
+                    pdfConverter.convert(hwp, draft);
+                    Files.move(draft, pdf, StandardCopyOption.REPLACE_EXISTING);
+                    log.info("pdf rendered bytes={} {}ms", Files.size(pdf), elapsed(started));
+                } catch (HwpDocumentException | IOException | RuntimeException exception) {
+                    log.warn("pdf failed {}: {}", exception.getClass().getSimpleName(),
+                            JobIds.masked(exception.getMessage()));
+                    throw exception;
+                } finally {
+                    Files.deleteIfExists(draft);
+                }
+            }
+            return new GeneratedDocument(stored.completedFileName().pdf(), Files.readAllBytes(pdf));
         }
-        return new GeneratedDocument(stored.completedFileName().pdf(), Files.readAllBytes(pdf));
     }
 
     /** HWPX forms are turned into HWP 5 once, on upload; everything after works on the HWP. */

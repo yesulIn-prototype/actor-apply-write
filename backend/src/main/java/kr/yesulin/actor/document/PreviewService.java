@@ -28,29 +28,33 @@ public final class PreviewService {
         this.json = json;
     }
 
-    public synchronized PreviewResponse preview(UUID documentId) throws IOException, HwpDocumentException {
-        StoredDocument stored = store.require(documentId);
-        Path manifest = directory(stored).resolve("preview.json");
-        if (Files.exists(manifest)) {
-            return json.readValue(manifest.toFile(), PreviewResponse.class);
-        }
-        PageLayout layout = PageLayout.render(renderer, json, completed(stored), directory(stored));
-        List<PreviewResponse.Hotspot> hotspots = new ArrayList<>();
-        for (EditTarget target : stored.targets()) {
-            for (PageLayout.Box box : layout.cells().getOrDefault(target.address(), List.of())) {
-                hotspots.add(new PreviewResponse.Hotspot(
-                        target.id(), box.page(), box.x(), box.y(), box.width(), box.height()));
+    public PreviewResponse preview(UUID documentId) throws IOException, HwpDocumentException {
+        synchronized (store.require(documentId).directory()) {
+            StoredDocument stored = store.require(documentId);
+            Path manifest = directory(stored).resolve("preview.json");
+            if (Files.exists(manifest)) {
+                return json.readValue(manifest.toFile(), PreviewResponse.class);
             }
+            PageLayout layout = PageLayout.render(renderer, json, completed(stored), directory(stored));
+            List<PreviewResponse.Hotspot> hotspots = new ArrayList<>();
+            for (EditTarget target : stored.targets()) {
+                for (PageLayout.Box box : layout.cells().getOrDefault(target.address(), List.of())) {
+                    hotspots.add(new PreviewResponse.Hotspot(
+                            target.id(), box.page(), box.x(), box.y(), box.width(), box.height()));
+                }
+            }
+            PreviewResponse preview = new PreviewResponse(layout.pages(), hotspots);
+            json.writeValue(manifest.toFile(), preview);
+            return preview;
         }
-        PreviewResponse preview = new PreviewResponse(layout.pages(), hotspots);
-        json.writeValue(manifest.toFile(), preview);
-        return preview;
     }
 
     public byte[] page(UUID documentId, int number) throws IOException, HwpDocumentException {
-        StoredDocument stored = store.require(documentId);
-        preview(documentId);
-        return pageImage(directory(stored), number);
+        synchronized (store.require(documentId).directory()) {
+            StoredDocument stored = store.require(documentId);
+            preview(documentId);
+            return pageImage(directory(stored), number);
+        }
     }
 
     /**

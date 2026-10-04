@@ -93,7 +93,14 @@ class NoticeFormHttpAcceptanceTest {
         MvcResult second = generate(1, null, "이배우", "m");
         String firstId = first.getResponse().getHeader(FormRequests.DOCUMENT_ID);
         String secondId = second.getResponse().getHeader(FormRequests.DOCUMENT_ID);
-        MvcResult fixed = generate(1, firstId, "김배우수정", "f");
+        // A read-only job id alone cannot overwrite its file or obtain its edit capability.
+        MvcResult untrusted = generate(1, firstId, "조회자", "m");
+        assertThat(untrusted.getResponse().getHeader("X-Document-Id")).isNotEqualTo(firstId);
+        assertThat(completed(firstId)).isEqualTo(first.getResponse().getContentAsByteArray());
+        MvcResult fixed = mockMvc.perform(multipart("/api/forms/22382/generate")
+                .file(request(1, firstId, "김배우수정", "f")).file(photo())
+                .header("X-Document-Edit-Token", first.getResponse().getHeader("X-Document-Edit-Token")))
+                .andExpect(status().isOk()).andReturn();
 
         // then
         assertThat(firstId).isNotEqualTo(secondId);

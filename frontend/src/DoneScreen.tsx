@@ -1,230 +1,86 @@
-import { useEffect, useRef, useState } from 'react'
-import type { KeyboardEvent, ReactNode } from 'react'
-import type { Completed, Hotspot, Preview, PreviewPage as Page } from './api'
+import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
+import type { Completed, Preview, PreviewPage as Page } from './api'
 import { fetchPreview, previewPageUrl } from './api'
+import { DocumentEditor } from './document-editing/DocumentEditor'
 import { PreviewPage } from './PreviewPage'
 import { PreviewZoom } from './PreviewZoom'
 import { BottomCTA, Button, TopBar } from './ui'
 
 type Props = {
-  completed: Completed
-  /** What can be edited from the preview, by hotspot id; empty for a file resumed without its answers. */
-  labels: ReadonlyMap<string, string>
-  /** The input for one answer, shown in the edit sheet. */
-  renderEditor: (id: string) => ReactNode
-  /** What the notice asks about sending (address, mail subject); nothing for a form without it. */
-  guide?: ReactNode
-  pdfBusy: boolean
-  /** Sends the PDF and puts saving it first (a standard-form notice). */
-  pdfFirst?: boolean
-  /** The sheet opens: remember the answers, so closing it without applying can put them back. */
-  onEditOpen: () => void
-  /** The sheet closed without applying: put back what it changed. */
-  onEditCancel: () => void
-  /** Rebuilds the file from the current answers; resolves false when that failed. */
-  onApply: () => Promise<boolean>
-  onBack: () => void
-  onMail: () => void
-  onSave: () => void
-  onSavePdf: () => void
+  readonly completed: Completed
+  readonly guide?: ReactNode
+  readonly pdfBusy: boolean
+  readonly pdfFirst?: boolean
+  readonly onDocumentEdited?: (completed: Completed) => void
+  readonly onBack: () => void
+  readonly onMail: () => void
+  readonly onSave: () => void
+  readonly onSavePdf: () => void
 }
 
-type Loaded = { key: string; preview?: Preview; failed?: boolean }
-
-/** The finished form as it will be sent; tapping a filled-in spot opens that field right here. */
+/** Inspect the actual completed file. Direct editing never regenerates it from form answers. */
 export function DoneScreen(props: Props) {
-  const [version, setVersion] = useState(0)
-  const [loaded, setLoaded] = useState<Loaded>()
-  const [editing, setEditing] = useState<{ id: string; label: string; opener: HTMLButtonElement }>()
-  const [applying, setApplying] = useState(false)
-  const [zoom, setZoom] = useState<{ page: Page; opener: HTMLButtonElement }>()
-  const key = `${props.completed.documentId}:${version}`
+  const [locked, setLocked] = useState(false)
+  useEffect(() => {
+    if (!locked) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previous }
+  }, [locked])
+  const editable = Boolean(props.completed.editToken && props.onDocumentEdited)
+  return <div inert={locked}>
+    <TopBar onBack={props.onBack} />
+    <section className="content done-content">
+      <h1 className="title">지원서 파일이 만들어졌어요</h1>
+      <p className="file-name">{props.completed.file.name}</p>
+      <p className="done-note">{editable
+        ? '제출 전 내용을 확인해주세요. 직접 수정에서 빈칸·제목·안내문을 고치고, 글을 다른 칸으로 옮길 수 있어요. 사진·입력 항목을 다시 바꾸려면 뒤로 가세요.'
+        : '앱에서 만든 지원서를 이어서 열었어요. 저장하거나 메일로 보내주세요. 고칠 곳이 있으면 새로 작성해주세요.'}</p>
+      {props.guide}
+      {props.completed.editToken && props.onDocumentEdited
+        ? <DocumentEditor completed={props.completed} onEdited={props.onDocumentEdited} onLocked={setLocked}
+            fallback={<ReadOnlyPreview completed={props.completed} onLocked={setLocked} />} />
+        : <ReadOnlyPreview completed={props.completed} onLocked={setLocked} />}
+    </section>
+    <BottomCTA>
+      <Button onClick={props.onMail}>{props.pdfFirst ? 'PDF 메일로 보내기' : '메일로 보내기'}</Button>
+      <div className="button-row">
+        {props.pdfFirst ? <>
+          <Button variant="secondary" onClick={props.onSavePdf} loading={props.pdfBusy}>PDF로 저장</Button>
+          <Button variant="secondary" onClick={props.onSave}>한글로 저장</Button>
+        </> : <>
+          <Button variant="secondary" onClick={props.onSave}>한글로 저장</Button>
+          <Button variant="secondary" onClick={props.onSavePdf} loading={props.pdfBusy}>PDF로 저장</Button>
+        </>}
+      </div>
+    </BottomCTA>
+  </div>
+}
 
+function ReadOnlyPreview({ completed, onLocked }: {
+  readonly completed: Completed
+  readonly onLocked: (locked: boolean) => void
+}) {
+  const [preview, setPreview] = useState<Preview>()
+  const [failed, setFailed] = useState(false)
+  const [zoom, setZoom] = useState<{ page: Page; opener: HTMLButtonElement }>()
+  useEffect(() => { onLocked(Boolean(zoom)); return () => onLocked(false) }, [zoom, onLocked])
   useEffect(() => {
     let active = true
-    fetchPreview(props.completed.documentId)
-      .then((preview) => { if (active) setLoaded({ key, preview }) })
-      .catch(() => { if (active) setLoaded({ key, failed: true }) })
+    fetchPreview(completed.documentId).then((result) => { if (active) setPreview(result) })
+      .catch(() => { if (active) setFailed(true) })
     return () => { active = false }
-  }, [key, props.completed.documentId])
-
-  const current = loaded?.key === key ? loaded : undefined
-  const preview = current?.preview
-  const labels = props.labels
-  // A form resumed in another browser brings its file but not the answers, so it can't be edited here.
-  const editable = labels.size > 0
-  const hotspots = editable ? preview?.hotspots ?? [] : []
-
-  function open(hotspot: Hotspot, opener: HTMLButtonElement) {
-    const label = labels.get(hotspot.fieldId)
-    if (label === undefined) return
-    props.onEditOpen()
-    setEditing({ id: hotspot.fieldId, label, opener })
-  }
-
-  function cancel() {
-    if (editing) props.onEditCancel()
-    setEditing(undefined)
-  }
-
-  async function apply() {
-    setApplying(true)
-    const ok = await props.onApply()
-    setApplying(false)
-    if (ok) {
-      setEditing(undefined)
-      setVersion((value) => value + 1)
-    }
-  }
-
-  return (
-    <>
-      <div inert={Boolean(editing || zoom)}>
-      <TopBar onBack={props.onBack} />
-      <section className="content done">
-        <span className="done-check" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 24 24">
-            <path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </span>
-        <h1 className="title">지원서 파일이 만들어졌어요</h1>
-        <p className="file-name">{props.completed.file.name}</p>
-        <p className="done-note">
-          {editable
-            ? '제출하기 전에 빈칸·사진·공고 필수 항목을 확인해주세요. 오른쪽 위 확대 버튼으로 크게 보고, 칸을 누르면 수정할 수 있어요.'
-            : '앱에서 만든 지원서를 이어서 열었어요. 저장하거나 메일로 보내주세요. 고칠 곳이 있으면 새로 작성해주세요.'}
-        </p>
-        {props.guide}
-
-        <div className="preview">
-          {!current && (
-            <div className="preview-state" role="status">
-              <span className="dots" aria-hidden="true"><i /><i /><i /></span>
-              미리보기를 만들고 있어요
-            </div>
-          )}
-          {current?.failed && <div className="preview-state">미리보기를 불러오지 못했어요</div>}
-          {preview?.pages.map((page) => (
-            <PreviewPage
-              key={page.number}
-              page={page}
-              hotspots={hotspots.filter((hotspot) => hotspot.page === page.number)}
-              labels={labels}
-              imageUrl={previewPageUrl(props.completed.documentId, page.number, version)}
-              onEdit={open}
-              onZoom={(opener) => setZoom({ page, opener })}
-            />
-          ))}
-        </div>
-        {preview && editable && (
-          <details className="edit-field-list">
-            <summary>수정할 칸 목록</summary>
-            <div className="edit-field-items">
-              {[...new Map(preview.hotspots.map((hotspot) => [hotspot.fieldId, hotspot])).values()]
-                .map((hotspot) => {
-                  const label = labels.get(hotspot.fieldId)
-                  return label !== undefined && (
-                    <button key={hotspot.fieldId} type="button" onClick={(event) => open(hotspot, event.currentTarget)}>
-                      {label} 항목 수정
-                    </button>
-                  )
-                })}
-            </div>
-          </details>
-        )}
-      </section>
-      <BottomCTA>
-        <Button onClick={props.onMail}>{props.pdfFirst ? 'PDF 메일로 보내기' : '메일로 보내기'}</Button>
-        <div className="button-row">
-          {props.pdfFirst ? (
-            <>
-              <Button variant="secondary" onClick={props.onSavePdf} loading={props.pdfBusy}>PDF로 저장</Button>
-              <Button variant="secondary" onClick={props.onSave}>한글로 저장</Button>
-            </>
-          ) : (
-            <>
-              <Button variant="secondary" onClick={props.onSave}>한글로 저장</Button>
-              <Button variant="secondary" onClick={props.onSavePdf} loading={props.pdfBusy}>PDF로 저장</Button>
-            </>
-          )}
-        </div>
-      </BottomCTA>
-      </div>
-
-      {zoom && preview && (
-        <PreviewZoom
-          page={zoom.page}
-          hotspots={hotspots.filter((hotspot) => hotspot.page === zoom.page.number)}
-          labels={labels}
-          imageUrl={previewPageUrl(props.completed.documentId, zoom.page.number, version)}
-          opener={zoom.opener}
-          onClose={() => setZoom(undefined)}
-          onEdit={(hotspot) => {
-            setZoom(undefined)
-            open(hotspot, zoom.opener)
-          }}
-        />
-      )}
-
-      {editing && (
-        <EditSheet label={editing.label} opener={editing.opener} applying={applying} onCancel={cancel} onApply={apply}>
-          {props.renderEditor(editing.id)}
-        </EditSheet>
-      )}
-    </>
-  )
-}
-
-function EditSheet({ label, opener, applying, onCancel, onApply, children }: {
-  label: string
-  opener: HTMLButtonElement
-  applying: boolean
-  onCancel: () => void
-  onApply: () => void
-  children: ReactNode
-}) {
-  const sheet = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    sheet.current?.querySelector<HTMLElement>('input, textarea, button')?.focus()
-    return () => {
-      if (opener.isConnected) opener.focus()
-      else document.querySelector<HTMLElement>('.top-bar button')?.focus()
-    }
-  }, [opener])
-
-  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      onCancel()
-    }
-    if (event.key !== 'Tab') return
-    const focusable = [...(sheet.current?.querySelectorAll<HTMLElement>(
-      'input:not(:disabled), textarea:not(:disabled), button:not(:disabled)',
-    ) ?? [])]
-    const first = focusable[0]
-    const last = focusable[focusable.length - 1]
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault()
-      last?.focus()
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault()
-      first?.focus()
-    }
-  }
-
-  return (
-    <div className="sheet-layer">
-      {/* Tapping outside closes, as the 닫기 button does; the scrim itself is not a control. */}
-      <div className="sheet-scrim" aria-hidden="true" onClick={onCancel} />
-      <div ref={sheet} className="sheet" role="dialog" aria-modal="true" aria-label={`${label} 수정`} onKeyDown={handleKeyDown}>
-        <span className="sheet-handle" aria-hidden="true" />
-        <div className="sheet-body">{children}</div>
-        <div className="sheet-actions">
-          <Button variant="secondary" onClick={onCancel}>닫기</Button>
-          <Button onClick={onApply} loading={applying}>수정하기</Button>
-        </div>
-      </div>
+  }, [completed])
+  return <>
+    <div className="preview" inert={Boolean(zoom)}>
+      {!preview && <div className="preview-state" role="status">{failed ? '미리보기를 불러오지 못했어요' : '미리보기를 만들고 있어요'}</div>}
+      {preview?.pages.map((page) => <PreviewPage key={page.number} page={page} hotspots={[]} labels={new Map()}
+        imageUrl={previewPageUrl(completed.documentId, page.number, 0)} onEdit={() => undefined}
+        onZoom={(opener) => setZoom({ page, opener })} />)}
     </div>
-  )
+    {zoom && createPortal(<PreviewZoom page={zoom.page} opener={zoom.opener} hotspots={[]} labels={new Map()}
+      imageUrl={previewPageUrl(completed.documentId, zoom.page.number, 0)} onClose={() => setZoom(undefined)} onEdit={() => undefined} />, document.body)}
+  </>
 }

@@ -5,6 +5,9 @@ export type Completed = {
   file: File
   downloadUrl: string
   pdfUrl: string
+  /** Kept only in the creating page's memory; resume links are read-only. */
+  editToken?: string
+  directEdited?: boolean
 }
 
 const MESSAGES: Record<string, string> = {
@@ -24,7 +27,7 @@ const MESSAGES: Record<string, string> = {
 }
 
 /** Codes whose server message is written for the reader as is: a missing answer, a definition problem. */
-const SERVER_WORDED = new Set(['INVALID_ANSWER', 'FORM_NOT_READY', 'INVALID_BACKUP'])
+const SERVER_WORDED = new Set(['INVALID_ANSWER', 'FORM_NOT_READY', 'INVALID_BACKUP', 'INVALID_DOCUMENT_EDIT', 'DOCUMENT_EDIT_CONFLICT', 'DOCUMENT_EDIT_FORBIDDEN'])
 
 /**
  * Reopens a form finished in an in-app browser (Threads, Instagram…) in the system browser, where
@@ -47,7 +50,7 @@ export async function resumeDocument(documentId: string): Promise<Completed> {
 }
 
 export type PreviewPage = { number: number; width: number; height: number }
-export type Hotspot = { fieldId: string; page: number; x: number; y: number; width: number; height: number }
+export type Hotspot = { fieldId: string; page: number; x: number; y: number; width: number; height: number; marker?: string }
 export type Preview = { pages: PreviewPage[]; hotspots: Hotspot[] }
 
 /** The completed form as page images plus the areas that open a field for editing. */
@@ -57,7 +60,7 @@ export async function fetchPreview(documentId: string): Promise<Preview> {
 }
 
 /** `version` changes after every edit so the browser never shows a cached old page. */
-export function previewPageUrl(documentId: string, page: number, version: number): string {
+export function previewPageUrl(documentId: string, page: number, version: number | string): string {
   return `/api/documents/${documentId}/preview/${page}?v=${version}`
 }
 

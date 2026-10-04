@@ -12,7 +12,7 @@ export type DeliveryOptions = {
   readonly mailSubject?: string
 }
 
-type PdfFile = { readonly documentId: string; readonly file?: File; readonly failed?: boolean }
+type PdfFile = { readonly source: File; readonly file?: File; readonly failed?: boolean }
 
 /** Sending and saving the finished file, the same on every screen that finishes one. */
 export function useDelivery(completed: Completed | undefined, showToast: (text: string) => void, options: DeliveryOptions = {}) {
@@ -26,14 +26,14 @@ export function useDelivery(completed: Completed | undefined, showToast: (text: 
     if (!pdfFirst || !completed) return
     let active = true
     loadPdf(completed)
-      .then((file) => { if (active) setPdf({ documentId: completed.documentId, file }) })
-      .catch(() => { if (active) setPdf({ documentId: completed.documentId, failed: true }) })
+      .then((file) => { if (active) setPdf({ source: completed.file, file }) })
+      .catch(() => { if (active) setPdf({ source: completed.file, failed: true }) })
     return () => { active = false }
   }, [pdfFirst, completed])
 
   async function mail() {
     if (!completed) return
-    const ready = pdf?.documentId === completed.documentId ? pdf : undefined
+    const ready = pdf?.source === completed.file ? pdf : undefined
     if (pdfFirst && !ready) {
       showToast('PDF를 준비하고 있어요. 잠시 후 다시 눌러주세요')
       return

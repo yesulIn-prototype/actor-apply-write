@@ -95,7 +95,9 @@
 | 메서드 | 경로 | 권한 | 내용 |
 |---|---|---|---|
 | GET | `/api/forms/{vid}` | 공개 | 최신 공개 버전의 제목·항목·제출 안내(`submission`)·`pdfFirst`(표준 지원서 공고면 true)(칸·원문 없음). 없음 404 `FORM_NOT_FOUND`, 종료 410 `FORM_CLOSED` |
-| POST | `/api/forms/{vid}/generate` | 공개 | multipart `request`(`{version, documentId, answers, fileName}`; `fileName`이 비면 템플릿) + `photo-<항목id>`. HWP 첨부와 `X-Document-Id`. 공개된 적 없는 버전 409 `FORM_CHANGED`, 답 오류 400 `INVALID_ANSWER` |
+| POST | `/api/forms/{vid}/generate` | 공개 | multipart `request`(`{version, documentId, answers, fileName}`; `fileName`이 비면 템플릿) + `photo-<항목id>`. HWP 첨부, `X-Document-Id`, `X-Document-Edit-Token`. 기존 작업 재사용은 토큰 헤더도 필요. ID만 보내면 새 작업. 잘못된 토큰은 403. 공개된 적 없는 버전 409 `FORM_CHANGED`, 답 오류 400 `INVALID_ANSWER` |
+| GET | `/api/documents/{id}/editing` | 작업 수정 토큰 | 현재 HWP의 `revision`, 페이지, 편집 가능한 글·위치. 중첩 표·여러 구역 등 안전한 좌표 매핑 불가 시 400 `INVALID_DOCUMENT_EDIT` |
+| POST | `/api/documents/{id}/editing` | 작업 수정 토큰 | `{revision, changes:[{id,text,inputStyle}]}`. 1~2개 영역 교체 후 최신 HWP 응답. 오래된 지문 409 `DOCUMENT_EDIT_CONFLICT`, 권한 오류 403 `DOCUMENT_EDIT_FORBIDDEN` |
 | GET | `/api/admin/forms` | 토큰 | 공고 목록 |
 | GET | `/api/admin/forms/{vid}` | 토큰 | 편집 중 버전, 원본 칸 목록, 정의, 문제, 테스트 여부 |
 | POST | `/api/admin/forms/{vid}/source` | 토큰 | 원본 올리기(공개된 버전이면 새 버전) |
@@ -109,6 +111,8 @@
 | POST | `/api/admin/backup` | 토큰 | multipart `backup`(zip). 이 서버에 **없는** 공고만 되살리고 있는 공고는 건너뛴다(덮어쓰지 않음). `{restored, skipped}`. 우리 백업이 아니거나, 모르는 파일·깨진 JSON이 있으면 400 `INVALID_BACKUP`이고 아무것도 들이지 않는다. 업로드 한도 20MB(공고 약 200개 분량) |
 
 ## yesulin.art와 연결 (이 저장소 밖, 아직 하지 않음)
+
+번호 직접 수정은 2026-10-04 로컬 구현이며 운영 배포 전이다. 수정 토큰 헤더는 `X-Document-Edit-Token`이고 생성 응답에서만 발급한다. 조회·이어받기는 파일 읽기만 허용한다. 후보 HWP 재파싱·렌더링·작업별 잠금·원자적 교체로 기존 결과를 보호하고 PDF/좌표 캐시를 갱신한다. 재생성은 직접 수정 삭제 확인 후 원본 사본에서 수행하며 최초 작업 수명 30분을 연장하지 않는다. 지원 범위와 검증은 [번호 편집](numbered-document-editing.md)을 따른다.
 
 `yesulin.art`는 `2026-yesulin` 저장소의 Next.js 앱이고 `/otr`도 그쪽 `frontend/next.config.ts`의 rewrite다. `yesulin.art/apply/{vid}`로 공유하려면 그 저장소에서 프록시가 아니라 redirect를 추가한다.
 

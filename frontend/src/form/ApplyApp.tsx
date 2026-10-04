@@ -5,12 +5,12 @@ import { DoneScreen } from '../DoneScreen'
 import { detectPlatform } from '../platform'
 import { InAppNotice } from '../InAppNotice'
 import { message, resumeLink, useLeaveInAppBrowser, useToast } from '../shell'
-import { Footer, Toast, TopBar } from '../ui'
+import { Button, Footer, Toast, TopBar } from '../ui'
 import { useDelivery } from '../useDelivery'
 import { buildForm, fetchForm } from './api'
 import { filledTemplate, suggestedFileName } from './fileName'
 import { SubmissionGuide } from './SubmissionGuide'
-import { ItemInput } from './ItemInput'
+import { RegenerationConfirm } from '../document-editing/RegenerationConfirm'
 import { NoticeFillScreen } from './NoticeFillScreen'
 import type { PublicForm } from './types'
 import { useAnswers } from './useAnswers'
@@ -39,6 +39,7 @@ function NoticeApplication({ vid }: { vid: string }) {
   const [platform] = useState(() => detectPlatform(navigator.userAgent))
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
   const [completed, setCompleted] = useState<Completed>()
+  const [confirmRegeneration, setConfirmRegeneration] = useState(false)
   // Until the applicant types a name, the file follows the operator's template as answers come in.
   const [typedName, setTypedName] = useState<string>()
   const [toast, showToast] = useToast()
@@ -80,11 +81,14 @@ function NoticeApplication({ vid }: { vid: string }) {
       answers: answers.answers,
       photos: answers.photos,
       documentId,
+      editToken: completed?.editToken,
       fileName: typedName ?? suggestedFileName(form, answers.answers),
     })
   }
 
-  async function submit(form: PublicForm) {
+  async function submit(form: PublicForm, confirmed = false) {
+    if (completed?.directEdited && !confirmed) { setConfirmRegeneration(true); return }
+    setConfirmRegeneration(false)
     setPhase({ kind: 'generating', form })
     try {
       setCompleted(await build(form, completed?.documentId))
@@ -97,19 +101,8 @@ function NoticeApplication({ vid }: { vid: string }) {
     }
   }
 
-  async function apply(form: PublicForm): Promise<boolean> {
-    try {
-      setCompleted(await build(form, completed?.documentId))
-      showToast('수정했어요')
-      return true
-    } catch (reason) {
-      showToast(message(reason))
-      return false
-    }
-  }
-
   return (
-    <main className="app">
+    <main className="app" inert={confirmRegeneration}>
       <InAppNotice
         platform={platform}
         resumeUrl={phase.kind === 'done' && completed ? resumeLink(completed.documentId) : undefined}
@@ -129,28 +122,17 @@ function NoticeApplication({ vid }: { vid: string }) {
           onSubmit={() => submit(phase.form)}
         />
       )}
+      {phase.kind === 'fill' && completed?.directEdited && <section className="content">
+        <p className="done-note">다시 만들기 전까지 직접 수정한 지원서는 그대로 있어요.</p>
+        <Button variant="secondary" onClick={() => setPhase({ kind: 'done', form: phase.form })}>수정한 지원서로 돌아가기</Button>
+      </section>}
       {phase.kind === 'done' && completed && (
         <DoneScreen
           completed={completed}
-          labels={new Map(phase.form.items.map((item) => [item.id, item.label]))}
+          onDocumentEdited={setCompleted}
           guide={<SubmissionGuide form={phase.form} answers={answers.answers} onCopied={showToast} />}
-          renderEditor={(id) => {
-            const item = phase.form.items.find((candidate) => candidate.id === id)
-            return item && (
-              <ItemInput
-                item={item}
-                values={answers.answers[item.id] ?? []}
-                photos={answers.photos}
-                onValues={answers.setValues}
-                onPhoto={answers.pickPhoto}
-              />
-            )
-          }}
           pdfBusy={delivery.pdfBusy}
           pdfFirst={phase.form.pdfFirst}
-          onEditOpen={answers.remember}
-          onEditCancel={answers.restore}
-          onApply={() => apply(phase.form)}
           onBack={() => setPhase({ kind: 'fill', form: phase.form })}
           onMail={delivery.mail}
           onSave={delivery.save}
@@ -158,6 +140,8 @@ function NoticeApplication({ vid }: { vid: string }) {
         />
       )}
       <Toast message={toast} />
+      {confirmRegeneration && phase.kind === 'fill' && <RegenerationConfirm onCancel={() => setConfirmRegeneration(false)}
+        onConfirm={() => submit(phase.form, true)} />}
     </main>
   )
 }

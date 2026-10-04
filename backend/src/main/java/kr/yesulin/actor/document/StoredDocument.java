@@ -19,20 +19,27 @@ record StoredDocument(
         Instant expiresAt,
         CompletedFileName completedFileName,
         String owner,
-        List<EditTarget> targets) {
+        List<EditTarget> targets,
+        String editToken) {
+
+    void requireEditToken(String token) {
+        if (token == null || token.length() > 100 || !java.security.MessageDigest.isEqual(
+                editToken.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                token.getBytes(java.nio.charset.StandardCharsets.UTF_8))) throw new DocumentEdits.Forbidden();
+    }
 
     StoredDocument withOwner(String formVersion) {
         return new StoredDocument(id, originalName, directory, source, expiresAt, completedFileName,
-                formVersion, targets);
+                formVersion, targets, editToken);
     }
 
     StoredDocument withTargets(List<EditTarget> places) {
         return new StoredDocument(id, originalName, directory, source, expiresAt, completedFileName,
-                owner, List.copyOf(places));
+                owner, List.copyOf(places), editToken);
     }
 
     StoredDocument withCompletedFileName(CompletedFileName name) {
-        return new StoredDocument(id, originalName, directory, source, expiresAt, name, owner, targets);
+        return new StoredDocument(id, originalName, directory, source, expiresAt, name, owner, targets, editToken);
     }
 
     Path completedHwp() {

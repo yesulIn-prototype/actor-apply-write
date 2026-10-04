@@ -36,7 +36,7 @@ public final class FormBuilder {
         this.parser = new FormDefinitionParser(json);
     }
 
-    public record Built(UUID documentId, GeneratedDocument document) {}
+    public record Built(UUID documentId, GeneratedDocument document, String editToken) {}
 
     /**
      * @param owner   the job tag: applicants' and test builds of a version never share jobs
@@ -44,6 +44,11 @@ public final class FormBuilder {
      */
     Built build(Vid vid, int version, String owner, FormViews.GenerateRequest request,
             Map<String, MultipartFile> photos, boolean counted) throws IOException, HwpDocumentException {
+        return build(vid, version, owner, request, photos, counted, null);
+    }
+
+    Built build(Vid vid, int version, String owner, FormViews.GenerateRequest request,
+            Map<String, MultipartFile> photos, boolean counted, String editToken) throws IOException, HwpDocumentException {
         FormDefinition definition = definition(vid, version);
         Path source = source(vid, version);
         FormAnswers answers = FormAnswers.of(definition, request.answers(), photos);
@@ -56,16 +61,19 @@ public final class FormBuilder {
         String fileName = request.fileName() == null || request.fileName().isBlank()
                 ? FormComposer.fileName(definition, answers)
                 : request.fileName();
-        if (request.documentId() != null) {
+        // Operator tests have already passed admin authentication; public applicants need the capability.
+        if (request.documentId() != null && (!counted || editToken != null)) {
             try {
+                if (counted) documents.verifyEditToken(request.documentId(), editToken);
                 return new Built(request.documentId(),
-                        documents.buildJob(request.documentId(), owner, fileName, content, counted));
+                        documents.buildJob(request.documentId(), owner, fileName, content, counted),
+                        documents.editToken(request.documentId()));
             } catch (DocumentStore.DocumentNotFoundException expired) {
                 // The job expired (30 minutes) or belongs elsewhere: the answers are all here, so start afresh.
             }
         }
         UUID job = documents.startJob(store.info(vid, version).originalName(), source, owner);
-        return new Built(job, documents.buildJob(job, owner, fileName, content, counted));
+        return new Built(job, documents.buildJob(job, owner, fileName, content, counted), documents.editToken(job));
     }
 
     FormDefinition definition(Vid vid, int version) throws IOException {
