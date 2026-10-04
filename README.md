@@ -34,6 +34,7 @@
 - `frontend/`: React 19, TypeScript, Vite
 - `tools/standard-form/`: 예술in 표준 지원서(`backend/src/main/resources/standard/standard-v1.hwp`)를 rhwp로 다시 만드는 스크립트(`bash tools/standard-form/build.sh`)
 - `design/project-rules.md`: 사람과 AI가 같이 지키는 작업 규칙(루트 `CLAUDE.md`·`AGENTS.md`가 이 문서를 가리킨다)
+- `design/agent-skills.md`: Codex·Claude Code 공통 외부 스킬 적용 안내와 출처(`design/skills/`에 원문·부속 파일 보관)
 - `design/how-it-works.md`: 운영자·에이전트·브라우저·서버가 각각 무엇을 하는지, 파일 이름과 HWP·PDF가 만들어지는 과정
 - `design/notice-forms.md`: 공고별 작성 링크와 운영자 양식 정의(설계 결정, API, 저장 구조)
 - `design/form-definition-guide.md`: 지원서·칸 목록과 OTR 이미지·본문으로 정의/표준 설정 JSON을 쓰는 에이전트 규칙, 팀원 요청문, 반영표와 지원 한계. 고침 요청이 생기면 사례집·변경 기록과 함께 고친다
