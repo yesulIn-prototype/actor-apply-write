@@ -20,7 +20,9 @@ record StoredDocument(
         CompletedFileName completedFileName,
         String owner,
         List<EditTarget> targets,
-        String editToken) {
+        String editToken,
+        boolean hwpCounted,
+        boolean pdfCounted) {
 
     void requireEditToken(String token) {
         if (token == null || token.length() > 100 || !java.security.MessageDigest.isEqual(
@@ -30,16 +32,22 @@ record StoredDocument(
 
     StoredDocument withOwner(String formVersion) {
         return new StoredDocument(id, originalName, directory, source, expiresAt, completedFileName,
-                formVersion, targets, editToken);
+                formVersion, targets, editToken, hwpCounted, pdfCounted);
     }
 
     StoredDocument withTargets(List<EditTarget> places) {
         return new StoredDocument(id, originalName, directory, source, expiresAt, completedFileName,
-                owner, List.copyOf(places), editToken);
+                owner, List.copyOf(places), editToken, hwpCounted, pdfCounted);
     }
 
     StoredDocument withCompletedFileName(CompletedFileName name) {
-        return new StoredDocument(id, originalName, directory, source, expiresAt, name, owner, targets, editToken);
+        return new StoredDocument(id, originalName, directory, source, expiresAt, name, owner, targets, editToken, hwpCounted, pdfCounted);
+    }
+
+    StoredDocument withUsage(kr.yesulin.actor.stats.UsageCounter.Format format) {
+        return new StoredDocument(id, originalName, directory, source, expiresAt, completedFileName, owner, targets,
+                editToken, hwpCounted || format == kr.yesulin.actor.stats.UsageCounter.Format.HWP,
+                pdfCounted || format == kr.yesulin.actor.stats.UsageCounter.Format.PDF);
     }
 
     Path completedHwp() {

@@ -1,6 +1,8 @@
 package kr.yesulin.actor.form;
 
 import java.io.IOException;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,9 +34,16 @@ public final class FormStore {
     private final JsonMapper json;
 
     /** @param published versions ever published; the last one is what the link shows */
-    public record State(List<Integer> published, boolean closed) {
+    public record State(List<Integer> published, boolean closed, boolean deleted) {
         public State {
             published = List.copyOf(published);
+        }
+
+        /** Old state files and backups predate the deletion flag. */
+        @JsonCreator
+        public static State fromJson(@JsonProperty("published") List<Integer> published,
+                @JsonProperty("closed") boolean closed, @JsonProperty("deleted") Boolean deleted) {
+            return new State(published, closed, Boolean.TRUE.equals(deleted));
         }
 
         Optional<Integer> current() {
@@ -64,7 +73,7 @@ public final class FormStore {
 
     synchronized State state(Vid vid) throws IOException {
         Path file = folder(vid).resolve(STATE);
-        return Files.exists(file) ? json.readValue(file.toFile(), State.class) : new State(List.of(), false);
+        return Files.exists(file) ? json.readValue(file.toFile(), State.class) : new State(List.of(), false, false);
     }
 
     synchronized List<Integer> versions(Vid vid) throws IOException {
@@ -83,6 +92,7 @@ public final class FormStore {
 
     /** The version the operator edits: the latest one, or a new copy of it once that one is published. */
     synchronized int draft(Vid vid) throws IOException {
+        if (state(vid).deleted()) throw new FormExceptions.NotReady(List.of("삭제된 공고를 먼저 복구해 주세요."));
         List<Integer> versions = versions(vid);
         if (!versions.isEmpty() && !state(vid).published().contains(versions.getLast())) {
             return versions.getLast();
@@ -133,11 +143,18 @@ public final class FormStore {
         List<Integer> published = new ArrayList<>(state(vid).published());
         published.remove(Integer.valueOf(number));
         published.add(number);
-        write(folder(vid).resolve(STATE), new State(published, false));
+        write(folder(vid).resolve(STATE), new State(published, false, false));
     }
 
     synchronized void close(Vid vid, boolean closed) throws IOException {
-        write(folder(vid).resolve(STATE), new State(state(vid).published(), closed));
+        State previous = state(vid);
+        write(folder(vid).resolve(STATE), new State(previous.published(), closed, previous.deleted()));
+    }
+
+    synchronized void markDeleted(Vid vid, boolean deleted) throws IOException {
+        if (!Files.isDirectory(folder(vid))) throw new FormExceptions.NotFound();
+        State previous = state(vid);
+        write(folder(vid).resolve(STATE), new State(previous.published(), previous.closed(), deleted));
     }
 
     Optional<Path> source(Vid vid, int number) {

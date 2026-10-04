@@ -52,9 +52,15 @@ test('keeps direct edits on cancel and regenerates from input only after confirm
   await screen.findByText('지원서 파일이 만들어졌어요')
   expect(builds()).toHaveLength(2)
   const request = builds()[1]?.[1]
-  expect(request?.headers).toEqual({ 'X-Document-Edit-Token': 'private-capability' })
+  const requestHeaders = new Headers(request?.headers)
+
+  expect(requestHeaders.get('X-Document-Edit-Token')).toBe('private-capability')
+  expect(requestHeaders.get('X-Usage-Visitor')).toMatch(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/)
+  expect(requestHeaders.get('X-Usage-Visitor')).toBe(new Headers(builds()[0]?.[1]?.headers).get('X-Usage-Visitor'))
+
   if (!(request?.body instanceof FormData)) throw new Error('재생성 요청이 없습니다')
   const json = request.body.get('request')
+
   if (!(json instanceof Blob)) throw new Error('입력값 요청 파일이 없습니다')
   expect(JSON.parse(await json.text())).toMatchObject({ documentId: 'private-job', answers: { name: ['재생성 입력'] } })
 })

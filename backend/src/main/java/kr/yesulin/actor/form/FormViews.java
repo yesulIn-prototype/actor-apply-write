@@ -15,7 +15,8 @@ public final class FormViews {
         /** The link opens the latest published version. */
         PUBLISHED,
         /** The operator ended the link. */
-        CLOSED
+        CLOSED,
+        DELETED
     }
 
     /**
@@ -42,7 +43,14 @@ public final class FormViews {
         }
     }
 
-    public record Summary(String vid, String title, Status status, int publishedVersion, int editingVersion) {}
+    public record Summary(String vid, String title, Status status, int publishedVersion, int editingVersion,
+            kr.yesulin.actor.stats.UsageCounter.Counts usage) {}
+
+    public record SummaryPage(List<Summary> items, int page, int pageSize, int total, int totalPages) {
+        public SummaryPage {
+            items = List.copyOf(items);
+        }
+    }
 
     /**
      * @param editingVersion   the version the editor shows: the draft, or the latest published one

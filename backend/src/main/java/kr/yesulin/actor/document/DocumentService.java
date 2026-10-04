@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 import kr.yesulin.actor.stats.CompletionCounter;
+import kr.yesulin.actor.stats.UsageCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,11 +22,13 @@ public final class DocumentService {
     private final DocumentStore store;
     private final PdfConverter pdfConverter;
     private final CompletedDocumentWriter writer;
+    private final UsageCounter usage;
 
-    public DocumentService(DocumentStore store, CompletionCounter counter, PdfConverter pdfConverter) {
+    public DocumentService(DocumentStore store, CompletionCounter counter, PdfConverter pdfConverter, UsageCounter usage) {
         this.store = store;
         this.pdfConverter = pdfConverter;
         this.writer = new CompletedDocumentWriter(store, counter, pdfConverter);
+        this.usage = usage;
     }
 
     /**
@@ -118,7 +121,21 @@ public final class DocumentService {
                     Files.deleteIfExists(draft);
                 }
             }
-            return new GeneratedDocument(stored.completedFileName().pdf(), Files.readAllBytes(pdf));
+            byte[] bytes = Files.readAllBytes(pdf);
+            if (!stored.pdfCounted() && usage.record(stored.owner(), null, UsageCounter.Format.PDF)) {
+                store.markUsage(documentId, UsageCounter.Format.PDF);
+            }
+            return new GeneratedDocument(stored.completedFileName().pdf(), bytes);
+        }
+    }
+
+    /** Called only after a public HWP generation succeeded; tests never supply a public owner. */
+    public void countHwp(UUID documentId, String visitor) throws IOException {
+        synchronized (store.require(documentId).directory()) {
+            StoredDocument stored = store.require(documentId);
+            if (!stored.hwpCounted() && usage.record(stored.owner(), visitor, UsageCounter.Format.HWP)) {
+                store.markUsage(documentId, UsageCounter.Format.HWP);
+            }
         }
     }
 

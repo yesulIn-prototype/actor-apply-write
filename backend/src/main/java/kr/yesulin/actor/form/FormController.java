@@ -19,9 +19,11 @@ import org.springframework.web.multipart.MultipartHttpServletRequest;
 @RequestMapping("/api/forms")
 public final class FormController {
     private final FormApplyService forms;
+    private final kr.yesulin.actor.document.DocumentService documents;
 
-    public FormController(FormApplyService forms) {
+    public FormController(FormApplyService forms, kr.yesulin.actor.document.DocumentService documents) {
         this.forms = forms;
+        this.documents = documents;
     }
 
     @GetMapping("/{vid}")
@@ -34,7 +36,10 @@ public final class FormController {
             @PathVariable String vid,
             @RequestPart("request") FormViews.GenerateRequest request,
             @RequestHeader(value = kr.yesulin.actor.document.DocumentEdits.TOKEN_HEADER, required = false) String editToken,
+            @RequestHeader(value = "X-Usage-Visitor", required = false) String visitor,
             MultipartHttpServletRequest multipart) throws IOException, HwpDocumentException {
-        return FormRequests.built(forms.generate(new Vid(vid), request, FormRequests.photos(multipart), editToken));
+        FormBuilder.Built built = forms.generate(new Vid(vid), request, FormRequests.photos(multipart), editToken);
+        documents.countHwp(built.documentId(), visitor);
+        return FormRequests.built(built);
     }
 }

@@ -66,7 +66,7 @@ public final class DocumentStore {
         Files.write(source, content);
         StoredDocument stored = new StoredDocument(
                 id, safeFileName(originalName), directory, source, clock.instant().plus(ttl),
-                CompletedFileName.defaultFor(safeFileName(originalName)), "", java.util.List.of(), UUID.randomUUID().toString());
+                CompletedFileName.defaultFor(safeFileName(originalName)), "", java.util.List.of(), UUID.randomUUID().toString(), false, false);
         documents.put(id, stored);
         return stored;
     }
@@ -82,6 +82,10 @@ public final class DocumentStore {
 
     void attachCompletedFileName(UUID id, CompletedFileName fileName) {
         replace(require(id).withCompletedFileName(fileName));
+    }
+
+    void markUsage(UUID id, kr.yesulin.actor.stats.UsageCounter.Format format) {
+        replace(require(id).withUsage(format));
     }
 
     private StoredDocument replace(StoredDocument updated) {

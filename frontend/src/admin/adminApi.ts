@@ -5,7 +5,16 @@ import type { Answers, Photos, PublicForm } from '../form/types'
 
 const TOKEN_KEY = 'yesulin.adminToken'
 
-export type Status = 'DRAFT' | 'PUBLISHED' | 'CLOSED'
+export type Status = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'DELETED'
+
+export type UsageCounts = {
+  readonly visitors: number
+  readonly hwp: number
+  readonly pdf: number
+  readonly unidentifiedJobs: number
+}
+
+export type UsageSnapshot = { readonly startedAt: string; readonly counts: UsageCounts }
 
 export type Summary = {
   readonly vid: string
@@ -13,6 +22,15 @@ export type Summary = {
   readonly status: Status
   readonly publishedVersion: number
   readonly editingVersion: number
+  readonly usage: UsageCounts
+}
+
+export type SummaryPage = {
+  readonly items: readonly Summary[]
+  readonly page: number
+  readonly pageSize: number
+  readonly total: number
+  readonly totalPages: number
 }
 
 export type Cell = {
@@ -77,7 +95,23 @@ async function json<T>(url: string, init: RequestInit = { method: 'GET' }): Prom
   return response.json() as Promise<T>
 }
 
-export const listForms = () => json<readonly Summary[]>('/api/admin/forms')
+export function listForms(page: number, query: string, deleted = false): Promise<SummaryPage> {
+  const params = new URLSearchParams({ page: String(page), query })
+
+  if (deleted) params.set('deleted', 'true')
+
+  return json<SummaryPage>(`/api/admin/forms?${params}`)
+}
+
+export const loadUsage = () => json<UsageSnapshot>('/api/admin/usage')
+
+export async function deleteNotice(vid: string): Promise<void> {
+  await request(`/api/admin/forms/${vid}`, { method: 'DELETE', headers: auth() })
+}
+
+export async function restoreNotice(vid: string): Promise<void> {
+  await request(`/api/admin/forms/${vid}/restore`, { method: 'POST', headers: auth() })
+}
 
 export const loadForm = (vid: string) => json<Detail>(`/api/admin/forms/${vid}`)
 

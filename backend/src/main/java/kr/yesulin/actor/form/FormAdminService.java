@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import kr.yesulin.actor.document.CellSnapshot;
@@ -28,26 +29,39 @@ public final class FormAdminService {
     private final DocumentService documents;
     private final PreviewService previews;
     private final StandardForms standards;
+    private final kr.yesulin.actor.stats.UsageCounter usage;
 
     public FormAdminService(FormStore store, FormBuilder builder, DocumentService documents, PreviewService previews,
-            StandardForms standards) {
+            StandardForms standards, kr.yesulin.actor.stats.UsageCounter usage) {
         this.store = store;
         this.builder = builder;
         this.documents = documents;
         this.previews = previews;
         this.standards = standards;
+        this.usage = usage;
     }
 
-    public List<FormViews.Summary> list() throws IOException {
+    public FormViews.SummaryPage list(String query, int requestedPage, boolean deleted) throws IOException {
+        String search = query.strip().toLowerCase(Locale.ROOT);
         List<FormViews.Summary> summaries = new ArrayList<>();
         for (Vid vid : store.all()) {
             List<Integer> versions = store.versions(vid);
             FormStore.State state = store.state(vid);
+            if (state.deleted() != deleted) continue;
             int editing = versions.isEmpty() ? 0 : versions.getLast();
-            summaries.add(new FormViews.Summary(vid.value(), title(vid, editing), status(state),
-                    state.current().orElse(0), editing));
+            String title = title(vid, editing);
+            if (vid.value().contains(search) || title.toLowerCase(Locale.ROOT).contains(search)) {
+                summaries.add(new FormViews.Summary(vid.value(), title, status(state),
+                        state.current().orElse(0), editing, usage.counts(vid.value())));
+            }
         }
-        return summaries;
+        int pageSize = 20;
+        int total = summaries.size();
+        int totalPages = total == 0 ? 1 : (total - 1) / pageSize + 1;
+        int page = Math.min(requestedPage, totalPages);
+        int start = (page - 1) * pageSize;
+        return new FormViews.SummaryPage(summaries.subList(start, Math.min(start + pageSize, total)),
+                page, pageSize, total, totalPages);
     }
 
     public FormViews.Detail detail(Vid vid) throws IOException, HwpDocumentException {
@@ -163,6 +177,13 @@ public final class FormAdminService {
         return detail(vid);
     }
 
+    public void delete(Vid vid) throws IOException { store.markDeleted(vid, true); }
+
+    public FormViews.Detail restore(Vid vid) throws IOException, HwpDocumentException {
+        store.markDeleted(vid, false);
+        return detail(vid);
+    }
+
     /** A form the engine cannot read is refused before it replaces the current one. */
     private static void readable(byte[] hwp) throws IOException, HwpDocumentException {
         Path probe = Files.createTempFile("yesulin-form-", ".hwp");
@@ -191,6 +212,7 @@ public final class FormAdminService {
     }
 
     private int editing(Vid vid) throws IOException {
+        if (store.state(vid).deleted()) throw new FormExceptions.NotReady(List.of("삭제된 공고를 먼저 복구해 주세요."));
         List<Integer> versions = store.versions(vid);
         if (versions.isEmpty()) {
             throw new FormExceptions.NotReady(List.of("원본 지원서 파일을 먼저 올려주세요."));
@@ -207,6 +229,7 @@ public final class FormAdminService {
     }
 
     private static FormViews.Status status(FormStore.State state) {
+        if (state.deleted()) return FormViews.Status.DELETED;
         if (state.published().isEmpty()) {
             return FormViews.Status.DRAFT;
         }

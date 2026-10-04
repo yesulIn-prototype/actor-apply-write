@@ -49,6 +49,7 @@ public final class FormApplyService {
 
     private FormStore.State open(Vid vid) throws IOException {
         FormStore.State state = store.state(vid);
+        if (state.deleted()) throw new FormExceptions.NotFound();
         if (state.published().isEmpty()) {
             throw new FormExceptions.NotFound();
         }

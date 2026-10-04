@@ -1,5 +1,7 @@
 # 공고별 지원서 작성 링크
 
+운영자 목록은 `GET /api/admin/forms?page=1&query=`에서 검색 결과를 20개씩 받는다. vid·편집 버전 제목의 부분 일치 검색과 페이지 응답 계약은 [공고 목록 관리](admin-list.md)를 따른다.
+
 ## 상태
 
 - 확정일: 2026-10-02
@@ -98,7 +100,10 @@
 | POST | `/api/forms/{vid}/generate` | 공개 | multipart `request`(`{version, documentId, answers, fileName}`; `fileName`이 비면 템플릿) + `photo-<항목id>`. HWP 첨부, `X-Document-Id`, `X-Document-Edit-Token`. 기존 작업 재사용은 토큰 헤더도 필요. ID만 보내면 새 작업. 잘못된 토큰은 403. 공개된 적 없는 버전 409 `FORM_CHANGED`, 답 오류 400 `INVALID_ANSWER` |
 | GET | `/api/documents/{id}/editing` | 작업 수정 토큰 | 현재 HWP의 `revision`, 페이지, 편집 가능한 글·위치. 중첩 표·여러 구역 등 안전한 좌표 매핑 불가 시 400 `INVALID_DOCUMENT_EDIT` |
 | POST | `/api/documents/{id}/editing` | 작업 수정 토큰 | `{revision, changes:[{id,text,inputStyle}]}`. 1~2개 영역 교체 후 최신 HWP 응답. 오래된 지문 409 `DOCUMENT_EDIT_CONFLICT`, 권한 오류 403 `DOCUMENT_EDIT_FORBIDDEN` |
-| GET | `/api/admin/forms` | 토큰 | 공고 목록 |
+| GET | `/api/admin/forms?page=1&query=&deleted=false` | 토큰 | 검색·20개 서버 페이징, 공고별 이용 브라우저·HWP/PDF 집계. `deleted=true`는 삭제된 공고만 조회 |
+| DELETE | `/api/admin/forms/{vid}` | 토큰 | 원본·정의·버전을 보존하며 새 지원 중단. 204 |
+| POST | `/api/admin/forms/{vid}/restore` | 토큰 | 삭제 전 공개·종료·초안 상태로 복구 |
+| GET | `/api/admin/usage` | 토큰 | 전체 익명 브라우저와 최초 HWP/PDF 수, 집계 시작 시각. [집계 기준](admin-list.md) |
 | GET | `/api/admin/forms/{vid}` | 토큰 | 편집 중 버전, 원본 칸 목록, 정의, 문제, 테스트 여부 |
 | POST | `/api/admin/forms/{vid}/source` | 토큰 | 원본 올리기(공개된 버전이면 새 버전) |
 | GET | `/api/admin/standard` | 토큰 | 표준 지원서 추가 항목 카탈로그(`{base, extras: [{key, label, type, operatorOptions}]}`). JSON 작성 참고용이며 현재 운영자 화면은 호출하지 않음 |

@@ -2,6 +2,7 @@ import type { Completed } from '../api'
 import { downloadName, request } from '../api'
 import type { Answers, Photos, PublicForm } from './types'
 import { filledAnswers } from './types'
+import { usageVisitor } from './usageVisitor'
 
 export async function fetchForm(vid: string): Promise<PublicForm> {
   const response = await request(`/api/forms/${vid}`, { method: 'GET' })
@@ -35,11 +36,18 @@ export async function buildForm({ url, form, answers, photos, documentId, editTo
   Object.entries(photos).forEach(([id, photo]) => {
     if (photo) body.append(`photo-${id}`, photo, photo.name)
   })
-  const response = await request(url, { method: 'POST', body, headers: { ...headers, ...(editToken ? { 'X-Document-Edit-Token': editToken } : {}) } })
+  const requestHeaders = new Headers(headers)
+
+  if (editToken) requestHeaders.set('X-Document-Edit-Token', editToken)
+
+  if (url.startsWith('/api/forms/')) requestHeaders.set('X-Usage-Visitor', usageVisitor())
+  const response = await request(url, { method: 'POST', body, headers: requestHeaders })
   const job = response.headers.get('X-Document-Id')
+
   if (!job) throw new Error('처리하지 못했어요. 다시 시도해주세요')
   const savedName = downloadName(response, `${form.title}.hwp`)
   const blob = await response.blob()
+
   return {
     documentId: job,
     editToken: response.headers.get('X-Document-Edit-Token') ?? undefined,

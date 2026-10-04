@@ -1,18 +1,21 @@
 package kr.yesulin.actor.form;
 
 import java.io.IOException;
-import java.util.List;
 import kr.yesulin.actor.document.HwpDocumentException;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
@@ -29,8 +32,23 @@ public final class AdminFormController {
     }
 
     @GetMapping
-    public List<FormViews.Summary> list() throws IOException {
-        return forms.list();
+    public FormViews.SummaryPage list(@RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "") String query, @RequestParam(defaultValue = "false") boolean deleted) throws IOException {
+        if (page < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "페이지는 1 이상이어야 합니다.");
+        }
+        return forms.list(query, page, deleted);
+    }
+
+    @DeleteMapping("/{vid}")
+    public ResponseEntity<Void> delete(@PathVariable String vid) throws IOException {
+        forms.delete(new Vid(vid));
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{vid}/restore")
+    public FormViews.Detail restore(@PathVariable String vid) throws IOException, HwpDocumentException {
+        return forms.restore(new Vid(vid));
     }
 
     @GetMapping("/{vid}")
