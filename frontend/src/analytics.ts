@@ -1,5 +1,12 @@
 import type { Platform } from './platform'
 
+declare global {
+  interface Window {
+    /** Shared queue: gtag writes Arguments, while other scripts may already have queued values. */
+    dataLayer?: unknown[]
+  }
+}
+
 /** GA4 web stream of apply.yesulin.art. Public by design: every page load carries it. */
 const MEASUREMENT_ID = 'G-DDJ8ZGPF8Q'
 /** Local runs, tunnels and the Railway address stay out of the reports. */
@@ -64,8 +71,7 @@ export function pageLocation(screen: Screen, source: URLSearchParams): string {
 
 export function startAnalytics(platform: Platform) {
   if (gtag || !MEASUREMENT_ID || window.location.hostname !== PRODUCTION_HOST) return
-  const page = window as unknown as { dataLayer?: unknown[] }
-  const dataLayer = (page.dataLayer ??= [])
+  const dataLayer = (window.dataLayer ??= [])
   gtag = function () {
     // gtag.js reads commands only as Arguments objects, not arrays.
     // oxlint-disable-next-line prefer-rest-params

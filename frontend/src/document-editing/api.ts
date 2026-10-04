@@ -49,17 +49,22 @@ export async function editDocument(completed: Completed, revision: string, chang
 }
 
 export function numberRegions(regions: readonly Region[]): readonly NumberedRegion[] {
-  const first = (region: Region) => [...region.boxes].sort((a, b) => a.page - b.page || a.y - b.y || a.x - b.x)[0]
-  const sorted = [...regions].filter((region) => region.boxes.length > 0).sort((a, b) => {
-    const left = first(a), right = first(b)
-    if (!left || !right) return 0
-    return left.page - right.page || left.y - right.y || left.x - right.x || a.id.localeCompare(b.id)
+  const positioned = regions.flatMap((region) => {
+    const first = [...region.boxes].sort((a, b) => a.page - b.page || a.y - b.y || a.x - b.x)[0]
+
+    return first ? [{ region, first }] : []
+  })
+  const sorted = positioned.sort((a, b) => {
+    return a.first.page - b.first.page || a.first.y - b.first.y || a.first.x - b.first.x || a.region.id.localeCompare(b.region.id)
   })
   const counts = new Map<number, number>()
-  return sorted.map((region) => {
-    const page = first(region)?.page ?? 1
+
+  return sorted.map(({ region, first }) => {
+    const page = first.page
     const count = (counts.get(page) ?? 0) + 1
+
     counts.set(page, count)
+
     return { ...region, number: `${page}-${count}` }
   })
 }

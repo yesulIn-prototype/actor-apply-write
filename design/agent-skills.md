@@ -13,7 +13,7 @@
 
 첫 항목은 사용자가 첨부한 `verification-before-completion`만 설치했다. Superpowers 전체 워크플로·플러그인·훅은 설치 범위에 포함하지 않는다.
 
-anti-slop은 일반 코딩 지침만 담긴 스킬이 아니라 Oxlint 플러그인을 설치하는 절차다. 이번 추가에서는 설치 스킬, `references/update.md`, `scripts/install.mjs`, `assets/anti-slop/`를 함께 보관했다. 애플리케이션의 의존성·lint 설정은 바꾸지 않았다. 원문을 읽는 것만으로 설치 스크립트를 실행하지 않는다. 실제 도입 요청이 있을 때 저장소의 설계 결정 절차와 설치 스킬을 따른다.
+anti-slop은 일반 코딩 지침만 담긴 스킬이 아니라 Oxlint 플러그인을 설치하는 절차다. 설치 스킬, `references/update.md`, `scripts/install.mjs`, `assets/anti-slop/`를 함께 보관한다. 2026-10-04 사용자 요청으로 실제 플러그인을 `frontend/tools/oxlint/anti-slop/`에 설치했고, 기존 Oxlint에 일반 규칙을 오류 수준으로 연결했다. 적용 결과와 남은 진단은 [anti-slop-review.md](anti-slop-review.md)에 기록한다. 원문을 읽는 것만으로 설치·업데이트 스크립트를 다시 실행하지 않는다.
 
 attention-span의 원본 스킬은 사용자 호출용(`disable-model-invocation: true`)이다. 이 프로젝트에서는 위 표에 따라 `attention-kind`를 응답 지침으로 참고하며, 다른 스타일을 동시에 적용하지 않는다. 사용자에게 ADHD가 있다고 가정하지 않는다. 영어 지시 대신 한국어로 답하고, 자세한 설명 요청과 필수 검증을 생략하지 않는다. 다음 스타일은 사용자가 선택하거나 요약을 요청했을 때 해당 원문을 읽는다.
 

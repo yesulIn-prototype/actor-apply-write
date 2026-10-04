@@ -33,6 +33,6 @@ test('reports a screen by its path and source only, never the form id', () => {
 
 test('sends nothing outside the production address', () => {
   startAnalytics(KAKAO)
-  expect((window as unknown as { dataLayer?: unknown[] }).dataLayer).toBeUndefined()
+  expect(window.dataLayer).toBeUndefined()
   expect(document.querySelector('script[src*="googletagmanager"]')).toBeNull()
 })

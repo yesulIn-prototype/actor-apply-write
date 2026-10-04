@@ -5,7 +5,7 @@
 ## 1. 작업 방식
 
 - 대화와 문서는 한국어로 쓴다.
-- **문서는 `design/`에 둔다.** 예외: 루트 `README.md`(실행·배포 안내), 도구용 진입 파일(`CLAUDE.md`, `AGENTS.md`), 테스트 리소스 옆 설명(`backend/src/test/resources/forms/README.md`).
+- **문서는 `design/`에 둔다.** 예외: 루트 `README.md`(실행·배포 안내), 도구용 진입 파일(`CLAUDE.md`, `AGENTS.md`), 테스트 리소스 옆 설명(`backend/src/test/resources/forms/README.md`), 외부 도구 번들과 함께 보존하는 `LICENSE`·`UPSTREAM.md`.
 - 지금 구조와 관계가 멀어진 문서는 남겨 두지 않고 지운다. 남길 문서는 README의 "구성" 목록에 올린다.
 - **커밋·푸시·배포는 요청이 있을 때만 한다.** 작업을 마치면 기본으로 커밋 메시지만 제안한다(한국어, 첫 줄 `feat:`/`fix:`/`docs:`/`chore:` + 요약, 본문에 이유와 바뀐 것).
 - 다른 저장소(예: `2026-yesulin`), 운영 서버 설정(Railway 변수 등)은 고치지 않고 방법만 안내한다.
@@ -66,3 +66,4 @@
 | `mvp-evaluation.md` | 공고별 시험 기록, 통과 조건과 MVP 성능 지표 |
 | `project-rules.md` | 이 문서 |
 | `agent-skills.md` | 네 외부 스킬의 경로, 적용 조건, 고정 커밋과 갱신 방법 |
+| `anti-slop-review.md` | Oxlint 플러그인 도입, 작은 리팩터링 검증, 남은 진단과 CI 영향 |
