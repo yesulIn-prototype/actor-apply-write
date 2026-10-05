@@ -139,7 +139,7 @@ test('takes a rows item row by row up to the limit and sends only the rows writt
   fireEvent.change(career.getByLabelText('작품명'), { target: { value: '햄릿' } })
   fireEvent.click(career.getByRole('button', { name: '+ 줄 더하기 (1/2)' }))
   expect(career.getByRole('button', { name: '2줄까지 쓸 수 있어요' })).toBeDisabled()
-  fireEvent.change(screen.getByLabelText('이름 *'), { target: { value: '홍길동' } })
+  fireEvent.change(await screen.findByLabelText('이름 *'), { target: { value: '홍길동' } })
   fireEvent.change(screen.getByLabelText('연락처 *'), { target: { value: '01012345678' } })
   fireEvent.click(screen.getByRole('button', { name: '여' }))
 
@@ -241,7 +241,7 @@ test('in an in-app browser, asks for the system browser and hands the finished f
   window.history.replaceState(null, '', '/apply/22382')
   render(<ApplyApp vid="22382" />)
   expect(await screen.findByText('Safari에서 열어주세요')).toBeInTheDocument()
-  fireEvent.change(screen.getByLabelText('이름 *'), { target: { value: '홍길동' } })
+  fireEvent.change(await screen.findByLabelText('이름 *'), { target: { value: '홍길동' } })
   fireEvent.change(screen.getByLabelText('연락처 *'), { target: { value: '01012345678' } })
   fireEvent.click(screen.getByRole('button', { name: '남' }))
 

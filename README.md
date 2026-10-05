@@ -39,6 +39,7 @@
 - `design/how-it-works.md`: 운영자·에이전트·브라우저·서버가 각각 무엇을 하는지, 파일 이름과 HWP·PDF가 만들어지는 과정
 - `design/notice-forms.md`: 공고별 작성 링크와 운영자 양식 정의(설계 결정, API, 저장 구조)
 - `design/admin-list.md`: 운영자 공고 목록의 서버 검색·20개 페이징, 삭제·복구와 익명 브라우저·파일 집계 기준
+- `design/application-drafts.md`: 사진을 제외한 IndexedDB 입력 초안, 7일 보관·직접 삭제·재방문 복원 기준
 - `design/form-definition-guide.md`: 지원서·칸 목록과 OTR 이미지·본문으로 정의/표준 설정 JSON을 쓰는 에이전트 규칙, 팀원 요청문, 반영표와 지원 한계. 고침 요청이 생기면 사례집·변경 기록과 함께 고친다
 - `design/input-typography.md`: 입력 글자 서식(대표 글꼴·크기) 결정
 - `design/otr-form-survey-2026-10.md`: OTR 공고 189건의 지원서 형식 조사 종합(상세: `design/otr-attachment-audit-2026-10-03.md`)

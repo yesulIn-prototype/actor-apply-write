@@ -1,4 +1,5 @@
 import { OutputNameField } from '../OutputNameField'
+import type { ReactNode } from 'react'
 import { BottomCTA, Button, Footer, TopBar } from '../ui'
 import { FormFields } from './FormFields'
 import type { Answers, Photos, PublicForm } from './types'
@@ -15,10 +16,11 @@ type Props = {
   readonly onValues: (id: string, values: readonly string[]) => void
   readonly onPhoto: (id: string, file?: File) => void
   readonly onSubmit: () => void
+  readonly draftPanel?: ReactNode
 }
 
 /** A notice link's form: the operator's questions, nothing to upload. */
-export function NoticeFillScreen({ form, answers, photos, busy, outputName, onOutputName, onValues, onPhoto, onSubmit }: Props) {
+export function NoticeFillScreen({ form, answers, photos, busy, outputName, onOutputName, onValues, onPhoto, onSubmit, draftPanel }: Props) {
   const left = missing(form, answers, photos)
   return (
     <>
@@ -26,9 +28,10 @@ export function NoticeFillScreen({ form, answers, photos, busy, outputName, onOu
       <section className="content notice-content">
         <h1 className="title">{form.title}</h1>
         <p className="notice-lead">아래 내용을 채우면 공고의 지원서 파일로 만들어 드려요</p>
+        {draftPanel}
         <FormFields form={form} answers={answers} photos={photos} onValues={onValues} onPhoto={onPhoto} />
         <OutputNameField value={outputName} onChange={onOutputName} />
-        <Footer />
+        <Footer draftSaved={draftPanel !== undefined} />
       </section>
       <BottomCTA>
         {left.length > 0 && (
