@@ -38,7 +38,7 @@ export function DoneScreen(props: Props) {
       <h1 className="title">지원서 파일이 만들어졌어요</h1>
       <p className="file-name">{props.completed.file.name}</p>
       <p className="done-note">{editable
-        ? '제출 전 내용을 확인해주세요. 직접 수정에서 빈칸·제목·안내문을 고치고, 글을 다른 칸으로 옮길 수 있어요. 사진·입력 항목을 다시 바꾸려면 뒤로 가세요.'
+        ? '지원서를 수정하려면 오른쪽 위 확대 버튼으로 확대해서 고칠 칸을 눌러주세요. 사진을 바꾸려면 뒤로 가세요.'
         : '앱에서 만든 지원서를 이어서 열었어요. 저장하거나 메일로 보내주세요. 고칠 곳이 있으면 새로 작성해주세요.'}</p>
       {props.guide}
       {props.completed.editToken && props.onDocumentEdited

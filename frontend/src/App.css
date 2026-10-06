@@ -439,15 +439,21 @@
   display: flex;
   flex-direction: column;
   background: var(--grey-100);
-  padding-top: env(safe-area-inset-top);
+  padding-top: calc(56px + env(safe-area-inset-top));
+  overflow: hidden;
 }
 
 .zoom-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 56px;
-  padding: 0 16px;
+  min-height: calc(56px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 16px 0;
   background: var(--white);
   font-size: 16px;
   font-weight: 700;
@@ -461,6 +467,7 @@
 }
 
 .zoom-hint {
+  flex-shrink: 0;
   padding: 10px 16px;
   color: var(--grey-600);
   font-size: 13px;
@@ -492,6 +499,7 @@
 }
 
 .zoom-controls {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;

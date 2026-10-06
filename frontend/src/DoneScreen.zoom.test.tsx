@@ -24,7 +24,8 @@ test('opens an enlarged page and edits its field from the zoomed preview', async
   />)
 
   await screen.findByRole('button', { name: '1쪽 미리보기 확대' })
-  fireEvent.click(screen.getByRole('button', { name: '지원서 직접 수정' }))
+  expect(screen.queryByRole('button', { name: '지원서 직접 수정' })).not.toBeInTheDocument()
+  expect(screen.getByText(/확대해서 고칠 칸을 눌러/)).toBeInTheDocument()
   const zoomButton = screen.getByRole('button', { name: '1쪽 미리보기 확대' })
   fireEvent.click(zoomButton)
   const zoom = screen.getByRole('dialog', { name: '1쪽 미리보기 확대' })
