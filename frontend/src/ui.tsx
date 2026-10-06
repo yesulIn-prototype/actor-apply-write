@@ -42,10 +42,11 @@ export function Button({ children, onClick, disabled, loading, variant = 'primar
 
 export const INQUIRY_URL = 'https://pf.kakao.com/_pbTBX'
 
-export function Footer({ draftSaved = false }: { readonly draftSaved?: boolean }) {
+export function Footer({ draftSaved = false, children }: { readonly draftSaved?: boolean; readonly children?: ReactNode }) {
   return (
     <footer className="footer">
-      <p>서버의 사진·완성 파일은 30분 뒤 삭제돼요.{draftSaved && ' 입력 초안은 이 브라우저에 7일간 보관돼요.'}</p>
+      <p>서버의 사진·완성 파일은 30분 뒤 삭제돼요.{draftSaved && ' 입력 초안은 이 브라우저에 자동 저장되며 마지막 수정 후 7일간 보관돼요. 사진과 완성 파일은 브라우저에 저장하지 않아요.'}</p>
+      {children}
       <a href={INQUIRY_URL} target="_blank" rel="noopener noreferrer">
         카카오톡 문의
         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">

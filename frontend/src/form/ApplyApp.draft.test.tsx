@@ -21,6 +21,9 @@ test('continues text and chosen output name when returning to a notice after unm
   // given
   const first = render(<ApplyApp vid="99001" />)
   fireEvent.change(await screen.findByLabelText('성명 *'), { target: { value: '이어 쓰는 사람' } })
+  expect(screen.getByRole('link', { name: '공고 보러 가기 ↗' })).toHaveAttribute('href', 'https://yesulin.art/posts/99001')
+  expect(screen.getByText('아래 내용을 채우면 바로 이 공고에 지원할 수 있는 지원서 파일로 만들어 드려요.')).toBeVisible()
+  expect(screen.getByRole('button', { name: '저장된 내용 지우기' }).closest('footer')).toBeInTheDocument()
   fireEvent.change(screen.getByLabelText('완성 파일 이름'), { target: { value: '이어서 쓰는 지원서' } })
   await screen.findByText('이 브라우저에 저장됐어요')
   // when

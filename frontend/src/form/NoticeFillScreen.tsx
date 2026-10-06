@@ -28,11 +28,11 @@ export function NoticeFillScreen({ form, answers, photos, busy, outputName, onOu
       <TopBar />
       <section className="content notice-content">
         <h1 className="title">{form.title}</h1>
-        <p className="notice-lead">아래 내용을 채우면 공고의 지원서 파일로 만들어 드려요</p>
-        {draftPanel}
+        <a className="notice-source" href={`https://yesulin.art/posts/${form.vid}`} target="_blank" rel="noopener noreferrer">공고 보러 가기 ↗</a>
+        <p className="notice-lead">아래 내용을 채우면 바로 이 공고에 지원할 수 있는 지원서 파일로 만들어 드려요.</p>
         <FormFields form={form} answers={answers} photos={photos} onValues={onValues} onPhoto={onPhoto} />
         <OutputNameField value={outputName} onChange={onOutputName} />
-        <Footer draftSaved={draftPanel !== undefined} />
+        <Footer draftSaved={draftPanel !== undefined}>{draftPanel}</Footer>
       </section>
       <BottomCTA>
         {left.length > 0 && (

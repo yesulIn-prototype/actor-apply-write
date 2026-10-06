@@ -18,10 +18,9 @@ export function DraftPanel({ status, restored, changed, hasPhotos, onClear }: {
   readonly onClear: () => void
 }) {
   return <aside className="draft-panel" aria-label="입력 내용 자동 저장">
-    <p className={status === 'error' || status === 'delete-error' ? 'draft-error' : ''} role="status">{STATUS[status]}</p>
+    {status !== 'ready' && <p className={status === 'error' || status === 'delete-error' ? 'draft-error' : ''} role="status">{STATUS[status]}</p>}
     {restored && <p>이전에 작성한 내용을 불러왔어요.{hasPhotos ? ' 사진은 다시 선택해 주세요.' : ''}</p>}
     {changed && <p>양식이 바뀌어 동일한 항목만 불러왔어요. 선택값과 빠진 항목을 확인해 주세요.</p>}
-    <p>마지막 수정 후 7일 동안 보관해요. 사진과 완성 파일은 저장하지 않아요.</p>
     <button type="button" onClick={onClear}>저장된 내용 지우기</button>
   </aside>
 }

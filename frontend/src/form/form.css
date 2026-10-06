@@ -1,4 +1,14 @@
 /* Operator-defined notice links (/apply/<vid>). */
+.notice-source {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--blue-600);
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .notice-lead {
   margin-top: 8px;
   font-size: 15px;
