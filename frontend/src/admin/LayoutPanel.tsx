@@ -13,6 +13,25 @@ export function LayoutPanel({ vid, cells, revision }: { vid: string; cells: read
   const [loaded, setLoaded] = useState<Loaded>()
   const [error, setError] = useState('')
   const [picked, setPicked] = useState<string>()
+  const [copyStatus, setCopyStatus] = useState('')
+
+  async function copyCells() {
+    const rows = cells.map((cell) => {
+      const span = cell.rowSpan > 1 || cell.columnSpan > 1 ? ` (${cell.rowSpan}×${cell.columnSpan})` : ''
+
+      const text = (cell.text || '(빈 칸)').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/\|/g, '&#124;').replace(/\r\n|\r|\n/g, '<br>')
+
+      return `| ${cell.address} | ${cell.row}·${cell.column}${span} | ${text} |`
+    })
+
+    try {
+      await navigator.clipboard.writeText(['| 칸 | 행·열 (병합) | 원문 |', '| --- | --- | --- |', ...rows].join('\n'))
+      setCopyStatus('전체 칸 목록을 복사했어요.')
+    } catch { // no-excuse-ok: catch - clipboard permission failures are shown to the operator
+      setCopyStatus('복사하지 못했어요. 칸 목록을 펼쳐 직접 선택해 복사해주세요.')
+    }
+  }
 
   useEffect(() => {
     let active = true
@@ -20,9 +39,11 @@ export function LayoutPanel({ vid, cells, revision }: { vid: string; cells: read
     loadLayout(vid)
       .then(async (layout) => {
         urls = await Promise.all(layout.pages.map((page) => layoutPageUrl(vid, page.number)))
+
         if (active) setLoaded({ layout, urls })
       })
       .catch((reason) => { if (active) setError(message(reason)) })
+
     return () => {
       active = false
       urls.forEach((url) => URL.revokeObjectURL(url))
@@ -70,7 +91,14 @@ export function LayoutPanel({ vid, cells, revision }: { vid: string; cells: read
         ))}
       </div>
       <details className="admin-cells">
-        <summary>칸 목록 ({cells.length}개)</summary>
+        <summary>
+          칸 목록 ({cells.length}개){' '}
+          <button type="button" disabled={cells.length === 0} onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            void copyCells()
+          }}>전체 복사</button>
+        </summary>
         <table className="admin-table">
           <thead><tr><th>칸</th><th>행·열 (병합)</th><th>원문</th></tr></thead>
           <tbody>
@@ -84,6 +112,7 @@ export function LayoutPanel({ vid, cells, revision }: { vid: string; cells: read
           </tbody>
         </table>
       </details>
+      <p className="admin-help" role="status">{copyStatus}</p>
     </section>
   )
 }
