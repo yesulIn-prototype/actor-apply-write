@@ -14,6 +14,7 @@ type Props = {
 export function SubmissionGuide({ form, answers, onCopied }: Props) {
   const { email, deadline, note } = form.submission
   const subject = filledTemplate(form, answers, form.submission.subject).trim()
+
   if (!email && !subject) return null
 
   async function copy(text: string, done: string) {
@@ -26,6 +27,7 @@ export function SubmissionGuide({ form, answers, onCopied }: Props) {
   }
 
   const mailto = `mailto:${email}${subject ? `?subject=${encodeURIComponent(subject)}` : ''}`
+
   return (
     <section className="submission" aria-labelledby="submission-title">
       <h2 id="submission-title">제출 안내</h2>
@@ -65,5 +67,6 @@ export function SubmissionGuide({ form, answers, onCopied }: Props) {
 /** "2026-10-07" → "10월 7일까지". */
 function deadlineText(date: string): string {
   const match = /^\d{4}-(\d{2})-(\d{2})$/.exec(date)
+
   return match ? `${Number(match[1])}월 ${Number(match[2])}일까지` : date
 }

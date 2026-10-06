@@ -16,6 +16,7 @@ export function BackupPanel({ onRestored }: { onRestored: () => void }) {
   async function download() {
     setBusy(true)
     setError('')
+
     try {
       const backup = await downloadBackup()
       saveFile(backup.url, backup.name)
@@ -31,6 +32,7 @@ export function BackupPanel({ onRestored }: { onRestored: () => void }) {
     setBusy(true)
     setError('')
     setResult(undefined)
+
     try {
       setResult(await restoreBackup(file))
       onRestored()
@@ -59,6 +61,7 @@ export function BackupPanel({ onRestored }: { onRestored: () => void }) {
             onChange={(event) => {
               const file = event.target.files?.[0]
               event.target.value = ''
+
               if (file) void restore(file)
             }}
           />

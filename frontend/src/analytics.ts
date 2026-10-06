@@ -9,8 +9,10 @@ declare global {
 
 /** GA4 web stream of apply.yesulin.art. Public by design: every page load carries it. */
 const MEASUREMENT_ID = 'G-DDJ8ZGPF8Q'
+
 /** Local runs, tunnels and the Railway address stay out of the reports. */
 const PRODUCTION_HOST = 'apply.yesulin.art'
+
 const CAMPAIGN_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term']
 
 export type Screen = 'apply_fill' | 'apply_done' | 'apply_resume'
@@ -31,8 +33,11 @@ const SCREENS: Record<Screen, { path: string; title: string }> = {
 const landing = new URLSearchParams(window.location.search)
 
 type Gtag = (...args: unknown[]) => void
+
 let gtag: Gtag | undefined
+
 let tags = new URLSearchParams()
+
 let lastScreen: Screen | undefined
 
 /**
@@ -44,12 +49,15 @@ export function campaign(platform: Platform, search: URLSearchParams = landing):
   const result = new URLSearchParams()
   CAMPAIGN_KEYS.forEach((key) => {
     const value = search.get(key)
+
     if (value) result.set(key, value)
   })
+
   if (!result.has('utm_source') && platform.inApp) {
     result.set('utm_source', platform.inApp === 'other' ? 'inapp' : platform.inApp)
     result.set('utm_medium', 'social')
   }
+
   return result
 }
 
@@ -57,6 +65,7 @@ export function campaign(platform: Platform, search: URLSearchParams = landing):
 export function withCampaign(platform: Platform, href: string): string {
   const url = new URL(href)
   campaign(platform).forEach((value, key) => url.searchParams.set(key, value))
+
   return url.toString()
 }
 
@@ -66,6 +75,7 @@ export function withCampaign(platform: Platform, href: string): string {
  */
 export function pageLocation(screen: Screen, source: URLSearchParams): string {
   const query = source.toString()
+
   return `${window.location.origin}${SCREENS[screen].path}${query ? `?${query}` : ''}`
 }
 
@@ -77,6 +87,7 @@ export function startAnalytics(platform: Platform) {
     // oxlint-disable-next-line prefer-rest-params
     dataLayer.push(arguments)
   }
+
   tags = campaign(platform)
   gtag('js', new Date())
   gtag('set', { page_location: pageLocation('apply_fill', tags), page_title: SCREENS.apply_fill.title })

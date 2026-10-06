@@ -21,6 +21,7 @@ export function AdminApp() {
     document.title = '지원서 링크 관리 | 예술in'
     const onPop = () => setVid(route())
     window.addEventListener('popstate', onPop)
+
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
@@ -30,6 +31,7 @@ export function AdminApp() {
   }
 
   if (!token) return <TokenGate onToken={(value) => { saveToken(value); setToken(value) }} />
+
   return (
     <main className="admin">
       <header className="admin-header">
@@ -43,11 +45,14 @@ export function AdminApp() {
 
 function TokenGate({ onToken }: { onToken: (token: string) => void }) {
   const [value, setValue] = useState('')
+
   return (
     <main className="admin admin-gate">
       <h1>운영자 확인</h1>
       <p>서버에 설정한 운영자 토큰(YESULIN_ADMIN_TOKEN)을 넣어주세요. 이 탭을 닫으면 지워져요.</p>
-      <form onSubmit={(event) => { event.preventDefault(); if (value.trim()) onToken(value.trim()) }}>
+      <form onSubmit={(event) => { event.preventDefault();
+
+ if (value.trim()) onToken(value.trim()) }}>
         <input type="password" aria-label="운영자 토큰" value={value} onChange={(event) => setValue(event.target.value)} autoComplete="off" />
         <button type="submit">확인</button>
       </form>

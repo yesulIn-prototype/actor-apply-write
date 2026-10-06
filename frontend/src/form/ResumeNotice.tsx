@@ -22,8 +22,10 @@ export function ResumeNotice({ vid, documentId }: { readonly vid: string; readon
     resumeDocument(documentId).then((result) => {
       if (active) { setCompleted(result); trackScreen('apply_resume') }
     }).catch((reason) => { if (active) setError(message(reason)) })
+
     return () => { active = false }
   }, [documentId])
+
   return (
     <main className="app">
       <InAppNotice platform={platform} resumeUrl={resumeLink(documentId)} />

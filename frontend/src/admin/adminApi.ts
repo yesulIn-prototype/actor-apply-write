@@ -1,3 +1,6 @@
+import type { z } from 'zod'
+import { detailSchema, layoutSchema, restoredSchema, summaryPageSchema, usageSchema } from './adminSchemas'
+import { publicFormSchema } from '../form/formSchema'
 import type { Completed, PreviewPage } from '../api'
 import { request } from '../api'
 import { buildForm } from '../form/api'
@@ -86,13 +89,14 @@ export function saveToken(token: string) {
   }
 }
 
-function auth(): Record<string, string> {
+function auth() {
   return { Authorization: `Bearer ${savedToken()}` }
 }
 
-async function json<T>(url: string, init: RequestInit = { method: 'GET' }): Promise<T> {
+async function json<T>(schema: z.ZodType<T>, url: string, init: RequestInit = { method: 'GET' }): Promise<T> {
   const response = await request(url, { ...init, headers: { ...auth(), ...init.headers } })
-  return response.json() as Promise<T>
+
+  return schema.parse(await response.json())
 }
 
 export function listForms(page: number, query: string, deleted = false): Promise<SummaryPage> {
@@ -100,10 +104,10 @@ export function listForms(page: number, query: string, deleted = false): Promise
 
   if (deleted) params.set('deleted', 'true')
 
-  return json<SummaryPage>(`/api/admin/forms?${params}`)
+  return json(summaryPageSchema, `/api/admin/forms?${params}`)
 }
 
-export const loadUsage = () => json<UsageSnapshot>('/api/admin/usage')
+export const loadUsage = () => json(usageSchema, '/api/admin/usage')
 
 export async function deleteNotice(vid: string): Promise<void> {
   await request(`/api/admin/forms/${vid}`, { method: 'DELETE', headers: auth() })
@@ -113,38 +117,40 @@ export async function restoreNotice(vid: string): Promise<void> {
   await request(`/api/admin/forms/${vid}/restore`, { method: 'POST', headers: auth() })
 }
 
-export const loadForm = (vid: string) => json<Detail>(`/api/admin/forms/${vid}`)
+export const loadForm = (vid: string) => json(detailSchema, `/api/admin/forms/${vid}`)
 
 export function uploadSource(vid: string, file: File): Promise<Detail> {
   const body = new FormData()
   body.append('document', file)
-  return json<Detail>(`/api/admin/forms/${vid}/source`, { method: 'POST', body })
+
+  return json(detailSchema, `/api/admin/forms/${vid}/source`, { method: 'POST', body })
 }
 
-export const saveDefinition = (vid: string, definition: string) => json<Detail>(`/api/admin/forms/${vid}/definition`, {
+export const saveDefinition = (vid: string, definition: string) => json(detailSchema, `/api/admin/forms/${vid}/definition`, {
   method: 'PUT',
   body: definition,
   headers: { 'Content-Type': 'application/json' },
 })
 
-export const loadLayout = (vid: string) => json<Layout>(`/api/admin/forms/${vid}/layout`)
+export const loadLayout = (vid: string) => json(layoutSchema, `/api/admin/forms/${vid}/layout`)
 
 /** Page images need the token, so they come through fetch and show as blob: URLs. */
 export async function layoutPageUrl(vid: string, page: number): Promise<string> {
   const response = await request(`/api/admin/forms/${vid}/layout/${page}`, { method: 'GET', headers: auth() })
+
   return URL.createObjectURL(await response.blob())
 }
 
-export const loadEditingForm = (vid: string) => json<PublicForm>(`/api/admin/forms/${vid}/form`)
+export const loadEditingForm = (vid: string) => json(publicFormSchema, `/api/admin/forms/${vid}/form`)
 
 export function testBuild(vid: string, form: PublicForm, answers: Answers, photos: Photos): Promise<Completed> {
   return buildForm({ url: `/api/admin/forms/${vid}/test`, form, answers, photos, headers: auth() })
 }
 
-export const publish = (vid: string) => json<Detail>(`/api/admin/forms/${vid}/publish`, { method: 'POST' })
+export const publish = (vid: string) => json(detailSchema, `/api/admin/forms/${vid}/publish`, { method: 'POST' })
 
 export const setClosed = (vid: string, closed: boolean) =>
-  json<Detail>(`/api/admin/forms/${vid}/${closed ? 'close' : 'reopen'}`, { method: 'POST' })
+  json(detailSchema, `/api/admin/forms/${vid}/${closed ? 'close' : 'reopen'}`, { method: 'POST' })
 
 /** @param skipped notices the server already had, left as they were */
 export type Restored = { readonly restored: readonly string[]; readonly skipped: readonly string[] }
@@ -154,11 +160,13 @@ export async function downloadBackup(): Promise<{ readonly url: string; readonly
   const response = await request('/api/admin/backup', { method: 'GET', headers: auth() })
   const disposition = response.headers.get('Content-Disposition') ?? ''
   const name = /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? 'yesulin-forms.zip'
+
   return { url: URL.createObjectURL(await response.blob()), name }
 }
 
 export function restoreBackup(file: File): Promise<Restored> {
   const body = new FormData()
   body.append('backup', file)
-  return json<Restored>('/api/admin/backup', { method: 'POST', body })
+
+  return json(restoredSchema, '/api/admin/backup', { method: 'POST', body })
 }

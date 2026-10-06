@@ -85,22 +85,28 @@ export function answered(item: FormItem, answers: Answers, photos: Photos): bool
 export function rowsOf(item: FormItem, values: readonly string[]): readonly (readonly string[])[] {
   const width = item.columns.length
   const rows: string[][] = []
+
   for (let start = 0; start < values.length; start += width) {
     rows.push(Array.from({ length: width }, (_, column) => values[start + column] ?? ''))
   }
+
   return rows
 }
 
 /** What the server gets: trimmed values, blank ones (and a ROWS item's blank rows) left out. */
-export function filledAnswers(form: PublicForm, answers: Answers): Answers {
+export function filledAnswers(form: PublicForm, answers: Answers) {
   const filled: Record<string, readonly string[]> = {}
+
   for (const item of form.items) {
     const values = answers[item.id] ?? []
+
     const kept = item.type === 'ROWS'
       ? rowsOf(item, values).map((row) => row.map((value) => value.trim())).filter((row) => row.some((value) => value !== '')).flat()
       : values.map((value) => value.trim()).filter((value) => value !== '')
+
     if (kept.length > 0) filled[item.id] = kept
   }
+
   return filled
 }
 

@@ -28,20 +28,27 @@ export function useDelivery(completed: Completed | undefined, showToast: (text: 
     loadPdf(completed)
       .then((file) => { if (active) setPdf({ source: completed.file, file }) })
       .catch(() => { if (active) setPdf({ source: completed.file, failed: true }) })
+
     return () => { active = false }
   }, [pdfFirst, completed])
 
   async function mail() {
     if (!completed) return
     const ready = pdf?.source === completed.file ? pdf : undefined
+
     if (pdfFirst && !ready) {
       showToast('PDF를 준비하고 있어요. 잠시 후 다시 눌러주세요')
+
       return
     }
+
     const file = ready?.file ?? completed.file
     const result = await shareFile(file)
+
     if (result === 'shared') track('send_mail', { method: 'share' })
+
     if (result === 'cancelled') track('send_mail_cancel')
+
     if (result !== 'unsupported') return
     track('send_mail', { method: 'download' })
     saveFile(ready?.file ? completed.pdfUrl : completed.downloadUrl, file.name)
@@ -60,6 +67,7 @@ export function useDelivery(completed: Completed | undefined, showToast: (text: 
   async function savePdf() {
     if (!completed) return
     setPdfBusy(true)
+
     try {
       await preparePdf(completed)
       saveFile(completed.pdfUrl, pdfName(completed))
@@ -83,5 +91,6 @@ function pdfName(completed: Completed): string {
 
 async function loadPdf(completed: Completed): Promise<File> {
   const response = await request(completed.pdfUrl, { method: 'GET' })
+
   return new File([await response.blob()], pdfName(completed), { type: 'application/pdf' })
 }

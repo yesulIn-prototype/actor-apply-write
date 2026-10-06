@@ -12,17 +12,22 @@ test('keeps direct edits on cancel and regenerates from input only after confirm
       maxLength: 30, options: [], min: 0, max: 0, columns: [], maxRows: 0 }],
     submission: { email: '', subject: '', deadline: '', note: '' }, pdfFirst: false,
   }
+
   const view = {
     revision: 'a'.repeat(64), pages: [{ number: 1, width: 800, height: 1100 }], limitation: '',
     regions: [{ id: 'c:0.0.1', text: '처음 입력', boxes: [{ page: 1, x: 100, y: 100, width: 300, height: 40 }] }],
   }
+
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     if (url === '/api/forms/99004') return new Response(JSON.stringify(form))
+
     if (url.endsWith('/editing') && init?.method !== 'POST') return new Response(JSON.stringify(view))
+
     return new Response(init?.method === 'POST' && url.endsWith('/editing') ? 'direct edit' : 'generated', {
       headers: { 'X-Document-Id': 'private-job', 'X-Document-Edit-Token': 'private-capability' },
     })
   })
+
   vi.stubGlobal('fetch', fetchMock)
   render(<ApplyApp vid="99004" />)
   fireEvent.change(await screen.findByLabelText('이름 *'), { target: { value: '처음 입력' } })

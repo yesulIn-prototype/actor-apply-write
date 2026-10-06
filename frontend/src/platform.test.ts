@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import { detectPlatform, externalBrowserUrl, opensExternallyOnLoad } from './platform'
 
 const HREF = 'https://actor.example.com/?from=share'
+
 const UA = {
   iosSafari: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
   androidChrome: 'Mozilla/5.0 (Linux; Android 14; SM-S921N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',

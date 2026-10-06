@@ -9,8 +9,11 @@ import './App.css'
 export function Root() {
   const path = window.location.pathname
   const notice = /^\/apply\/(\d{1,12})\/?$/.exec(path)
+
   if (notice) return <ApplyApp vid={notice[1]} />
+
   if (path === '/admin' || path.startsWith('/admin/')) return <AdminApp />
+
   return (
     <main className="app">
       <TopBar />

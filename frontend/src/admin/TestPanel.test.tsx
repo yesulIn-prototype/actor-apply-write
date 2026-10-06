@@ -8,6 +8,7 @@ const ITEM: FormItem = {
   id: 'name', label: '이름', help: '', required: false, type: 'TEXT', multiline: false,
   maxLength: 30, options: [], min: 0, max: 0, columns: [], maxRows: 0,
 }
+
 const FORM: PublicForm = {
   vid: '99003', version: 1, title: '테스트 지원서', fileName: '{name}_지원서', sourceName: 'sample.hwp',
   submission: { email: '', subject: '', deadline: '', note: '' }, pdfFirst: false,
@@ -19,6 +20,7 @@ const FORM: PublicForm = {
     { ...ITEM, id: 'career', label: '경력', type: 'ROWS', columns: [{ id: 'year', label: '연도' }, { id: 'work', label: '작품' }], maxRows: 20 },
     { ...ITEM, id: 'photo', label: '사진', type: 'PHOTO' }],
 }
+
 const DETAIL: Detail = {
   vid: '99003', status: 'DRAFT', published: [], editingVersion: 1, editingPublished: false,
   originalName: 'sample.hwp', hasSource: true, definition: '{}', problems: [], tested: false, cells: [], standard: false,
@@ -27,10 +29,13 @@ const DETAIL: Detail = {
 function setup() {
   const fetcher = vi.fn(async (url: string) => {
     if (url.endsWith('/form')) return new Response(JSON.stringify(FORM))
+
     return new Response(JSON.stringify({ code: 'INVALID_ANSWER', message: '사진을 넣어주세요' }), { status: 400 })
   })
+
   vi.stubGlobal('fetch', fetcher)
   const view = render(<TestPanel vid="99003" detail={DETAIL} revision={0} onTested={vi.fn()} />)
+
   return { ...view, fetcher }
 }
 
@@ -70,14 +75,18 @@ test('sends the displayed examples with operator edits and no photo when generat
   const call = vi.mocked(fetch).mock.calls.find(([url]) => url === '/api/admin/forms/99003/test')
   const body = call?.[1]?.body
   expect(body).toBeInstanceOf(FormData)
+
   if (!(body instanceof FormData)) return
   expect([...body.keys()]).toEqual(['request'])
   const request = body.get('request')
+
   if (!(request instanceof Blob)) throw new TypeError('request must be a Blob')
   const reader = new FileReader()
+
   const text = await new Promise<string>((resolve) => {
     reader.onload = () => resolve(String(reader.result))
     reader.readAsText(request)
   })
+
   expect(JSON.parse(text).answers).toMatchObject({ name: ['테스트 배우'], phone: ['010-0000-0000'], role: ['a'], career: ['예시 입력 7-1', '예시 입력 7-2'] })
 })

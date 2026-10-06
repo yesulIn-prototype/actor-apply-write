@@ -5,6 +5,7 @@ import { assertNever } from '../form/types'
 export function exampleAnswers(items: readonly FormItem[]): Answers {
   return Object.fromEntries(items.map((item, index) => {
     const example = `예시 입력 ${index + 1}`
+
     switch (item.type) {
       case 'TEXT':
         return [item.id, [example.slice(0, item.maxLength)]]

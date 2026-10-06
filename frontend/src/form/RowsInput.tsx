@@ -43,6 +43,7 @@ export function RowsInput({ item, values, onChange }: Props) {
           </legend>
           {item.columns.map((column, k) => {
             const id = `item-${item.id}-${rowIndex}-${column.id}`
+
             return (
               <div className="rows-cell" key={column.id}>
                 <label htmlFor={id}>{column.label}</label>

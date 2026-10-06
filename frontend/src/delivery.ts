@@ -17,12 +17,16 @@ export function saveFile(downloadUrl: string, fileName: string) {
  */
 export async function shareFile(file: File): Promise<ShareResult> {
   const data: ShareData = { files: [file], title: file.name.replace(/\.hwp$/i, '') }
+
   if (!navigator.canShare?.(data)) return 'unsupported'
+
   try {
     await navigator.share(data)
+
     return 'shared'
   } catch (reason) {
     if (reason instanceof DOMException && reason.name === 'AbortError') return 'cancelled'
+
     return 'unsupported'
   }
 }

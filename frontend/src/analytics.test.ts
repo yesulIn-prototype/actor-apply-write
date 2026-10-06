@@ -3,7 +3,9 @@ import { campaign, pageLocation, startAnalytics, withCampaign } from './analytic
 import type { Platform } from './platform'
 
 const SAFARI: Platform = { os: 'ios' }
+
 const KAKAO: Platform = { os: 'android', inApp: 'kakaotalk' }
+
 const THREADS: Platform = { os: 'ios', inApp: 'threads' }
 
 test('keeps the tags a shared link came with, over the app it opened in', () => {

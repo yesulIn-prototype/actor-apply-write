@@ -38,12 +38,14 @@ export function ItemInput({ item, values, photos, onValues, onPhoto }: Props) {
 
 function ItemLabel({ item, htmlFor }: { item: FormItem; htmlFor?: string }) {
   const text = <>{item.label}{item.required && <span className="required" aria-label="필수"> *</span>}</>
+
   return htmlFor ? <label htmlFor={htmlFor}>{text}</label> : <p className="field-label">{text}</p>
 }
 
 function TextItem({ item, value, onChange }: { item: FormItem; value: string; onChange: (value: string) => void }) {
   const id = `item-${item.id}`
   const phone = item.type === 'PHONE'
+
   const common = {
     id,
     value,
@@ -52,6 +54,7 @@ function TextItem({ item, value, onChange }: { item: FormItem; value: string; on
     'aria-describedby': item.help ? `${id}-help` : undefined,
     onChange: (event: { target: { value: string } }) => onChange(event.target.value),
   }
+
   return (
     <div className="text-field">
       <ItemLabel item={item} htmlFor={id} />
@@ -84,11 +87,14 @@ function ChoiceItem({ item, picked, onChange }: {
 
   function toggle(id: string) {
     const selected = picked.includes(id)
+
     if (!multi) {
       // Tapping the picked chip again clears it, so an optional choice can be left empty.
       onChange(selected ? [] : [id])
+
       return
     }
+
     onChange(selected ? picked.filter((value) => value !== id) : [...picked, id])
   }
 
@@ -100,6 +106,7 @@ function ChoiceItem({ item, picked, onChange }: {
       <div className={long ? 'chips chips-stacked' : 'chips'}>
         {item.options.map((option) => {
           const selected = picked.includes(option.id)
+
           return (
             <button
               key={option.id}

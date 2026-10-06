@@ -22,6 +22,7 @@ type Props = {
 /** A notice link's form: the operator's questions, nothing to upload. */
 export function NoticeFillScreen({ form, answers, photos, busy, outputName, onOutputName, onValues, onPhoto, onSubmit, draftPanel }: Props) {
   const left = missing(form, answers, photos)
+
   return (
     <>
       <TopBar />

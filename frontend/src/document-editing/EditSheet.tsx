@@ -25,24 +25,30 @@ export function EditSheet({ region, regions, opener, onClose, onApply }: {
 
   useEffect(() => {
     textarea.current?.focus()
+
     return () => { if (opener.isConnected) opener.focus() }
   }, [opener])
 
   function close() { if (!busy) onClose() }
+
   function keyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === 'Escape') { event.preventDefault(); close() }
+
     if (event.key !== 'Tab') return
     const elements = [...(sheet.current?.querySelectorAll<HTMLElement>('input:not(:disabled), textarea:not(:disabled), button:not(:disabled), summary') ?? [])]
     const first = elements[0], last = elements[elements.length - 1]
+
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
   }
 
   async function apply() {
     setError('')
+
     try {
       const changes = moving && target ? movedChanges(region, target, moveText) : [{ id: region.id, text: value, inputStyle }]
       setBusy(true)
+
       if (await onApply(changes)) onClose()
     } catch (reason) { setError(reason instanceof Error ? reason.message : '수정하지 못했어요') }
     finally { setBusy(false) }

@@ -21,6 +21,7 @@ export function PreviewZoom({ page, hotspots, labels, imageUrl, opener, onClose,
 
   useEffect(() => {
     close.current?.focus()
+
     return () => {
       if (!movingToEdit.current && opener.isConnected) opener.focus()
     }
@@ -31,10 +32,12 @@ export function PreviewZoom({ page, hotspots, labels, imageUrl, opener, onClose,
       event.preventDefault()
       onClose()
     }
+
     if (event.key !== 'Tab') return
     const focusable = [...(dialog.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])]
     const first = focusable[0]
     const last = focusable[focusable.length - 1]
+
     if (event.shiftKey && document.activeElement === first) {
       event.preventDefault()
       last?.focus()

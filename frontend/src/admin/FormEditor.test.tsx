@@ -7,7 +7,9 @@ const EMPTY: Detail = {
   vid: '99007', status: 'DRAFT', published: [], editingVersion: 0, editingPublished: false,
   originalName: '', hasSource: false, definition: '', problems: [], tested: false, cells: [], standard: false,
 }
+
 const SPEC = '{ "base": "standard-v1", "title": "합성 공고 지원서", "extras": [] }'
+
 const STANDARD: Detail = {
   ...EMPTY, editingVersion: 1, originalName: 'standard-v1.hwp', hasSource: true, definition: SPEC, standard: true,
 }
@@ -15,19 +17,25 @@ const STANDARD: Detail = {
 function setup(detail: Detail = EMPTY, failure = false) {
   const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
     if (url === '/api/admin/standard') return new Response(JSON.stringify({ base: 'standard-v1', extras: [] }))
+
     if (url.endsWith('/layout')) return new Response(JSON.stringify({ pages: [], cells: [] }))
+
     if (init?.method === 'PUT') {
       return failure
         ? new Response(JSON.stringify({ code: 'FORM_NOT_READY', message: '공고 제목을 확인해주세요' }), { status: 409 })
         : new Response(JSON.stringify(STANDARD))
     }
+
     if (url.endsWith('/form')) {
       return new Response(JSON.stringify({ code: 'FORM_NOT_READY', message: '시험용 배우 화면' }), { status: 409 })
     }
+
     return new Response(JSON.stringify(detail))
   })
+
   vi.stubGlobal('fetch', fetcher)
   render(<FormEditor vid={EMPTY.vid} />)
+
   return fetcher
 }
 

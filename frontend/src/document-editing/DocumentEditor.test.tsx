@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { DoneScreen } from '../DoneScreen'
 
 const completed = { documentId: 'test-job', editToken: 'private-edit', file: new File(['original'], '지원서.hwp'), downloadUrl: '/completed', pdfUrl: '/completed.pdf' }
+
 const view = {
   revision: 'a'.repeat(64), pages: [{ number: 1, width: 800, height: 1100 }], limitation: '사진은 입력 화면에서 수정해 주세요.',
   regions: [
@@ -11,6 +12,7 @@ const view = {
     { id: 'c:0.19.0', text: '빨간 안내문', boxes: [{ page: 1, x: 100, y: 830, width: 600, height: 100 }] },
   ],
 }
+
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
 test('moves selected answer to a numbered region and explicitly replaces the instructions in the completed file', async () => {
@@ -18,6 +20,7 @@ test('moves selected answer to a numbered region and explicitly replaces the ins
   const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => init?.method === 'POST'
     ? new Response('edited', { headers: { 'Content-Disposition': "attachment; filename*=UTF-8''edited.hwp" } })
     : new Response(JSON.stringify(view)))
+
   vi.stubGlobal('fetch', fetchMock)
   const changed = vi.fn()
   render(<DoneScreen completed={completed} pdfBusy={false} onDocumentEdited={changed} onBack={vi.fn()} onMail={vi.fn()} onSave={vi.fn()} onSavePdf={vi.fn()} />)

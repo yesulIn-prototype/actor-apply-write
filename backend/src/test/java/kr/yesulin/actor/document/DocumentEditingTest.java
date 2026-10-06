@@ -44,7 +44,7 @@ class DocumentEditingTest {
         note.getCharShape().getPositonShapeIdPairList().clear();
         note.getCharShape().addParaCharShape(0, colored.getDocInfo().getCharShapeList().size() - 1);
         HWPWriter.toFile(colored, job.completedHwp().toString());
-        PdfConverter renderer = new PdfConverter(Path.of("../tools/rhwp/rhwp/rhwp.exe"), List.of());
+        PdfConverter renderer = new PdfConverter(Path.of("../tools/rhwp/rhwp/rhwp"), List.of());
         PreviewService previews = new PreviewService(store, renderer, JsonMapper.builder().build());
         DocumentEditingService editor = new DocumentEditingService(store, previews);
         var before = editor.regions(job.id(), job.editToken());

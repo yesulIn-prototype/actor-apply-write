@@ -19,6 +19,7 @@ export function DefinitionPanel({ detail, onSaved, onError }: {
 
   async function save() {
     setSaving(true)
+
     try {
       onSaved(await saveDefinition(detail.vid, text))
     } catch (reason) { // no-excuse-ok: catch - render request errors at this UI boundary

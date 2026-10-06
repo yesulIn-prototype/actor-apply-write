@@ -62,8 +62,29 @@
 | `no-conditional-empty-object-spread` | 1 | `form/api.ts`의 선택적 필드 추가. 필드 생략과 `undefined` 대입이 같은지는 요청 직렬화 계약으로 확인해야 한다. |
 | `no-module-mocking` | 1 | `useDelivery.test.tsx`의 모듈 모킹. 실제 브라우저 의존 경계를 검토해야 하므로 테스트만 기계적으로 바꾸지 않는다. |
 
-## CI 영향과 다음 범위
+## 도입 당시 CI 영향과 다음 범위 (2026-10-04)
 
-현재 `npm run lint`는 실제로 실패한다. `.github/workflows/ci.yml`의 프런트 작업도 같은 lint 명령을 테스트·빌드 전에 실행하므로 이 변경을 push하면 남은 오류가 CI를 막는다. 원격 CI 실행·커밋·푸시·배포는 하지 않았다.
+도입 당시 `npm run lint`는 실제로 실패했다. `.github/workflows/ci.yml`의 프런트 작업도 같은 lint 명령을 테스트·빌드 전에 실행하므로 남은 오류가 CI를 막는 상태였다. 당시 작업에서는 원격 CI 실행·커밋·푸시·배포를 하지 않았다.
 
 후속 작업은 서식 정리와 경계 타입·파서·테스트 정책 정리를 분리하는 것이 적합하다. 파서 라이브러리 도입이나 모듈 모킹 대체 구조는 새 설계 결정이므로 자동 확정하지 않는다. 다음 실행에서 `npm run lint -- --format json`으로 당시 파일·줄 번호를 다시 확인한다.
+
+## CI 실패 수정 (2026-10-06)
+
+[실패 실행 37404498430](https://github.com/yesulIn-prototype/actor-apply-write/actions/runs/37404498430)의 실제 로그를 확인했다. 대상 커밋은 `a296bff`다.
+
+- 프런트는 lint 오류 249개로 중단되어 테스트·빌드 단계가 실행되지 않았다. 빈 줄 서식, 응답 타입 단언, 편집 응답의 수동 타입 검사, 테스트 모듈 모킹 등이 원인이었다. 규칙·CI 단계·외부 플러그인은 유지하고 코드를 정리했다.
+- 기존 의존성 Zod로 공고·운영자·미리보기·편집 응답을 경계에서 검증한다. 공유 테스트는 모듈 모킹 대신 실제 공유 함수와 브라우저 `navigator.share` 경계를 사용한다. 파일명 처리의 문자열 정리 결과와 기존 브라우저 대상은 유지한다.
+- `parseEditView`의 입력은 검증 전 JSON이므로 `unknown`을 유지했다. 이 함수의 입력에만 `no-unknown-parameters` 예외를 이유와 함께 명시하고, 반환값은 스키마로 검증한다. 전역 규칙이나 파일 전체를 제외하지 않았다.
+- 백엔드는 편집 테스트 두 파일이 `rhwp.exe`를 직접 지정해 Ubuntu에서 5개가 `PdfUnavailableException`으로 실패했다. 다른 렌더링 테스트·운영 설정과 같은 확장자 없는 `rhwp` 경로를 사용하도록 바꾸었다. Windows에서는 기존 `PdfConverter`가 `.exe`를 붙인다. 테스트나 렌더링 검사를 건너뛰지 않았다.
+
+이번 작업의 새 검증 결과:
+
+| 검증 | 결과 |
+|---|---|
+| `npm run lint` | 종료 코드 0 |
+| `npm test` | 19개 파일, 71개 테스트 통과 |
+| `npm run build` | 타입 검사·Vite 빌드 통과 |
+| Windows `gradlew.bat --no-daemon test` | 92개, 실패·오류·건너뜀 0 |
+| 격리된 Ubuntu, 공식 Temurin Java 25·rhwp v0.8.6, `./gradlew --no-daemon test` | 92개, 실패·오류·건너뜀 0 |
+
+커밋·푸시·운영 배포는 수행하지 않았다. 수정된 커밋의 GitHub CI 성공과 Railway 반영은 푸시 이후 별도로 확인해야 한다.

@@ -19,6 +19,7 @@ export function LinkPanel({ detail, onChange, onError }: {
 
   async function run(action: () => Promise<Detail>) {
     setBusy(true)
+
     try {
       onChange(await action())
     } catch (reason) {

@@ -36,7 +36,9 @@ const JOB = '7907f91f-de04-418f-a284-75836cbebce5'
 beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async (url: string) => {
     if (url === '/api/forms/22382') return new Response(JSON.stringify(form), { status: 200 })
+
     if (url.endsWith('/preview')) return new Response(JSON.stringify({ pages: [], hotspots: [] }), { status: 200 })
+
     return new Response(new Blob(['hwp']), {
       status: 200,
       headers: {
@@ -57,9 +59,13 @@ test('reopens a completed notice file from its own notice link without uploading
   window.history.replaceState(null, '', `/apply/22382?doc=${JOB}`)
   vi.mocked(fetch).mockImplementation(async (url) => {
     const path = String(url)
+
     if (path === '/api/forms/22382') return new Response(JSON.stringify(form))
+
     if (path === `/api/documents/${JOB}`) return new Response(JSON.stringify({ fileName: '테스트_지원서.hwp', completed: true }))
+
     if (path.endsWith('/preview')) return new Response(JSON.stringify({ pages: [{ number: 1, width: 800, height: 1100 }], hotspots: [{ fieldId: 'name', page: 1, x: 0, y: 0, width: 100, height: 20 }] }))
+
     return new Response(new Blob(['hwp']))
   })
   render(<ApplyApp vid="22382" />)
@@ -82,8 +88,14 @@ test('shows an expired notice file message without falling back to upload', asyn
 function sentRequest(call: number) {
   const generate = vi.mocked(fetch).mock.calls.filter(([url]) => String(url) === '/api/forms/22382/generate')[call]
   const body = generate?.[1]?.body
+
   if (!(body instanceof FormData)) throw new Error(`generate call ${call} was not sent`)
-  return body.get('request') as Blob
+
+  const value = body.get('request')
+
+  if (!(value instanceof Blob)) throw new Error('generate request was not a Blob')
+
+  return value
 }
 
 test('draws each item the way the operator typed it, with no upload step', async () => {
@@ -154,9 +166,12 @@ test('shows where to send, with the mail subject filled from the answers', async
     ...form,
     submission: { email: 'audition@example.com', subject: '숲속공주_{role}_{name}', deadline: '2026-10-15', note: '자유곡 영상 링크도 보내주세요' },
   }
+
   vi.mocked(fetch).mockImplementation(async (url) => {
     if (String(url) === '/api/forms/22382') return new Response(JSON.stringify(withSubmission), { status: 200 })
+
     if (String(url).endsWith('/preview')) return new Response(JSON.stringify({ pages: [], hotspots: [] }), { status: 200 })
+
     return new Response(new Blob(['hwp']), { status: 200, headers: { 'X-Document-Id': JOB } })
   })
   render(<ApplyApp vid="22382" />)
@@ -176,14 +191,18 @@ test('shows where to send, with the mail subject filled from the answers', async
 })
 
 test('on a standard-form notice, puts the PDF first and sends the PDF from the mail button', async () => {
-  const share = vi.fn(async () => undefined)
+  const share = vi.fn(async (_data: ShareData) => undefined)
   Object.defineProperty(navigator, 'share', { value: share, configurable: true })
   Object.defineProperty(navigator, 'canShare', { value: () => true, configurable: true })
   vi.mocked(fetch).mockImplementation(async (url) => {
     const address = String(url)
+
     if (address === '/api/forms/22382') return new Response(JSON.stringify({ ...form, pdfFirst: true }), { status: 200 })
+
     if (address.endsWith('/preview')) return new Response(JSON.stringify({ pages: [], hotspots: [] }), { status: 200 })
+
     if (address.endsWith('/completed.pdf')) return new Response(new Blob(['%PDF']), { status: 200 })
+
     return new Response(new Blob(['hwp']), { status: 200, headers: { 'X-Document-Id': JOB } })
   })
   render(<ApplyApp vid="22382" />)
@@ -202,7 +221,7 @@ test('on a standard-form notice, puts the PDF first and sends the PDF from the m
     expect(share).toHaveBeenCalled()
   })
 
-  const shared = (share.mock.calls[0] as unknown as [ShareData])[0].files?.[0]
+  const shared = share.mock.calls[0]?.[0].files?.[0]
   expect(shared?.type).toBe('application/pdf')
   expect(shared?.name.endsWith('.pdf')).toBe(true)
   Reflect.deleteProperty(navigator, 'share')

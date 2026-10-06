@@ -31,6 +31,7 @@ export function TestPanel({ vid, detail, revision, onTested }: {
     loadEditingForm(vid)
       .then((loaded) => { if (active) setForm(loaded) })
       .catch((reason) => { if (active) setError(message(reason)) })
+
     return () => { active = false }
   }, [vid, revision])
 
@@ -38,6 +39,7 @@ export function TestPanel({ vid, detail, revision, onTested }: {
     if (!form) return
     setBuilding(true)
     setError('')
+
     try {
       const completed = await testBuild(vid, form, testAnswers, answers.photos)
       setResult({ completed })

@@ -27,9 +27,11 @@ export function DoneScreen(props: Props) {
     if (!locked) return
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+
     return () => { document.body.style.overflow = previous }
   }, [locked])
   const editable = Boolean(props.completed.editToken && props.onDocumentEdited)
+
   return <div inert={locked}>
     <TopBar onBack={props.onBack} />
     <section className="content done-content">
@@ -66,13 +68,19 @@ function ReadOnlyPreview({ completed, onLocked }: {
   const [preview, setPreview] = useState<Preview>()
   const [failed, setFailed] = useState(false)
   const [zoom, setZoom] = useState<{ page: Page; opener: HTMLButtonElement }>()
-  useEffect(() => { onLocked(Boolean(zoom)); return () => onLocked(false) }, [zoom, onLocked])
+  useEffect(() => {
+    onLocked(Boolean(zoom))
+
+    return () => onLocked(false)
+  }, [zoom, onLocked])
   useEffect(() => {
     let active = true
     fetchPreview(completed.documentId).then((result) => { if (active) setPreview(result) })
       .catch(() => { if (active) setFailed(true) })
+
     return () => { active = false }
   }, [completed])
+
   return <>
     <div className="preview" inert={Boolean(zoom)}>
       {!preview && <div className="preview-state" role="status">{failed ? '미리보기를 불러오지 못했어요' : '미리보기를 만들고 있어요'}</div>}

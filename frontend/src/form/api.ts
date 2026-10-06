@@ -3,10 +3,12 @@ import { downloadName, request } from '../api'
 import type { Answers, Photos, PublicForm } from './types'
 import { filledAnswers } from './types'
 import { usageVisitor } from './usageVisitor'
+import { publicFormSchema } from './formSchema'
 
 export async function fetchForm(vid: string): Promise<PublicForm> {
   const response = await request(`/api/forms/${vid}`, { method: 'GET' })
-  return response.json() as Promise<PublicForm>
+
+  return publicFormSchema.parse(await response.json())
 }
 
 type Build = {

@@ -1,4 +1,5 @@
 const MAX_BYTES = 8 * 1024 * 1024
+
 const MAX_EDGE = 2400
 
 /**
@@ -15,13 +16,16 @@ export async function preparePhoto(file: File): Promise<File> {
   canvas.width = Math.round(image.width * scale)
   canvas.height = Math.round(image.height * scale)
   const context = canvas.getContext('2d')
+
   if (!context) throw new Error('사진을 불러오지 못했어요')
   context.fillStyle = '#fff'
   context.fillRect(0, 0, canvas.width, canvas.height)
   context.drawImage(image, 0, 0, canvas.width, canvas.height)
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))
+
   if (!blob) throw new Error('사진을 불러오지 못했어요')
   const name = file.name.replace(/\.[^.]+$/, '') || 'photo'
+
   return new File([blob], `${name}.jpg`, { type: 'image/jpeg' })
 }
 
@@ -33,10 +37,12 @@ function decode(file: File): Promise<HTMLImageElement> {
       URL.revokeObjectURL(url)
       resolve(image)
     }
+
     image.onerror = () => {
       URL.revokeObjectURL(url)
       reject(new Error('이 사진 형식은 쓸 수 없어요. JPG나 PNG로 골라주세요'))
     }
+
     image.src = url
   })
 }

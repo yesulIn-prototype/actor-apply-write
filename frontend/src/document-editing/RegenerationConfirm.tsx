@@ -7,15 +7,19 @@ export function RegenerationConfirm({ onCancel, onConfirm }: { readonly onCancel
   useEffect(() => {
     const opener = document.activeElement
     dialog.current?.querySelector<HTMLButtonElement>('button')?.focus()
+
     return () => { if (opener instanceof HTMLElement && opener.isConnected) opener.focus() }
   }, [])
+
   return createPortal(<div className="sheet-layer">
     <div className="sheet-scrim" aria-hidden="true" onClick={onCancel} />
     <div ref={dialog} className="sheet" role="alertdialog" aria-modal="true" aria-labelledby="regen-title" aria-describedby="regen-description"
       onKeyDown={(event) => {
         if (event.key === 'Escape') { event.preventDefault(); onCancel() }
+
         if (event.key !== 'Tab') return
         const buttons = dialog.current?.querySelectorAll('button')
+
         if (event.shiftKey && document.activeElement === buttons?.[0]) { event.preventDefault(); buttons?.[1]?.focus() }
         else if (!event.shiftKey && document.activeElement === buttons?.[1]) { event.preventDefault(); buttons?.[0]?.focus() }
       }}>

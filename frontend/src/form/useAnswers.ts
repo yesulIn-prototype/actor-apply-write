@@ -15,8 +15,10 @@ export function useAnswers(onError: (text: string) => void) {
   async function pickPhoto(id: string, file?: File) {
     if (!file) {
       setPhotos((current) => ({ ...current, [id]: undefined }))
+
       return
     }
+
     try {
       const prepared = await preparePhoto(file)
       setPhotos((current) => ({ ...current, [id]: prepared }))

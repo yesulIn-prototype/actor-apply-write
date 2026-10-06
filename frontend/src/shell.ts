@@ -14,11 +14,14 @@ export function useLeaveInAppBrowser(platform: Platform) {
   useEffect(() => {
     if (opensExternallyOnLoad(platform) && !once(TRIED_EXTERNAL)) {
       const external = externalBrowserUrl(platform, withCampaign(platform, window.location.href))
+
       if (external) {
         window.location.href = external
+
         return
       }
     }
+
     startAnalytics(platform)
   }, [platform])
 }
@@ -37,20 +40,24 @@ function once(key: string): boolean {
     // Without storage the redirect could loop through the fallback page; skip it.
     return true
   }
+
   return false
 }
 
 export function useToast(): [string, (text: string) => void] {
   const [text, setText] = useState('')
   const timer = useRef<number>(undefined)
+
   const show = useCallback((next: string) => {
     window.clearTimeout(timer.current)
     setText(next)
     timer.current = window.setTimeout(() => setText(''), 3000)
   }, [])
+
   return [text, show]
 }
 
-export function message(reason: unknown): string {
-  return reason instanceof Error ? reason.message : '처리하지 못했어요. 다시 시도해주세요'
+/** Rejected browser/API operations may throw any value; this boundary exposes only Error messages. */
+export function message(cause: unknown): string {
+  return cause instanceof Error ? cause.message : '처리하지 못했어요. 다시 시도해주세요'
 }

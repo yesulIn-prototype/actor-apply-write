@@ -1,4 +1,4 @@
-type ApiError = { readonly code: string; readonly message: string }
+import { apiErrorSchema, documentSummarySchema, previewSchema } from './apiSchemas'
 
 export type Completed = {
   documentId: string
@@ -10,7 +10,7 @@ export type Completed = {
   directEdited?: boolean
 }
 
-const MESSAGES: Record<string, string> = {
+const MESSAGES = {
   INVALID_UPLOAD: '한글 파일(.hwp, .hwpx)인지 확인해주세요',
   UPLOAD_TOO_LARGE: '파일이 너무 커요. 20MB 이하로 올려주세요',
   HWP_PROCESSING_FAILED: '이 파일은 읽을 수 없어요. 암호가 걸려 있지 않은 한글 파일인지 확인해주세요',
@@ -24,7 +24,9 @@ const MESSAGES: Record<string, string> = {
   FORM_CHANGED: '지원서 양식이 바뀌었어요. 새로고침해서 다시 작성해주세요',
   ADMIN_UNAUTHORIZED: '운영자 토큰이 맞지 않아요',
   ADMIN_DISABLED: '서버에 운영자 토큰이 설정되어 있지 않아요',
-}
+} satisfies Record<string, string>
+
+const messageByCode = new Map<string, string>(Object.entries(MESSAGES))
 
 /** Codes whose server message is written for the reader as is: a missing answer, a definition problem. */
 const SERVER_WORDED = new Set(['INVALID_ANSWER', 'FORM_NOT_READY', 'INVALID_BACKUP', 'INVALID_DOCUMENT_EDIT', 'DOCUMENT_EDIT_CONFLICT', 'DOCUMENT_EDIT_FORBIDDEN'])
@@ -34,13 +36,12 @@ const SERVER_WORDED = new Set(['INVALID_ANSWER', 'FORM_NOT_READY', 'INVALID_BACK
  * saving and the share sheet work. Answers are not sent back: the finished file is what is resumed.
  */
 export async function resumeDocument(documentId: string): Promise<Completed> {
-  const summary = (await (await request(`/api/documents/${documentId}`, { method: 'GET' })).json()) as {
-    fileName: string
-    completed: boolean
-  }
+  const summary = documentSummarySchema.parse(await (await request(`/api/documents/${documentId}`, { method: 'GET' })).json())
+
   if (!summary.completed) throw new Error(MESSAGES.DOCUMENT_NOT_FOUND)
   const downloadUrl = `/api/documents/${documentId}/completed`
   const blob = await (await request(downloadUrl, { method: 'GET' })).blob()
+
   return {
     documentId,
     file: new File([blob], summary.fileName, { type: 'application/x-hwp' }),
@@ -50,13 +51,16 @@ export async function resumeDocument(documentId: string): Promise<Completed> {
 }
 
 export type PreviewPage = { number: number; width: number; height: number }
+
 export type Hotspot = { fieldId: string; page: number; x: number; y: number; width: number; height: number; marker?: string }
+
 export type Preview = { pages: PreviewPage[]; hotspots: Hotspot[] }
 
 /** The completed form as page images plus the areas that open a field for editing. */
 export async function fetchPreview(documentId: string): Promise<Preview> {
   const response = await request(`/api/documents/${documentId}/preview`, { method: 'GET' })
-  return response.json() as Promise<Preview>
+
+  return previewSchema.parse(await response.json())
 }
 
 /** `version` changes after every edit so the browser never shows a cached old page. */
@@ -72,23 +76,29 @@ export async function preparePdf(completed: Completed): Promise<void> {
 
 export async function request(url: string, init: RequestInit): Promise<Response> {
   let response: Response
+
   try {
     response = await fetch(url, init)
   } catch {
     throw new Error('연결이 불안정해요. 잠시 후 다시 시도해주세요')
   }
+
   if (!response.ok) {
     throw await responseError(response)
   }
+
   return response
 }
 
 async function responseError(response: Response): Promise<Error> {
   if (response.status === 413) return new Error(MESSAGES.UPLOAD_TOO_LARGE)
+
   try {
-    const error = (await response.json()) as ApiError
-    if (SERVER_WORDED.has(error.code)) return new Error(error.message)
-    return new Error(MESSAGES[error.code] ?? '처리하지 못했어요. 다시 시도해주세요')
+    const error = apiErrorSchema.parse(await response.json())
+
+    if (SERVER_WORDED.has(error.code) && error.message) return new Error(error.message)
+
+    return new Error(messageByCode.get(error.code) ?? '처리하지 못했어요. 다시 시도해주세요')
   } catch {
     return new Error('처리하지 못했어요. 다시 시도해주세요')
   }
@@ -97,5 +107,6 @@ async function responseError(response: Response): Promise<Error> {
 export function downloadName(response: Response, original: string): string {
   const disposition = response.headers.get('Content-Disposition') ?? ''
   const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1]
+
   return encoded ? decodeURIComponent(encoded) : original.replace(/\.hwpx?$/i, '') + '_완성.hwp'
 }

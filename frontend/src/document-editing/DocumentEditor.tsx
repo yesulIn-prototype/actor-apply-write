@@ -36,24 +36,34 @@ export function DocumentEditor({ completed, onEdited, onLocked, fallback }: {
     let active = true
     fetchEditing(completed).then((view) => { if (active) setLoaded({ file: completed.file, view }) })
       .catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : '미리보기를 불러오지 못했어요') })
+
     return () => { active = false }
   }, [completed, refresh])
-  useEffect(() => { onLocked(Boolean(editing || zoom || busy)); return () => onLocked(false) }, [editing, zoom, busy, onLocked])
+  useEffect(() => {
+    onLocked(Boolean(editing || zoom || busy))
+
+    return () => onLocked(false)
+  }, [editing, zoom, busy, onLocked])
 
   function openRegion(region: NumberedRegion, opener: HTMLButtonElement) {
     if (view) { setEditing({ region, opener, revision: view.revision }); setSelectedId(region.id); setError('') }
   }
+
   function open(hotspot: Hotspot, opener: HTMLButtonElement) {
     const region = regions.find((candidate) => candidate.id === hotspot.fieldId)
+
     if (region) openRegion(region, opener)
   }
+
   async function apply(changes: readonly Change[]): Promise<boolean> {
     if (!editing) return false
     setBusy(true)
+
     try {
       onEdited(await editDocument(completed, editing.revision, changes))
       setSelectedId(changes[changes.length - 1]?.id)
       setStatus('수정한 지원서로 바뀌었어요. 아래 미리보기와 저장 파일에 반영됐어요.')
+
       return true
     } catch (reason) {
       setRefresh((count) => count + 1)
@@ -70,6 +80,7 @@ export function DocumentEditor({ completed, onEdited, onLocked, fallback }: {
           event.preventDefault()
           const selected = regions.find((region) => region.number === number.trim())
           const opener = event.currentTarget.querySelector<HTMLButtonElement>('button')
+
           if (selected && opener) openRegion(selected, opener)
           else setError('화면에 보이는 번호를 정확히 입력해 주세요. 예: 1-3')
         }}>

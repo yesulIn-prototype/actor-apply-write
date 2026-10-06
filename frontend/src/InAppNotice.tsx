@@ -7,6 +7,7 @@ export function InAppNotice({ platform, resumeUrl }: { platform: Platform; resum
   const external = externalBrowserUrl(platform, withCampaign(platform, resumeUrl ?? window.location.href))
   const opened = () => track('open_external_browser', { from: resumeUrl ? 'done' : 'start' })
   const menu = '오른쪽 위 ··· 에서 ‘외부 브라우저로 열기’를 눌러주세요'
+
   if (resumeUrl) {
     return (
       <div className="in-app-notice" role="note">
@@ -15,6 +16,7 @@ export function InAppNotice({ platform, resumeUrl }: { platform: Platform; resum
       </div>
     )
   }
+
   return (
     <div className="in-app-notice in-app-notice-start" role="note">
       <span>

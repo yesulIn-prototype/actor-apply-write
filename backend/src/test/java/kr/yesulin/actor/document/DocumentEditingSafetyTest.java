@@ -27,7 +27,7 @@ class DocumentEditingSafetyTest {
         // given: a rendered original, but a renderer which rejects a candidate edit
         DocumentStore store = store();
         StoredDocument job = job(store);
-        Path rhwp = Path.of("../tools/rhwp/rhwp/rhwp.exe");
+        Path rhwp = Path.of("../tools/rhwp/rhwp/rhwp");
         var real = new PreviewService(store, new PdfConverter(rhwp, List.of()), json);
         var before = new DocumentEditingService(store, real).regions(job.id(), job.editToken());
         Files.writeString(job.completedPdf(), "old pdf");
@@ -56,7 +56,7 @@ class DocumentEditingSafetyTest {
         var other = job(store);
         byte[] untouched = Files.readAllBytes(other.completedHwp());
         var editor = new DocumentEditingService(store, new PreviewService(store,
-                new PdfConverter(Path.of("../tools/rhwp/rhwp/rhwp.exe"), List.of()), json));
+                new PdfConverter(Path.of("../tools/rhwp/rhwp/rhwp"), List.of()), json));
         var before = editor.regions(job.id(), job.editToken());
         var ready = new CountDownLatch(2);
         var start = new CountDownLatch(1);
@@ -82,7 +82,7 @@ class DocumentEditingSafetyTest {
         var job = job(store);
         var other = job(store);
         var editor = new DocumentEditingService(store, new PreviewService(store,
-                new PdfConverter(Path.of("../tools/rhwp/rhwp/rhwp.exe"), List.of()), json));
+                new PdfConverter(Path.of("../tools/rhwp/rhwp/rhwp"), List.of()), json));
         var before = editor.regions(job.id(), job.editToken());
         byte[] original = Files.readAllBytes(job.completedHwp());
         // when / then
@@ -102,7 +102,7 @@ class DocumentEditingSafetyTest {
         var store = new DocumentStore(work, Duration.ofMinutes(30), clock);
         var job = job(store);
         var editor = new DocumentEditingService(store, new PreviewService(store,
-                new PdfConverter(Path.of("../tools/rhwp/rhwp/rhwp.exe"), List.of()), json));
+                new PdfConverter(Path.of("../tools/rhwp/rhwp/rhwp"), List.of()), json));
         clock.now = clock.now.plus(Duration.ofMinutes(29));
         var before = editor.regions(job.id(), job.editToken());
         editor.edit(job.id(), job.editToken(), request(before, "만료 전 수정"));

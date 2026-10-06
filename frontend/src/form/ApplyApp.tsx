@@ -33,8 +33,10 @@ type Phase =
 export function ApplyApp({ vid }: { vid: string }) {
   const [resumeId] = useState(() => {
     const id = new URLSearchParams(window.location.search).get('doc')
+
     return id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : undefined
   })
+
   return resumeId ? <ResumeNotice vid={vid} documentId={resumeId} /> : <NoticeApplication key={vid} vid={vid} />
 }
 
@@ -48,11 +50,13 @@ function NoticeApplication({ vid }: { vid: string }) {
   const answers = useAnswers(showToast)
   const draft = useApplicationDraft(phase.kind === 'loading' || phase.kind === 'unavailable' ? undefined : phase.form)
   const shown = phase.kind === 'done' ? phase.form : undefined
+
   const delivery = useDelivery(completed, showToast, {
     pdfFirst: shown?.pdfFirst,
     mailTo: shown?.submission.email,
     mailSubject: shown ? filledTemplate(shown, draft.answers, shown.submission.subject).trim() : undefined,
   })
+
   useLeaveInAppBrowser(platform)
 
   useEffect(() => {
@@ -60,11 +64,13 @@ function NoticeApplication({ vid }: { vid: string }) {
     fetchForm(vid)
       .then((form) => { if (active) setPhase({ kind: 'fill', form }) })
       .catch((reason) => { if (active) setPhase({ kind: 'unavailable', reason: message(reason) }) })
+
     return () => { active = false }
   }, [vid])
 
   useEffect(() => {
     if (phase.kind === 'fill') trackScreen('apply_fill')
+
     if (phase.kind === 'done') trackScreen('apply_done')
   }, [phase.kind])
 
@@ -90,9 +96,15 @@ function NoticeApplication({ vid }: { vid: string }) {
   }
 
   async function submit(form: PublicForm, confirmed = false) {
-    if (completed?.directEdited && !confirmed) { setConfirmRegeneration(true); return }
+    if (completed?.directEdited && !confirmed) {
+      setConfirmRegeneration(true)
+
+      return
+    }
+
     setConfirmRegeneration(false)
     setPhase({ kind: 'generating', form })
+
     try {
       setCompleted(await build(form, completed?.documentId))
       setPhase({ kind: 'done', form })

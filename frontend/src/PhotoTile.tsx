@@ -24,6 +24,7 @@ export function PhotoTile({ field, file, onChange }: {
           onChange={(event) => {
             const picked = event.target.files?.[0]
             event.target.value = ''
+
             if (picked) onChange(field.id, picked)
           }}
         />
@@ -44,8 +45,11 @@ function Preview({ file, alt }: { file: File; alt: string }) {
   const image = useRef<HTMLImageElement>(null)
   useEffect(() => {
     const url = URL.createObjectURL(file)
+
     if (image.current) image.current.src = url
+
     return () => URL.revokeObjectURL(url)
   }, [file])
+
   return <img ref={image} alt={alt} />
 }

@@ -36,6 +36,7 @@ export function FormEditor({ vid }: { vid: string }) {
 
   async function upload(file: File) {
     setBusy(true)
+
     try {
       changed(await uploadSource(vid, file))
     } catch (reason) { // no-excuse-ok: catch - render request errors at this UI boundary
@@ -70,6 +71,7 @@ export function FormEditor({ vid }: { vid: string }) {
                 onChange={(event) => {
                   const file = event.target.files?.[0]
                   event.target.value = ''
+
                   if (file) void upload(file)
                 }}
               />
