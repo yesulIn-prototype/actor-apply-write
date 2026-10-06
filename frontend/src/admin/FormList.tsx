@@ -99,11 +99,11 @@ export function FormList({ onOpen }: { onOpen: (vid: string) => void }) {
 
           if (/^\d{1,12}$/.test(vid)) onOpen(vid)
         }}>
-          <label htmlFor="new-vid">OTR 공고 번호(vid)</label>
-          <input id="new-vid" inputMode="numeric" placeholder="22382" value={vid} onChange={(event) => setVid(event.target.value.trim())} />
+          <label htmlFor="new-vid">예술in 공고 번호(vid)</label>
+          <input id="new-vid" inputMode="numeric" placeholder="15" value={vid} onChange={(event) => setVid(event.target.value.trim())} />
           <button type="submit" disabled={!/^\d{1,12}$/.test(vid)}>열기</button>
         </form>
-        <p className="admin-help">otr.co.kr/audition/?vid=<b>22382</b> 의 숫자를 넣으면 그 공고의 양식을 준비할 수 있어요.</p>
+        <p className="admin-help">yesulin.art/posts/<b>15</b> 의 숫자를 넣으면 그 공고의 양식을 준비할 수 있어요.</p>
         <form className="admin-row admin-search" onSubmit={(event) => { event.preventDefault(); search(input) }}>
           <label htmlFor="form-search">vid·공고 제목 검색</label>
           <input id="form-search" type="search" placeholder="공고 번호 또는 제목" value={input} onChange={(event) => setInput(event.target.value)} />

@@ -66,9 +66,9 @@ test('opens a listed notice or a newly entered vid', async () => {
   fireEvent.click(await screen.findByRole('button', { name: '10024' }))
   // then
   expect(onOpen).toHaveBeenCalledWith('10024')
-  fireEvent.change(screen.getByLabelText('OTR 공고 번호(vid)'), { target: { value: '22389' } })
+  fireEvent.change(screen.getByLabelText('예술in 공고 번호(vid)'), { target: { value: '15' } })
   fireEvent.click(screen.getByRole('button', { name: '열기' }))
-  expect(onOpen).toHaveBeenCalledWith('22389')
+  expect(onOpen).toHaveBeenCalledWith('15')
 })
 
 test('shows a request failure and can retry without stale rows', async () => {

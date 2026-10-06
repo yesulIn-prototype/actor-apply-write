@@ -2,7 +2,7 @@ package kr.yesulin.actor.form;
 
 import java.util.regex.Pattern;
 
-/** An OTR notice number ("22382" from otr.co.kr/audition/?vid=22382): the key a shared form is found by. */
+/** A Yesulin post number ("15" from yesulin.art/posts/15): the key a shared form is found by. */
 public record Vid(String value) {
     private static final Pattern DIGITS = Pattern.compile("^[0-9]{1,12}$");
 

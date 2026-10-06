@@ -45,6 +45,7 @@ test('saves standard settings from the JSON editor without choosing a setup scre
   // given
   const fetcher = setup()
   const editor = await screen.findByLabelText('양식 정의 JSON')
+  expect(screen.getByRole('link', { name: 'yesulin.art/posts/99007' })).toHaveAttribute('href', 'https://yesulin.art/posts/99007')
   // when
   fireEvent.change(editor, { target: { value: SPEC } })
   fireEvent.click(screen.getByRole('button', { name: '저장하고 확인' }))

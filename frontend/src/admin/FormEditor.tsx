@@ -50,7 +50,7 @@ export function FormEditor({ vid }: { vid: string }) {
     <div className="admin-editor">
       <h1>공고 {vid}</h1>
       <p className="admin-help">
-        OTR 공고: <a href={`https://otr.co.kr/audition/?vid=${vid}`} target="_blank" rel="noopener noreferrer">otr.co.kr/audition/?vid={vid}</a>
+        예술in 공고: <a href={`https://yesulin.art/posts/${vid}`} target="_blank" rel="noopener noreferrer">yesulin.art/posts/{vid}</a>
       </p>
       {error && <p className="admin-error" role="alert">{error}</p>}
       {detail && <LinkPanel detail={detail} onChange={show} onError={setError} />}
