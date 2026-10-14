@@ -20,15 +20,21 @@ import org.springframework.web.multipart.MultipartHttpServletRequest;
 public final class FormController {
     private final FormApplyService forms;
     private final kr.yesulin.actor.document.DocumentService documents;
+    private final kr.yesulin.actor.stats.UsageCounter usage;
 
-    public FormController(FormApplyService forms, kr.yesulin.actor.document.DocumentService documents) {
+    public FormController(FormApplyService forms, kr.yesulin.actor.document.DocumentService documents,
+            kr.yesulin.actor.stats.UsageCounter usage) {
         this.forms = forms;
         this.documents = documents;
+        this.usage = usage;
     }
 
+    /** Opening the notice link loads this once; only a published form counts as a page view. */
     @GetMapping("/{vid}")
     public FormViews.PublicForm form(@PathVariable String vid) throws IOException {
-        return forms.form(new Vid(vid));
+        FormViews.PublicForm form = forms.form(new Vid(vid));
+        usage.recordView(form.vid());
+        return form;
     }
 
     @PostMapping(path = "/{vid}/generate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = "application/x-hwp")

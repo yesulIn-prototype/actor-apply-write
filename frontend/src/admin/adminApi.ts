@@ -15,6 +15,8 @@ export type UsageCounts = {
   readonly hwp: number
   readonly pdf: number
   readonly unidentifiedJobs: number
+  /** Loads of the published notice form, reloads included. */
+  readonly views: number
 }
 
 export type UsageSnapshot = { readonly startedAt: string; readonly counts: UsageCounts }

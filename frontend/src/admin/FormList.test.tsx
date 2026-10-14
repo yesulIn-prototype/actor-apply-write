@@ -7,7 +7,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 function setup() {
   const fetcher = vi.fn(async (url: string) => {
     if (url === '/api/admin/usage') return new Response(JSON.stringify({ startedAt: '2026-10-04T00:00:00Z',
-      counts: { visitors: 3, hwp: 8, pdf: 2, unidentifiedJobs: 0 } }))
+      counts: { visitors: 3, hwp: 8, pdf: 2, unidentifiedJobs: 0, views: 41 } }))
     const params = new URL(url, 'http://localhost').searchParams
     const page = Number(params.get('page') ?? 1)
     const query = params.get('query') ?? ''
@@ -15,7 +15,7 @@ function setup() {
     const items = query ? [] : Array.from({ length: page === 1 ? 20 : 5 }, (_, index) => ({
       vid: String(10024 - (page - 1) * 20 - index), title: `합성 공고 ${index}`, status: 'DRAFT',
       publishedVersion: 0, editingVersion: 1,
-      usage: { visitors: 1, hwp: 2, pdf: 1, unidentifiedJobs: 0 },
+      usage: { visitors: 1, hwp: 2, pdf: 1, unidentifiedJobs: 0, views: 7 },
     }))
 
     return new Response(JSON.stringify({ items, page: query ? 1 : page, pageSize: 20,
@@ -77,7 +77,7 @@ test('shows a request failure and can retry without stale rows', async () => {
 
   const fetcher = vi.fn(async (url: string) => {
     if (url === '/api/admin/usage') return new Response(JSON.stringify({ startedAt: '2026-10-04T00:00:00Z',
-      counts: { visitors: 0, hwp: 0, pdf: 0, unidentifiedJobs: 0 } }))
+      counts: { visitors: 0, hwp: 0, pdf: 0, unidentifiedJobs: 0, views: 0 } }))
 
     if (!failed) {
       failed = true
@@ -106,7 +106,7 @@ test('confirms soft deletion and restores from the deleted-notice list', async (
 
   const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
     if (url === '/api/admin/usage') return new Response(JSON.stringify({ startedAt: '2026-10-04T00:00:00Z',
-      counts: { visitors: 1, hwp: 2, pdf: 1, unidentifiedJobs: 0 } }))
+      counts: { visitors: 1, hwp: 2, pdf: 1, unidentifiedJobs: 0, views: 0 } }))
 
     if (init?.method === 'DELETE') {
       deleted = true
@@ -123,7 +123,7 @@ test('confirms soft deletion and restores from the deleted-notice list', async (
     const requestedDeleted = new URL(url, 'http://localhost').searchParams.get('deleted') === 'true'
 
     const items = requestedDeleted === deleted ? [{ vid: '10024', title: '합성공고', status: deleted ? 'DELETED' : 'PUBLISHED',
-      publishedVersion: 1, editingVersion: 1, usage: { visitors: 1, hwp: 2, pdf: 1, unidentifiedJobs: 0 } }] : []
+      publishedVersion: 1, editingVersion: 1, usage: { visitors: 1, hwp: 2, pdf: 1, unidentifiedJobs: 0, views: 0 } }] : []
 
     return new Response(JSON.stringify({ items, page: 1, pageSize: 20, total: items.length, totalPages: 1 }))
   })
@@ -146,11 +146,15 @@ test('confirms soft deletion and restores from the deleted-notice list', async (
   confirm.mockRestore()
 })
 
-test('shows global browser counts and the combined HWP/PDF file total', async () => {
+test('shows page views, HWP and PDF counts with what each counts, without browser counts', async () => {
   // given / when
   setup()
   // then
-  expect(await screen.findByText('생성 파일 10개')).toBeVisible()
-  expect(screen.getByText('이용 브라우저 3개')).toBeVisible()
-  expect(screen.getByText('HWP 8개 · PDF 2개')).toBeVisible()
+  expect(await screen.findByText('페이지 조회 41회')).toBeVisible()
+  expect(screen.getByText('HWP 생성 8개')).toBeVisible()
+  expect(screen.getByText('PDF 변환 2개')).toBeVisible()
+  expect(screen.getByText(/‘지원서 만들기’를 눌러 서버가 HWP를 처음 만든/)).toBeVisible()
+  expect(screen.queryByText(/이용 브라우저/)).not.toBeInTheDocument()
+  expect(screen.getByRole('columnheader', { name: '페이지 조회' })).toBeVisible()
+  expect(screen.getAllByRole('cell', { name: '7회' })).toHaveLength(20)
 })

@@ -100,11 +100,11 @@
 
 | 메서드 | 경로 | 권한 | 내용 |
 |---|---|---|---|
-| GET | `/api/forms/{vid}` | 공개 | 최신 공개 버전의 제목·항목·제출 안내(`submission`)·`pdfFirst`(표준 지원서 공고면 true)(칸·원문 없음). 없음 404 `FORM_NOT_FOUND`, 종료 410 `FORM_CLOSED` |
+| GET | `/api/forms/{vid}` | 공개 | 최신 공개 버전의 제목·항목·제출 안내(`submission`)·`pdfFirst`(표준 지원서 공고면 true)(칸·원문 없음). 없음 404 `FORM_NOT_FOUND`, 종료 410 `FORM_CLOSED`. 성공할 때마다 공고 조회수 1 증가 |
 | POST | `/api/forms/{vid}/generate` | 공개 | multipart `request`(`{version, documentId, answers, fileName}`; `fileName`이 비면 템플릿) + `photo-<항목id>`. HWP 첨부, `X-Document-Id`, `X-Document-Edit-Token`. 기존 작업 재사용은 토큰 헤더도 필요. ID만 보내면 새 작업. 잘못된 토큰은 403. 공개된 적 없는 버전 409 `FORM_CHANGED`, 답 오류 400 `INVALID_ANSWER` |
 | GET | `/api/documents/{id}/editing` | 작업 수정 토큰 | 현재 HWP의 `revision`, 페이지, 편집 가능한 글·위치. 중첩 표·여러 구역 등 안전한 좌표 매핑 불가 시 400 `INVALID_DOCUMENT_EDIT` |
 | POST | `/api/documents/{id}/editing` | 작업 수정 토큰 | `{revision, changes:[{id,text,inputStyle}]}`. 1~2개 영역 교체 후 최신 HWP 응답. 오래된 지문 409 `DOCUMENT_EDIT_CONFLICT`, 권한 오류 403 `DOCUMENT_EDIT_FORBIDDEN` |
-| GET | `/api/admin/forms?page=1&query=&deleted=false` | 토큰 | 검색·20개 서버 페이징, 공고별 이용 브라우저·HWP/PDF 집계. `deleted=true`는 삭제된 공고만 조회 |
+| GET | `/api/admin/forms?page=1&query=&deleted=false` | 토큰 | 검색·20개 서버 페이징, 공고별 페이지 조회(`views`)·HWP/PDF 집계. `deleted=true`는 삭제된 공고만 조회 |
 | DELETE | `/api/admin/forms/{vid}` | 토큰 | 원본·정의·버전을 보존하며 새 지원 중단. 204 |
 | POST | `/api/admin/forms/{vid}/restore` | 토큰 | 삭제 전 공개·종료·초안 상태로 복구 |
 | GET | `/api/admin/usage` | 토큰 | 전체 익명 브라우저와 최초 HWP/PDF 수, 집계 시작 시각. [집계 기준](admin-list.md) |

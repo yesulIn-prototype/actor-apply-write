@@ -3,7 +3,7 @@ import { previewPageSchema } from '../apiSchemas'
 
 const statusSchema = z.enum(['DRAFT', 'PUBLISHED', 'CLOSED', 'DELETED'])
 
-const countsSchema = z.object({ visitors: z.number(), hwp: z.number(), pdf: z.number(), unidentifiedJobs: z.number() })
+const countsSchema = z.object({ visitors: z.number(), hwp: z.number(), pdf: z.number(), unidentifiedJobs: z.number(), views: z.number() })
 
 export const usageSchema = z.object({ startedAt: z.string(), counts: countsSchema })
 

@@ -18,20 +18,27 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Persistent notice totals and hashed random browser identifiers. Never stores answers or job IDs. */
+/**
+ * Persistent notice totals and hashed random browser identifiers. Never stores answers or job IDs.
+ * Views count every load of a published form; HWP and PDF count each job's first successful file of that format.
+ */
 @Component
 public final class UsageCounter {
     private static final Pattern OWNER = Pattern.compile("^form:([0-9]{1,12}):v[0-9]+$");
     private static final Pattern VISITOR = Pattern.compile("^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$");
     public enum Format { HWP, PDF }
-    public record Counts(long visitors, long hwp, long pdf, long unidentifiedJobs) {}
+    public record Counts(long visitors, long hwp, long pdf, long unidentifiedJobs, long views) {}
     public record Snapshot(String startedAt, Counts counts) {}
-    public record StoredCounts(Set<String> visitors, long hwp, long pdf, long unidentifiedJobs) {
+    /** {@code views} is null in files written before views were counted. */
+    public record StoredCounts(Set<String> visitors, long hwp, long pdf, long unidentifiedJobs, Long views) {
         public StoredCounts {
             visitors = Set.copyOf(visitors);
-            if (hwp < 0 || pdf < 0 || unidentifiedJobs < 0) throw new IllegalArgumentException("집계 파일의 횟수가 음수입니다.");
+            views = views == null ? 0L : views;
+            if (hwp < 0 || pdf < 0 || unidentifiedJobs < 0 || views < 0) {
+                throw new IllegalArgumentException("집계 파일의 횟수가 음수입니다.");
+            }
         }
-        Counts counts() { return new Counts(visitors.size(), hwp, pdf, unidentifiedJobs); }
+        Counts counts() { return new Counts(visitors.size(), hwp, pdf, unidentifiedJobs, views); }
     }
     public record StoredUsage(String startedAt, Map<String, StoredCounts> notices) {
         public StoredUsage {
@@ -39,7 +46,7 @@ public final class UsageCounter {
             notices = Map.copyOf(notices);
         }
     }
-    private static final StoredCounts EMPTY = new StoredCounts(Set.of(), 0, 0, 0);
+    private static final StoredCounts EMPTY = new StoredCounts(Set.of(), 0, 0, 0, 0L);
     private final Path file;
     private final JsonMapper json;
     private StoredUsage usage;
@@ -57,12 +64,12 @@ public final class UsageCounter {
 
     public synchronized Snapshot snapshot() {
         Set<String> visitors = new HashSet<>();
-        long hwp = 0, pdf = 0, unidentified = 0;
+        long hwp = 0, pdf = 0, unidentified = 0, views = 0;
         for (StoredCounts counts : usage.notices().values()) {
             visitors.addAll(counts.visitors());
-            hwp += counts.hwp(); pdf += counts.pdf(); unidentified += counts.unidentifiedJobs();
+            hwp += counts.hwp(); pdf += counts.pdf(); unidentified += counts.unidentifiedJobs(); views += counts.views();
         }
-        return new Snapshot(usage.startedAt(), new Counts(visitors.size(), hwp, pdf, unidentified));
+        return new Snapshot(usage.startedAt(), new Counts(visitors.size(), hwp, pdf, unidentified, views));
     }
 
     /** The caller tracks first generation per format in the expiring job, not in this analytics file. */
@@ -76,15 +83,27 @@ public final class UsageCounter {
         if (identified && format == Format.HWP) visitors.add(hash(visitor.toLowerCase(java.util.Locale.ROOT)));
         StoredCounts next = switch (format) {
             case HWP -> new StoredCounts(visitors, previous.hwp() + 1, previous.pdf(),
-                    previous.unidentifiedJobs() + (identified ? 0 : 1));
-            case PDF -> new StoredCounts(visitors, previous.hwp(), previous.pdf() + 1, previous.unidentifiedJobs());
+                    previous.unidentifiedJobs() + (identified ? 0 : 1), previous.views());
+            case PDF -> new StoredCounts(visitors, previous.hwp(), previous.pdf() + 1, previous.unidentifiedJobs(),
+                    previous.views());
         };
+        put(vid, next);
+        return true;
+    }
+
+    /** One load of a published notice form: reloads and repeat visits count again. */
+    public synchronized void recordView(String vid) throws IOException {
+        StoredCounts previous = usage.notices().getOrDefault(vid, EMPTY);
+        put(vid, new StoredCounts(previous.visitors(), previous.hwp(), previous.pdf(), previous.unidentifiedJobs(),
+                previous.views() + 1));
+    }
+
+    private void put(String vid, StoredCounts counts) throws IOException {
         Map<String, StoredCounts> notices = new HashMap<>(usage.notices());
-        notices.put(vid, next);
+        notices.put(vid, counts);
         StoredUsage updated = new StoredUsage(usage.startedAt(), notices);
         save(updated);
         usage = updated;
-        return true;
     }
 
     private void save(StoredUsage value) throws IOException {

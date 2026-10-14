@@ -107,6 +107,22 @@ class FormManagementHttpAcceptanceTest {
     }
 
     @Test
+    void usage_CountsEveryPublishedFormLoadAsPageView_NotMissingNotices() throws Exception {
+        // given
+        register("70004");
+        // when
+        mvc.perform(get("/api/forms/70004")).andExpect(status().isOk());
+        mvc.perform(get("/api/forms/70004")).andExpect(status().isOk());
+        mvc.perform(get("/api/forms/79999")).andExpect(status().isNotFound());
+        // then
+        mvc.perform(get("/api/admin/forms").param("query", "70004").header("Authorization", AUTH))
+                .andExpect(jsonPath("$.items[0].usage.views").value(2))
+                .andExpect(jsonPath("$.items[0].usage.hwp").value(0));
+        mvc.perform(get("/api/admin/usage").header("Authorization", AUTH))
+                .andExpect(jsonPath("$.counts.views").value(2));
+    }
+
+    @Test
     void usage_DoesNotCountFailedPdf_WhenRendererFails() throws Exception {
         // given
         register("70004");

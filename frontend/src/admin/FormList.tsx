@@ -126,7 +126,7 @@ export function FormList({ onOpen }: { onOpen: (vid: string) => void }) {
             {result.total === 0 ? <p className="admin-help">{query ? '검색 결과가 없어요.' : deleted ? '삭제된 공고가 없어요.' : '아직 준비한 공고가 없어요.'}</p> : (
               <div className="admin-list-scroll">
                 <table className="admin-table admin-list-table">
-                  <thead><tr><th>vid</th><th>제목</th><th>상태</th><th>공개 버전</th><th>편집 버전</th><th>이용 브라우저</th><th>생성 파일</th><th>관리</th></tr></thead>
+                  <thead><tr><th>vid</th><th>제목</th><th>상태</th><th>공개 버전</th><th>편집 버전</th><th>페이지 조회</th><th>HWP 생성</th><th>PDF 변환</th><th>관리</th></tr></thead>
                   <tbody>
                     {result.items.map((form) => (
                       <tr key={form.vid}>
@@ -134,8 +134,9 @@ export function FormList({ onOpen }: { onOpen: (vid: string) => void }) {
                         <td>{form.title || '(제목 없음)'}</td>
                         <td><span className={`admin-status admin-status-${form.status.toLowerCase()}`}>{STATUS_LABEL[form.status]}</span></td>
                         <td>{form.publishedVersion || '-'}</td><td>{form.editingVersion || '-'}</td>
-                        <td>{form.usage.visitors.toLocaleString()}개</td>
-                        <td className="admin-file-count">{(form.usage.hwp + form.usage.pdf).toLocaleString()}개<small>HWP {form.usage.hwp} · PDF {form.usage.pdf}</small></td>
+                        <td>{form.usage.views.toLocaleString()}회</td>
+                        <td>{form.usage.hwp.toLocaleString()}개</td>
+                        <td>{form.usage.pdf.toLocaleString()}개</td>
                         <td><button type="button" className={deleted ? '' : 'admin-danger'} disabled={busy} onClick={() => void changeNotice(form)}>{deleted ? '복구' : '삭제'}</button></td>
                       </tr>
                     ))}
