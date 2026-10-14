@@ -13,6 +13,7 @@
   margin-top: 8px;
   font-size: 15px;
   color: var(--grey-600);
+  word-break: keep-all;
 }
 
 .required {
@@ -185,4 +186,44 @@
   font-size: 15px;
   font-weight: 600;
   color: var(--blue-500);
+}
+
+/* Item groups: required, optional (folded until asked for), photos. Same order on every notice. */
+.item-group {
+  margin-top: 36px;
+}
+
+.item-group-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.item-group .field-list {
+  margin-top: 16px;
+}
+
+.item-group-more {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px dashed var(--grey-300);
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--blue-600);
+  text-align: left;
+}
+
+.item-group-more span {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--grey-600);
+}
+
+.item-group-more:active {
+  background: var(--grey-50);
 }

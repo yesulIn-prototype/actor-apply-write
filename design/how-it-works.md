@@ -100,6 +100,7 @@ sequenceDiagram
 | `ApplyApp.tsx` | 공고 양식 불러오기 → 작성 → 생성 → 완성 화면. 작업 ID를 기억해 수정 시 같은 작업으로 다시 생성 |
 | `ResumeNotice.tsx` | `/apply/{vid}?doc=<작업ID>`에서 이미 만든 파일 이어받기. 공고 공개·마감 상태와 별개로 작업의 30분 수명 동안 다운로드. 답이 없어 편집은 하지 않음 |
 | `NoticeFillScreen.tsx` | 제목, 항목들, **완성 파일 이름 칸**, 필수 남은 개수, "지원서 만들기" |
+| `FormFields.tsx`, `itemOrder.ts` | 항목을 필수 → 선택(접힘) → 사진 묶음으로, 기본 항목 id 순서대로 배치. 화면 순서만 바꾸고 출력에는 영향 없음 |
 | `ItemInput.tsx` | 타입별 입력: text(한 줄/여러 줄), phone(전화 키패드), single/multi(칩, multi는 `max` 넘으면 막음), photo |
 | `useAnswers.ts` | 답·사진 상태. 사진은 `photo.ts`로 변환. 수정 시트 취소용 스냅숏 |
 | `fileName.ts` | **파일 이름 제안**(아래 6절) |

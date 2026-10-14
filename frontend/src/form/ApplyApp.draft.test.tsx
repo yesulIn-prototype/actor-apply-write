@@ -6,6 +6,8 @@ import { ApplyApp } from './ApplyApp'
 const form = {
   vid: '99001', version: 1, title: '합성 지원서', sourceName: 'sample.hwp', fileName: '{name}',
   items: [{ id: 'name', label: '성명', type: 'TEXT', help: '', required: true, multiline: false, maxLength: 30,
+    options: [], min: 0, max: 0, columns: [], maxRows: 0 },
+  { id: 'skill', label: '특기', type: 'TEXT', help: '', required: false, multiline: false, maxLength: 30,
     options: [], min: 0, max: 0, columns: [], maxRows: 0 }],
   submission: { email: '', subject: '', deadline: '', note: '' }, pdfFirst: false,
 }
@@ -22,7 +24,7 @@ test('continues text and chosen output name when returning to a notice after unm
   const first = render(<ApplyApp vid="99001" />)
   fireEvent.change(await screen.findByLabelText('성명 *'), { target: { value: '이어 쓰는 사람' } })
   expect(screen.getByRole('link', { name: '공고 보러 가기 ↗' })).toHaveAttribute('href', 'https://yesulin.art/posts/99001')
-  expect(screen.getByText('아래 내용을 채우면 바로 이 공고에 지원할 수 있는 지원서 파일로 만들어 드려요.')).toBeVisible()
+  expect(screen.getByText('필수 항목만 채우면 바로 이 공고에 낼 지원서 파일로 만들어 드려요. 선택 항목은 비워 둬도 돼요.')).toBeVisible()
   expect(screen.getByRole('button', { name: '저장된 내용 지우기' }).closest('footer')).toBeInTheDocument()
   fireEvent.change(screen.getByLabelText('완성 파일 이름'), { target: { value: '이어서 쓰는 지원서' } })
   await screen.findByText('이 브라우저에 저장됐어요')
@@ -33,6 +35,20 @@ test('continues text and chosen output name when returning to a notice after unm
   expect(await screen.findByLabelText('성명 *')).toHaveValue('이어 쓰는 사람')
   expect(screen.getByLabelText('완성 파일 이름')).toHaveValue('이어서 쓰는 지원서')
   expect(screen.getByText(/이전에 작성한 내용을 불러왔어요/)).toBeVisible()
+})
+
+test('opens the folded optional items when the restored draft already answered one', async () => {
+  // given
+  const first = render(<ApplyApp vid="99001" />)
+  fireEvent.click(await screen.findByRole('button', { name: /선택 항목 1개 더 쓰기/ }))
+  fireEvent.change(screen.getByLabelText('특기'), { target: { value: '탭댄스' } })
+  await screen.findByText('이 브라우저에 저장됐어요')
+  // when
+  first.unmount()
+  render(<ApplyApp vid="99001" />)
+  // then
+  expect(await screen.findByLabelText('특기')).toHaveValue('탭댄스')
+  expect(screen.queryByRole('button', { name: /선택 항목 1개 더 쓰기/ })).not.toBeInTheDocument()
 })
 
 test('explicitly clears persisted input and does not bring it back on the next visit', async () => {

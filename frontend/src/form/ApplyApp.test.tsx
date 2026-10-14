@@ -33,6 +33,11 @@ const form: PublicForm = {
 
 const JOB = '7907f91f-de04-418f-a284-75836cbebce5'
 
+/** Optional items start folded; tests that answer them open the group first. */
+async function openOptionalItems() {
+  fireEvent.click(await screen.findByRole('button', { name: /선택 항목 \d+개 더 쓰기/ }))
+}
+
 beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async (url: string) => {
     if (url === '/api/forms/22382') return new Response(JSON.stringify(form), { status: 200 })
@@ -100,6 +105,7 @@ function sentRequest(call: number) {
 
 test('draws each item the way the operator typed it, with no upload step', async () => {
   render(<ApplyApp vid="22382" />)
+  await openOptionalItems()
 
   expect(await screen.findByRole('heading', { name: '잠자는 숲속의 공주 지원서' })).toBeInTheDocument()
   expect(screen.queryByLabelText('지원서 파일')).not.toBeInTheDocument()
@@ -111,6 +117,22 @@ test('draws each item the way the operator typed it, with no upload step', async
   expect(screen.getByRole('button', { name: '지원서 만들기' })).toBeDisabled()
 })
 
+test('shows required items first, folds optional ones and keeps photos last', async () => {
+  render(<ApplyApp vid="22382" />)
+
+  const more = await screen.findByRole('button', { name: /선택 항목 3개 더 쓰기/ })
+  expect(screen.getByLabelText('이름 *')).toBeInTheDocument()
+  expect(screen.queryByLabelText('자기소개')).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '지원서 만들기' })).toBeDisabled()
+  fireEvent.click(more)
+  const titles = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
+  expect(titles).toEqual(['필수 항목', '선택 항목', '사진'])
+  const order = ['이름 *', '연락처 *', '자기소개', '프로필 사진 사진 선택'].map((label) => screen.getByLabelText(label))
+  order.slice(1).forEach((element, index) => {
+    expect(order[index].compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+})
+
 test('takes the brand logo back to the service home', async () => {
   render(<ApplyApp vid="22382" />)
 
@@ -120,6 +142,7 @@ test('takes the brand logo back to the service home', async () => {
 
 test('stops a third pick when the operator allowed two', async () => {
   render(<ApplyApp vid="22382" />)
+  await openOptionalItems()
   const roles = within(await screen.findByRole('group', { name: '지원 배역' }))
 
   fireEvent.click(roles.getByRole('button', { name: '곰역' }))
@@ -131,6 +154,7 @@ test('stops a third pick when the operator allowed two', async () => {
 
 test('sends answers by item, never cells, and rebuilds the same applicant file after an edit', async () => {
   render(<ApplyApp vid="22382" />)
+  await openOptionalItems()
   fireEvent.change(await screen.findByLabelText('이름 *'), { target: { value: '홍길동' } })
   fireEvent.change(screen.getByLabelText('연락처 *'), { target: { value: '010-1234-5678' } })
   fireEvent.click(screen.getByRole('button', { name: '여' }))
@@ -154,6 +178,7 @@ test('sends answers by item, never cells, and rebuilds the same applicant file a
 
 test('takes a rows item row by row up to the limit and sends only the rows written in', async () => {
   render(<ApplyApp vid="22382" />)
+  await openOptionalItems()
   const career = within(await screen.findByRole('group', { name: '출연 경력' }))
   fireEvent.change(career.getByLabelText('작품명'), { target: { value: '햄릿' } })
   fireEvent.click(career.getByRole('button', { name: '+ 줄 더하기 (1/2)' }))
@@ -182,6 +207,7 @@ test('shows where to send, with the mail subject filled from the answers', async
     return new Response(new Blob(['hwp']), { status: 200, headers: { 'X-Document-Id': JOB } })
   })
   render(<ApplyApp vid="22382" />)
+  await openOptionalItems()
   fireEvent.change(await screen.findByLabelText('이름 *'), { target: { value: '홍길동' } })
   fireEvent.change(screen.getByLabelText('연락처 *'), { target: { value: '01012345678' } })
   fireEvent.click(screen.getByRole('button', { name: '여' }))
@@ -237,6 +263,7 @@ test('on a standard-form notice, puts the PDF first and sends the PDF from the m
 
 test('offers the operator template as the file name and sends the name the applicant typed instead', async () => {
   render(<ApplyApp vid="22382" />)
+  await openOptionalItems()
   const name = await screen.findByLabelText('완성 파일 이름')
   expect(name).toHaveValue('잠자는숲속의공주_완성.hwp')
   fireEvent.change(screen.getByLabelText('이름 *'), { target: { value: '홍길동' } })
