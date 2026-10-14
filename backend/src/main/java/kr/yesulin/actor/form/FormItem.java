@@ -12,6 +12,8 @@ import java.util.Optional;
  * @param max       multi only: most options to pick, 0 for no limit
  * @param columns   rows only: what each row asks, in order ("작품명", "역할", …)
  * @param maxRows   rows only: most rows the applicant may write
+ * @param rowLabels rows only: one label per fixed form row (초등학교, 중학교, …); the k-th row always means the
+ *                  k-th label and a blank one leaves that form row alone. Empty for rows the applicant adds.
  */
 public record FormItem(
         String id,
@@ -25,7 +27,8 @@ public record FormItem(
         int min,
         int max,
         List<Column> columns,
-        int maxRows) {
+        int maxRows,
+        List<String> rowLabels) {
 
     public enum Type {
         TEXT,
@@ -50,6 +53,7 @@ public record FormItem(
     public FormItem {
         options = List.copyOf(options);
         columns = List.copyOf(columns);
+        rowLabels = List.copyOf(rowLabels);
     }
 
     Optional<Option> option(String optionId) {

@@ -49,11 +49,22 @@ final class SourceCheck {
             }
             return;
         }
-        rows.formCells().stream()
-                .filter(address -> !byAddress.containsKey(address))
-                .findFirst()
-                .ifPresent(missing -> problems.add(where + ": 줄 표 칸 " + Cells.format(missing)
-                        + "이 원본 지원서에 없습니다. formRows와 columns 수를 확인하세요."));
+        var missing = rows.formCells().stream().filter(address -> !byAddress.containsKey(address)).findFirst();
+        if (missing.isPresent()) {
+            problems.add(where + ": 줄 표 칸 " + Cells.format(missing.get())
+                    + "이 원본 지원서에 없습니다. formRows와 columns 수를 확인하세요.");
+            return;
+        }
+        for (int at = 0; at < rows.columns().size(); at++) {
+            FormOutput.Fill fill = rows.fills().get(rows.columns().get(at));
+            for (int row = 0; fill != null && row < rows.formRows(); row++) {
+                CellAddress address = new CellAddress(cell.tableIndex(), cell.rowIndex() + row, cell.cellIndex() + at);
+                if (!byAddress.get(address).text().contains(fill.find())) {
+                    problems.add(where + ": 줄 표 칸 " + Cells.format(address) + " 원문에 '" + fill.find()
+                            + "'가 없습니다. (원문: '" + shown(byAddress.get(address).text()) + "')");
+                }
+            }
+        }
     }
 
     static Map<CellAddress, String> texts(List<CellSnapshot> cells) {

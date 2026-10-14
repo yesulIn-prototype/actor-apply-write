@@ -17,7 +17,7 @@ final class ItemParser {
     private static final int DEFAULT_ROWS = 10;
     private static final Set<String> KEYS = Set.of(
             "id", "label", "help", "required", "type", "multiline", "maxLength", "options", "min", "max",
-            "columns", "maxRows");
+            "columns", "maxRows", "rowLabels");
 
     private final List<String> problems;
 
@@ -78,6 +78,7 @@ final class ItemParser {
         boolean rows = type == FormItem.Type.ROWS;
         onlyFor(where, node, "columns", rows, "줄 표(rows)");
         onlyFor(where, node, "maxRows", rows, "줄 표(rows)");
+        onlyFor(where, node, "rowLabels", rows, "줄 표(rows)");
 
         boolean multiline = text && Json.bool(node, "multiline");
         int maxLength = text ? maxLength(where, node, multiline) : 0;
@@ -88,12 +89,16 @@ final class ItemParser {
             problems.add(where + ": min·max는 0 이상이고 min ≤ max ≤ 선택지 수여야 합니다.");
         }
         List<FormItem.Column> columns = rows ? columns(where, node.path("columns")) : List.of();
-        int maxRows = rows ? Json.integer(node, "maxRows", DEFAULT_ROWS) : 0;
+        List<String> rowLabels = rows && node.has("rowLabels") ? rowLabels(where, node.path("rowLabels")) : List.of();
+        int maxRows = rows ? Json.integer(node, "maxRows", rowLabels.isEmpty() ? DEFAULT_ROWS : rowLabels.size()) : 0;
         if (rows && (maxRows < 1 || maxRows > MOST_ROWS)) {
             problems.add(where + ": maxRows는 1~" + MOST_ROWS + " 사이여야 합니다.");
         }
+        if (!rowLabels.isEmpty() && maxRows != rowLabels.size()) {
+            problems.add(where + ": rowLabels가 있으면 줄 수가 라벨 수(" + rowLabels.size() + ")로 정해지니 maxRows를 빼세요.");
+        }
         return new FormItem(id, label, Json.text(node, "help").strip(), Json.bool(node, "required"), type,
-                multiline, maxLength, options, min, max, columns, maxRows);
+                multiline, maxLength, options, min, max, columns, maxRows, rowLabels);
     }
 
     private FormItem.Type type(String where, String raw) {
@@ -165,6 +170,19 @@ final class ItemParser {
             columns.add(new FormItem.Column(id, label));
         }
         return columns;
+    }
+
+    /** One label per fixed form row, in the form's order. */
+    private List<String> rowLabels(String where, JsonNode node) {
+        List<String> labels = new ArrayList<>();
+        if (node.isArray()) {
+            node.forEach(label -> labels.add(label.isString() ? label.asString().strip() : ""));
+        }
+        if (labels.isEmpty() || labels.size() > MOST_ROWS || labels.contains("")) {
+            problems.add(where + ": rowLabels는 줄마다 붙일 라벨 1~" + MOST_ROWS + "개(빈 글자 없이)여야 합니다.");
+            return List.of();
+        }
+        return List.copyOf(labels);
     }
 
     private void onlyFor(String where, JsonNode node, String key, boolean allowed, String types) {

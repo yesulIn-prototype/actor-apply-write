@@ -1,3 +1,4 @@
+import { LabeledRowsInput } from './LabeledRowsInput'
 import type { FormItem } from './types'
 import { rowsOf } from './types'
 
@@ -12,6 +13,8 @@ type Props = {
  * operator's limit. An empty answer still shows one row to start typing in.
  */
 export function RowsInput({ item, values, onChange }: Props) {
+  if ((item.rowLabels ?? []).length > 0) return <LabeledRowsInput item={item} values={values} onChange={onChange} />
+
   const written = rowsOf(item, values)
   const rows = written.length > 0 ? written : [item.columns.map(() => '')]
   const full = rows.length >= item.maxRows

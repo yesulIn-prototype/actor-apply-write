@@ -1,8 +1,10 @@
 package kr.yesulin.actor.form;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -87,10 +89,13 @@ final class OutputParser {
     private FormOutput.Rows rows(String where, CellAddress cell, JsonNode node) {
         JsonNode columnNodes = node.path("columns");
         List<String> columns = new ArrayList<>();
+        Map<String, FormOutput.Fill> fills = new HashMap<>();
         if (!columnNodes.isArray() || columnNodes.isEmpty()) {
             problems.add(where + ": rows 출력에는 칸마다 넣을 열 id를 적은 columns가 필요합니다.");
         } else {
-            columnNodes.forEach(column -> columns.add(column.isString() ? column.asString().strip() : ""));
+            columnNodes.forEach(column -> columns.add(column.isObject()
+                    ? fill(where, column, fills)
+                    : column.isString() ? column.asString().strip() : ""));
         }
         if (!node.path("formRows").isIntegralNumber()) {
             problems.add(where + ": formRows(양식에 이미 있는 줄 수)가 필요합니다. 줄이 없으면 0입니다.");
@@ -103,7 +108,21 @@ final class OutputParser {
         if (formRows == 0 && (!grow || cell.rowIndex() == 0)) {
             problems.add(where + ": formRows가 0이면 grow가 true여야 하고, 줄은 cell 바로 위 줄 아래에 생기므로 cell이 첫 줄일 수 없습니다.");
         }
-        return new FormOutput.Rows(cell, Json.text(node, "rows"), columns, Math.max(formRows, 0), grow);
+        return new FormOutput.Rows(cell, Json.text(node, "rows"), columns, Math.max(formRows, 0), grow, fills);
+    }
+
+    /** A column written as { "id", "find", "replace" }: the cell keeps its text and {id} fills part of it. */
+    private String fill(String where, JsonNode column, Map<String, FormOutput.Fill> fills) {
+        Json.unknownKeys(where + ".columns", column, Set.of("id", "find", "replace"), problems);
+        String id = Json.text(column, "id").strip();
+        String find = Json.text(column, "find");
+        String replace = Json.text(column, "replace");
+        if (find.isEmpty() || !replace.contains("{" + id + "}")) {
+            problems.add(where + ": columns의 '" + id + "'는 원문에서 찾을 find와 {" + id + "}을 넣은 replace가 필요합니다.");
+        } else {
+            fills.put(id, new FormOutput.Fill(find, replace));
+        }
+        return id;
     }
 
     private CellAddress cell(String where, String raw) {

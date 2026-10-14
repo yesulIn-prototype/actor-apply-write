@@ -1,0 +1,233 @@
+/* Animated phone sketch */
+.home-demo {
+  display: grid;
+  place-items: center;
+  margin-top: 28px;
+  padding: 28px 0;
+  border-radius: 24px;
+  background: linear-gradient(160deg, var(--blue-50), var(--grey-50) 70%);
+}
+
+.demo-phone {
+  width: 236px;
+  padding: 8px;
+  border-radius: 34px;
+  background: var(--grey-900);
+  box-shadow: 0 16px 40px rgba(2, 32, 71, 0.18);
+}
+
+.demo-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 380px;
+  padding: 26px 16px 16px;
+  overflow: hidden;
+  border-radius: 26px;
+  background: var(--white);
+  font-size: 11px;
+}
+
+.demo-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.demo-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.demo-fields {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.demo-label {
+  margin: 8px 0 4px;
+  font-weight: 600;
+  color: var(--grey-700);
+}
+
+.demo-fields .demo-label:first-child {
+  margin-top: 0;
+}
+
+.demo-input {
+  display: flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--grey-200);
+  border-radius: 8px;
+  background: var(--grey-100);
+  white-space: nowrap;
+}
+
+.demo-typed {
+  overflow: hidden;
+  color: var(--grey-900);
+}
+
+.demo-typed-name {
+  animation: demo-type-name 9s steps(3, end) infinite;
+}
+
+.demo-typed-phone {
+  animation: demo-type-phone 9s steps(13, end) infinite;
+}
+
+.demo-photo {
+  display: block;
+  align-self: flex-start;
+  width: 60px;
+  height: 76px;
+  margin-top: 21px;
+  overflow: hidden;
+  border-radius: 8px;
+  animation: demo-photo 9s var(--ease-out) infinite;
+}
+
+.demo-photo svg {
+  display: block;
+}
+
+.demo-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--grey-100);
+}
+
+.demo-lines i {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--grey-300);
+}
+
+.demo-lines i:nth-child(2) {
+  width: 80%;
+}
+
+.demo-lines i:nth-child(3) {
+  width: 55%;
+}
+
+.demo-button {
+  display: grid;
+  place-items: center;
+  height: 34px;
+  margin-top: auto;
+  border-radius: 10px;
+  background: var(--blue-500);
+  color: var(--white);
+  font-size: 12px;
+  font-weight: 700;
+  animation: demo-press 9s var(--ease) infinite;
+}
+
+.demo-result {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0;
+  transform: translateY(100%);
+  animation: demo-result 9s var(--ease-out) infinite;
+}
+
+.demo-check {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--green-500);
+  color: var(--white);
+  font-size: 18px;
+}
+
+.demo-files {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.demo-file {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 68px;
+  border-radius: 8px 18px 8px 8px;
+  color: var(--white);
+  font-size: 12px;
+  font-weight: 700;
+  animation: demo-file 9s var(--ease-out) infinite;
+}
+
+.demo-file-hwp {
+  background: var(--blue-500);
+}
+
+.demo-file-pdf {
+  background: var(--red-500);
+  animation-name: demo-file-late;
+}
+
+@keyframes demo-type-name {
+  0%, 4% { clip-path: inset(0 100% 0 0); }
+  14%, 96% { clip-path: inset(0 0 0 0); }
+  100% { clip-path: inset(0 100% 0 0); }
+}
+
+@keyframes demo-type-phone {
+  0%, 18% { clip-path: inset(0 100% 0 0); }
+  34%, 96% { clip-path: inset(0 0 0 0); }
+  100% { clip-path: inset(0 100% 0 0); }
+}
+
+@keyframes demo-photo {
+  0%, 38% { opacity: 0; transform: scale(0.8); }
+  46%, 96% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+@keyframes demo-press {
+  0%, 52% { transform: scale(1); background: var(--blue-500); }
+  55% { transform: scale(0.94); background: var(--blue-600); }
+  58%, 100% { transform: scale(1); background: var(--blue-500); }
+}
+
+@keyframes demo-result {
+  0%, 59% { opacity: 0; transform: translateY(100%); }
+  65%, 92% { opacity: 1; transform: translateY(0); }
+  97%, 100% { opacity: 0; transform: translateY(0); }
+}
+
+@keyframes demo-file {
+  0%, 66% { opacity: 0; transform: translateY(8px) scale(0.9); }
+  71%, 100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes demo-file-late {
+  0%, 69% { opacity: 0; transform: translateY(8px) scale(0.9); }
+  74%, 100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-demo * {
+    animation-name: none;
+  }
+}

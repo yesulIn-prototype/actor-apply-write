@@ -91,7 +91,7 @@ sequenceDiagram
 ## 3. 브라우저가 맡는 것 (`frontend/src`)
 
 ### 입구 나누기
-- `Root.tsx`: 주소로 화면을 고른다. `/apply/<숫자>` → `form/ApplyApp`, `/admin…` → `admin/AdminApp`, 그 외 → 공고별 링크로 접속하라는 안내.
+- `Root.tsx`: 주소로 화면을 고른다. `/apply/<숫자>` → `form/ApplyApp`, `/admin…` → `admin/AdminApp`, 그 외 → `home/HomePage`(서비스 소개, 작성 흐름 애니메이션 `HomeDemo`, 공고 알림 오픈채팅방 링크). 화면 위 예술in 로고(`ui.tsx`의 `TopBar`)는 `/`로 이동한다.
 - 서버(`web/AppRoutes.java`)는 `/apply/{vid}`, `/admin`, `/admin/forms/{vid}` 요청에 같은 `index.html`을 돌려준다. 로컬에서는 Vite가 대신한다.
 
 ### 배우 화면 (`form/`)

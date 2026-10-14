@@ -8,6 +8,7 @@ export const publicFormSchema = z.object({
     multiline: z.boolean(), maxLength: z.number(), min: z.number(), max: z.number(), maxRows: z.number(),
     options: z.array(z.object({ id: z.string(), label: z.string(), output: z.string().optional() })),
     columns: z.array(z.object({ id: z.string(), label: z.string() })),
+    rowLabels: z.array(z.string()).optional(),
   })),
   submission: z.object({ email: z.string(), subject: z.string(), deadline: z.string(), note: z.string() }),
   pdfFirst: z.boolean(),

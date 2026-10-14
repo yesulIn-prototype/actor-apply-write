@@ -133,6 +133,11 @@ public final class FormDefinitionParser {
                 problems.add(where + ": columns의 '" + column + "'는 " + rows.item() + " 항목의 열이 아닙니다.");
             }
         }
+        if (!item.get().rowLabels().isEmpty() && (rows.grow() || rows.formRows() != item.get().rowLabels().size())) {
+            problems.add(where + ": 줄 라벨(rowLabels)이 있는 " + rows.item() + " 항목은 formRows가 라벨 수("
+                    + item.get().rowLabels().size() + ")와 같아야 하고 grow를 쓸 수 없습니다.");
+            return;
+        }
         if (!rows.grow() && item.get().maxRows() > rows.formRows()) {
             problems.add(where + ": 양식 줄이 " + rows.formRows() + "개라 grow 없이는 " + rows.item()
                     + " 항목의 maxRows(" + item.get().maxRows() + ")만큼 넣을 수 없습니다. maxRows를 줄이거나 grow를 켜세요.");

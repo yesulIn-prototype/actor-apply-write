@@ -111,6 +111,13 @@ test('draws each item the way the operator typed it, with no upload step', async
   expect(screen.getByRole('button', { name: '지원서 만들기' })).toBeDisabled()
 })
 
+test('takes the brand logo back to the service home', async () => {
+  render(<ApplyApp vid="22382" />)
+
+  await screen.findByRole('heading', { name: '잠자는 숲속의 공주 지원서' })
+  expect(screen.getByRole('link', { name: '예술in 홈' })).toHaveAttribute('href', '/')
+})
+
 test('stops a third pick when the operator allowed two', async () => {
   render(<ApplyApp vid="22382" />)
   const roles = within(await screen.findByRole('group', { name: '지원 배역' }))

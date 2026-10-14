@@ -49,7 +49,7 @@ final class FormComposer {
                     // Rows added for an output with no rows of its own sit under the row above its cell, so
                     // they moved its cell too: its first row is where they start.
                     int first = cell.rowIndex() - (rows.formRows() == 0 ? added(rows, answers) : 0);
-                    rows(definition, rows, answers, first, writes, targets);
+                    rows(definition, rows, answers, first, cellTexts, writes, targets);
                 }
             }
             editedItem(output).ifPresent(id -> targets.add(new EditTarget(id, cell)));
@@ -76,7 +76,7 @@ final class FormComposer {
      * opens the rows item from the preview.
      */
     private static void rows(FormDefinition definition, FormOutput.Rows rows, FormAnswers answers, int firstRow,
-            List<CellWrite> writes, List<EditTarget> targets) {
+            Map<CellAddress, String> cellTexts, List<CellWrite> writes, List<EditTarget> targets) {
         List<String> columnIds = definition.item(rows.item()).orElseThrow().columns().stream()
                 .map(FormItem.Column::id)
                 .toList();
@@ -91,11 +91,28 @@ final class FormComposer {
                 CellAddress cell = new CellAddress(rows.cell().tableIndex(), firstRow + row, rows.cell().cellIndex() + at);
                 targets.add(new EditTarget(rows.item(), cell));
                 String value = row < entries.size() ? entries.get(row).get(column) : "";
+                FormOutput.Fill fill = rows.fills().get(rows.columns().get(at));
+                if (!value.isEmpty() && fill != null) {
+                    // Added rows copy the form's last row, so they fill that row's text.
+                    int formRow = rows.cell().rowIndex() + Math.min(row, rows.formRows() - 1);
+                    String own = cellTexts.getOrDefault(new CellAddress(cell.tableIndex(), formRow, cell.cellIndex()), "");
+                    value = filled(own, fill, rows.columns().get(at), value);
+                }
                 if (!value.isEmpty()) {
                     writes.add(new CellWrite.Replace(cell, value));
                 }
             }
         }
+    }
+
+    /** The form's text with the fill's find swapped for its replace; just the value when the text lacks the find. */
+    private static String filled(String own, FormOutput.Fill fill, String column, String value) {
+        int at = own.indexOf(fill.find());
+        if (at < 0) {
+            return value;
+        }
+        String replaced = Placeholders.fill(fill.replace(), name -> name.equals(column) ? value : "");
+        return own.substring(0, at) + replaced + own.substring(at + fill.find().length());
     }
 
     /**

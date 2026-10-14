@@ -82,7 +82,10 @@ final class FormAnswers {
         };
     }
 
-    /** The non-blank rows, flattened again; each cell one line. */
+    /**
+     * The non-blank rows, flattened again; each cell one line. Labeled rows keep their blank ones in place (the
+     * k-th row is the k-th label) unless every one is blank.
+     */
     private static List<String> rows(FormItem item, List<String> given) {
         int columns = item.columns().size();
         if (given.size() % columns != 0) {
@@ -93,7 +96,7 @@ final class FormAnswers {
             List<String> row = given.subList(start, start + columns).stream()
                     .map(value -> value == null ? "" : value.replaceAll("\\s*[\\r\\n]+\\s*", " ").strip())
                     .toList();
-            if (row.stream().allMatch(String::isEmpty)) {
+            if (row.stream().allMatch(String::isEmpty) && item.rowLabels().isEmpty()) {
                 continue;
             }
             if (row.stream().anyMatch(value -> value.codePointCount(0, value.length()) > ROW_CELL_LIMIT)) {
@@ -104,7 +107,7 @@ final class FormAnswers {
         if (kept.size() / columns > item.maxRows()) {
             throw new InvalidAnswerException(item.label() + " 항목은 " + item.maxRows() + "줄까지 쓸 수 있어요");
         }
-        return List.copyOf(kept);
+        return kept.stream().allMatch(String::isEmpty) ? List.of() : List.copyOf(kept);
     }
 
     private static String text(FormItem item, List<String> given) {

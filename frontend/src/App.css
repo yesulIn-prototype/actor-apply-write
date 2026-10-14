@@ -25,6 +25,11 @@
   margin: 0 12px;
 }
 
+.brand-link {
+  display: block;
+  border-radius: 8px;
+}
+
 .icon-button {
   display: grid;
   place-items: center;

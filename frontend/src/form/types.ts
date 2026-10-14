@@ -27,6 +27,8 @@ export type FormItem = {
   readonly columns: readonly FormColumn[]
   /** ROWS only: most rows the applicant may write. */
   readonly maxRows: number
+  /** ROWS only: one label per row the form fixes (초등학교, 중학교, …); the k-th row always means the k-th label. */
+  readonly rowLabels?: readonly string[]
 }
 
 /** How the notice takes applications; empty strings for what the operator did not give. */
@@ -93,7 +95,10 @@ export function rowsOf(item: FormItem, values: readonly string[]): readonly (rea
   return rows
 }
 
-/** What the server gets: trimmed values, blank ones (and a ROWS item's blank rows) left out. */
+/**
+ * What the server gets: trimmed values, blank ones (and a ROWS item's blank rows) left out. A labeled ROWS item keeps
+ * its blank rows in place, since a row's position is its label; with every row blank it is left out too.
+ */
 export function filledAnswers(form: PublicForm, answers: Answers) {
   const filled: Record<string, readonly string[]> = {}
 
@@ -101,13 +106,23 @@ export function filledAnswers(form: PublicForm, answers: Answers) {
     const values = answers[item.id] ?? []
 
     const kept = item.type === 'ROWS'
-      ? rowsOf(item, values).map((row) => row.map((value) => value.trim())).filter((row) => row.some((value) => value !== '')).flat()
+      ? rowsAnswer(item, values)
       : values.map((value) => value.trim()).filter((value) => value !== '')
 
     if (kept.length > 0) filled[item.id] = kept
   }
 
   return filled
+}
+
+/** A ROWS answer to send: its written rows, or every row in place when the rows are labeled. */
+function rowsAnswer(item: FormItem, values: readonly string[]): readonly string[] {
+  const rows = rowsOf(item, values).map((row) => row.map((value) => value.trim()))
+  const written = rows.filter((row) => row.some((value) => value !== ''))
+
+  if ((item.rowLabels ?? []).length > 0 && written.length > 0) return rows.flat()
+
+  return written.flat()
 }
 
 /** Required items still empty, in screen order. */
