@@ -33,9 +33,9 @@ const form: PublicForm = {
 
 const JOB = '7907f91f-de04-418f-a284-75836cbebce5'
 
-/** Optional items start folded; tests that answer them open the group first. */
-async function openOptionalItems() {
-  fireEvent.click(await screen.findByRole('button', { name: /선택 항목 \d+개 더 쓰기/ }))
+/** Optional items are chips; a test opens the one it answers. */
+async function openOptional(label: string) {
+  fireEvent.click(await screen.findByRole('button', { name: new RegExp(`^${label}`), expanded: false }))
 }
 
 beforeEach(() => {
@@ -105,32 +105,39 @@ function sentRequest(call: number) {
 
 test('draws each item the way the operator typed it, with no upload step', async () => {
   render(<ApplyApp vid="22382" />)
-  await openOptionalItems()
+  await openOptional('자기소개')
 
   expect(await screen.findByRole('heading', { name: '잠자는 숲속의 공주 지원서' })).toBeInTheDocument()
   expect(screen.queryByLabelText('지원서 파일')).not.toBeInTheDocument()
   expect(screen.getByLabelText('연락처 *')).toHaveAttribute('type', 'tel')
-  expect(screen.getByLabelText('자기소개').tagName).toBe('TEXTAREA')
+  expect(screen.getByRole('textbox', { name: '자기소개' }).tagName).toBe('TEXTAREA')
   expect(screen.getByText('짧게 적어주세요')).toBeInTheDocument()
   expect(screen.getByRole('button', { name: '남' })).toHaveAttribute('aria-pressed', 'false')
   expect(screen.getByLabelText('프로필 사진 사진 선택')).toBeInTheDocument()
   expect(screen.getByRole('button', { name: '지원서 만들기' })).toBeDisabled()
 })
 
-test('shows required items first, folds optional ones and keeps photos last', async () => {
+test('shows required items first, optional ones as chips opened one at a time, and photos last', async () => {
   render(<ApplyApp vid="22382" />)
 
-  const more = await screen.findByRole('button', { name: /선택 항목 3개 더 쓰기/ })
+  const intro = await screen.findByRole('button', { name: '자기소개', expanded: false })
   expect(screen.getByLabelText('이름 *')).toBeInTheDocument()
-  expect(screen.queryByLabelText('자기소개')).not.toBeInTheDocument()
-  expect(screen.getByRole('button', { name: '지원서 만들기' })).toBeDisabled()
-  fireEvent.click(more)
+  expect(screen.queryByRole('textbox', { name: '자기소개' })).not.toBeInTheDocument()
   const titles = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
   expect(titles).toEqual(['필수 항목', '선택 항목', '사진'])
-  const order = ['이름 *', '연락처 *', '자기소개', '프로필 사진 사진 선택'].map((label) => screen.getByLabelText(label))
+  const order = [screen.getByLabelText('연락처 *'), intro, screen.getByLabelText('프로필 사진 사진 선택')]
   order.slice(1).forEach((element, index) => {
     expect(order[index].compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
+
+  fireEvent.click(intro)
+  fireEvent.change(screen.getByRole('textbox', { name: '자기소개' }), { target: { value: '안녕하세요' } })
+  fireEvent.click(screen.getByRole('button', { name: '출연 경력', expanded: false }))
+  expect(screen.queryByRole('textbox', { name: '자기소개' })).not.toBeInTheDocument()
+  expect(screen.getByRole('group', { name: '출연 경력' })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '자기소개 작성함' })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: '다 썼어요' }))
+  expect(screen.queryByRole('group', { name: '출연 경력' })).not.toBeInTheDocument()
 })
 
 test('takes the brand logo back to the service home', async () => {
@@ -142,7 +149,7 @@ test('takes the brand logo back to the service home', async () => {
 
 test('stops a third pick when the operator allowed two', async () => {
   render(<ApplyApp vid="22382" />)
-  await openOptionalItems()
+  await openOptional('지원 배역')
   const roles = within(await screen.findByRole('group', { name: '지원 배역' }))
 
   fireEvent.click(roles.getByRole('button', { name: '곰역' }))
@@ -154,7 +161,7 @@ test('stops a third pick when the operator allowed two', async () => {
 
 test('sends answers by item, never cells, and rebuilds the same applicant file after an edit', async () => {
   render(<ApplyApp vid="22382" />)
-  await openOptionalItems()
+  await openOptional('지원 배역')
   fireEvent.change(await screen.findByLabelText('이름 *'), { target: { value: '홍길동' } })
   fireEvent.change(screen.getByLabelText('연락처 *'), { target: { value: '010-1234-5678' } })
   fireEvent.click(screen.getByRole('button', { name: '여' }))
@@ -178,7 +185,7 @@ test('sends answers by item, never cells, and rebuilds the same applicant file a
 
 test('takes a rows item row by row up to the limit and sends only the rows written in', async () => {
   render(<ApplyApp vid="22382" />)
-  await openOptionalItems()
+  await openOptional('출연 경력')
   const career = within(await screen.findByRole('group', { name: '출연 경력' }))
   fireEvent.change(career.getByLabelText('작품명'), { target: { value: '햄릿' } })
   fireEvent.click(career.getByRole('button', { name: '+ 줄 더하기 (1/2)' }))
@@ -207,7 +214,7 @@ test('shows where to send, with the mail subject filled from the answers', async
     return new Response(new Blob(['hwp']), { status: 200, headers: { 'X-Document-Id': JOB } })
   })
   render(<ApplyApp vid="22382" />)
-  await openOptionalItems()
+  await openOptional('지원 배역')
   fireEvent.change(await screen.findByLabelText('이름 *'), { target: { value: '홍길동' } })
   fireEvent.change(screen.getByLabelText('연락처 *'), { target: { value: '01012345678' } })
   fireEvent.click(screen.getByRole('button', { name: '여' }))
@@ -263,7 +270,7 @@ test('on a standard-form notice, puts the PDF first and sends the PDF from the m
 
 test('offers the operator template as the file name and sends the name the applicant typed instead', async () => {
   render(<ApplyApp vid="22382" />)
-  await openOptionalItems()
+  await openOptional('지원 배역')
   const name = await screen.findByLabelText('완성 파일 이름')
   expect(name).toHaveValue('잠자는숲속의공주_완성.hwp')
   fireEvent.change(screen.getByLabelText('이름 *'), { target: { value: '홍길동' } })

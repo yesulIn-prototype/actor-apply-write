@@ -37,18 +37,18 @@ test('continues text and chosen output name when returning to a notice after unm
   expect(screen.getByText(/이전에 작성한 내용을 불러왔어요/)).toBeVisible()
 })
 
-test('opens the folded optional items when the restored draft already answered one', async () => {
+test('marks an optional item already answered in the restored draft and opens it with the answer', async () => {
   // given
   const first = render(<ApplyApp vid="99001" />)
-  fireEvent.click(await screen.findByRole('button', { name: /선택 항목 1개 더 쓰기/ }))
-  fireEvent.change(screen.getByLabelText('특기'), { target: { value: '탭댄스' } })
+  fireEvent.click(await screen.findByRole('button', { name: '특기' }))
+  fireEvent.change(screen.getByRole('textbox', { name: '특기' }), { target: { value: '탭댄스' } })
   await screen.findByText('이 브라우저에 저장됐어요')
   // when
   first.unmount()
   render(<ApplyApp vid="99001" />)
   // then
-  expect(await screen.findByLabelText('특기')).toHaveValue('탭댄스')
-  expect(screen.queryByRole('button', { name: /선택 항목 1개 더 쓰기/ })).not.toBeInTheDocument()
+  fireEvent.click(await screen.findByRole('button', { name: '특기 작성함' }))
+  expect(screen.getByRole('textbox', { name: '특기' })).toHaveValue('탭댄스')
 })
 
 test('explicitly clears persisted input and does not bring it back on the next visit', async () => {

@@ -64,7 +64,7 @@ export function TestPanel({ vid, detail, revision, onTested }: {
       {form && (
         <div className="admin-test-form">
           <h3>{form.title}</h3>
-          <FormFields form={form} answers={testAnswers} photos={answers.photos} onValues={answers.setValues} onPhoto={answers.pickPhoto} />
+          <FormFields form={form} answers={testAnswers} photos={answers.photos} onValues={answers.setValues} onPhoto={answers.pickPhoto} allOpen />
           <div className="admin-row">
             <button type="button" className="admin-primary" disabled={building} onClick={build}>
               {building ? '만드는 중…' : '테스트 생성'}
